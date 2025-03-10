@@ -5,7 +5,7 @@ import retrofit2.http.Body
 import retrofit2.http.POST
 
 interface AuthApi {
-    @POST("/api/auth/google")
+    @POST("api/auth/google")
     fun googleLogin(@Body request: GoogleLoginRequest): Call<TokenResponse>
 }
 

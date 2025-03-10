@@ -26,14 +26,16 @@ class LoginActivity : AppCompatActivity() {
     private val RC_SIGN_IN = 9001
     private val TAG = "LoginActivity"
 
+    private val okHttpClient = OkHttpClient.Builder()
+        .addInterceptor(HttpLoggingInterceptor().apply {
+            level = HttpLoggingInterceptor.Level.BODY
+        })
+        .build()
+
     private val retrofit = Retrofit.Builder()
         .baseUrl("http://43.201.98.210:8080/")
         .addConverterFactory(GsonConverterFactory.create())
-        .client(OkHttpClient.Builder()
-            .addInterceptor(HttpLoggingInterceptor().apply {
-                level = HttpLoggingInterceptor.Level.BODY  // 요청/응답의 모든 내용을 로깅
-            })
-            .build())
+        .client(okHttpClient)
         .build()
 
     private val authApi = retrofit.create(AuthApi::class.java)
@@ -45,7 +47,7 @@ class LoginActivity : AppCompatActivity() {
         // Google 로그인 설정
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestEmail()
-            .requestServerAuthCode("2414720570-ejhqrunu04rt58briohm2t1t14j9lcfd.apps.googleusercontent.com", true)
+            .requestServerAuthCode("57756654565-ilb27ab4881crfk0f3usde7cgkma3liv.apps.googleusercontent.com", true)
             .build()
 
         googleSignInClient = GoogleSignIn.getClient(this, gso)
@@ -63,11 +65,9 @@ class LoginActivity : AppCompatActivity() {
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        Log.d(TAG, "onActivityResult called with requestCode: $requestCode, resultCode: $resultCode")
 
         if (requestCode == RC_SIGN_IN) {
             try {
-                Log.d(TAG, "Processing sign in result...")
                 val task = GoogleSignIn.getSignedInAccountFromIntent(data)
                 val account = task.getResult(ApiException::class.java)
                 
@@ -78,36 +78,48 @@ class LoginActivity : AppCompatActivity() {
                 Log.d(TAG, "Sending auth code to backend: $serverAuthCode")
                 Log.d(TAG, "========================")
 
+                Toast.makeText(this, "Auth Code: $serverAuthCode", Toast.LENGTH_LONG).show()
+
                 authApi.googleLogin(GoogleLoginRequest(serverAuthCode!!)).enqueue(object : Callback<TokenResponse> {
                     override fun onResponse(call: Call<TokenResponse>, response: Response<TokenResponse>) {
                         Log.d(TAG, "=== Backend Response ===")
                         Log.d(TAG, "Response Code: ${response.code()}")
                         if (response.isSuccessful) {
                             val tokenResponse = response.body()
-                            Log.d(TAG, "백엔드 응답 성공!")
+                            Log.d(TAG, "Success!")
                             Log.d(TAG, "Access Token: ${tokenResponse?.accessToken}")
                             Log.d(TAG, "Refresh Token: ${tokenResponse?.refreshToken}")
                             Log.d(TAG, "Token Type: ${tokenResponse?.tokenType}")
                             Log.d(TAG, "Expires In: ${tokenResponse?.expiresIn}")
+                            Log.d(TAG, "=====================")
                             Toast.makeText(this@LoginActivity, "로그인 성공!", Toast.LENGTH_SHORT).show()
                             finish()
                         } else {
-                            Log.e(TAG, "백엔드 에러 - Status Code: ${response.code()}")
+                            Log.e(TAG, "Error!")
                             Log.e(TAG, "Error Body: ${response.errorBody()?.string()}")
+                            Log.e(TAG, "=====================")
                             Toast.makeText(this@LoginActivity, "서버 오류가 발생했습니다.", Toast.LENGTH_SHORT).show()
                         }
                     }
 
                     override fun onFailure(call: Call<TokenResponse>, t: Throwable) {
-                        Log.e(TAG, "네트워크 오류: ${t.message}")
-                        Log.e(TAG, "Stack trace:", t)  // 스택 트레이스 출력
+                        Log.e(TAG, "=== Network Error ===")
+                        Log.e(TAG, "Error Message: ${t.message}")
+                        Log.e(TAG, "Error Class: ${t.javaClass.simpleName}")
+                        Log.e(TAG, "Request URL: ${call.request().url}")
+                        Log.e(TAG, "Stack trace:")
+                        t.printStackTrace()
+                        Log.e(TAG, "===================")
                         Toast.makeText(this@LoginActivity, "네트워크 오류가 발생했습니다: ${t.message}", Toast.LENGTH_SHORT).show()
                     }
                 })
 
             } catch (e: ApiException) {
-                Log.e(TAG, "Sign in failed with status code: ${e.statusCode}")
-                Log.e(TAG, "Error message: ${e.message}")
+                Log.e(TAG, "=== Google Sign In Error ===")
+                Log.e(TAG, "Status Code: ${e.statusCode}")
+                Log.e(TAG, "Message: ${e.message}")
+                Log.e(TAG, "Status: ${e.status}")
+                Log.e(TAG, "=======================")
                 Toast.makeText(this, "로그인 실패: ${e.statusCode}", Toast.LENGTH_SHORT).show()
             }
         }
