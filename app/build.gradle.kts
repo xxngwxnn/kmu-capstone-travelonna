@@ -17,6 +17,28 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    buildFeatures {
+        buildConfig = true
+    }
+    
+    // 릴리스 서명 설정
+    signingConfigs {
+        create("release") {
+            storeFile = file("release-key.jks")
+            storePassword = "000000"
+            keyAlias = "release"
+            keyPassword = "000000"
+        }
+        
+        // 디버그 빌드도 릴리스 서명 구성 사용
+        getByName("debug") {
+            storeFile = file("release-key.jks")
+            storePassword = "000000"
+            keyAlias = "release"
+            keyPassword = "000000"
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -24,8 +46,15 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("release")
+        }
+        
+        debug {
+            // 디버그 빌드에도 릴리스 서명 구성 적용
+            signingConfig = signingConfigs.getByName("release")
         }
     }
+    
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
@@ -36,7 +65,6 @@ android {
 }
 
 dependencies {
-
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
