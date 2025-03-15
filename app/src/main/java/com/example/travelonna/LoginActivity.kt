@@ -34,7 +34,7 @@ class LoginActivity : AppCompatActivity() {
         .build()
 
     private val retrofit = Retrofit.Builder()
-        .baseUrl("http://10.0.2.2:8080/")  // 실제 Mac의 IP 주소
+        .baseUrl("http://travelonna.shop:8080/")  // 실제 Mac의 IP 주소
         .addConverterFactory(GsonConverterFactory.create())
         .client(okHttpClient)
         .build()
