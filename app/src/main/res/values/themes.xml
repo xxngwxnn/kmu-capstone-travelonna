@@ -5,5 +5,19 @@
         <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
     </style>
 
-    <style name="Theme.Travelonna" parent="Base.Theme.Travelonna" />
+    <style name="Theme.Travelonna" parent="Theme.AppCompat.Light.NoActionBar">
+        <!-- 기존 속성들 -->
+        
+        <!-- 버튼 기본 스타일 추가 -->
+        <item name="android:buttonStyle">@style/AppButtonStyle</item>
+    </style>
+
+    <style name="Theme.YourAppTheme" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="switchStyle">@style/FollowToggleStyle</item>
+    </style>
+
+    <style name="AppButtonStyle" parent="Widget.AppCompat.Button">
+        <item name="android:background">@drawable/blue_button_background</item>
+        <item name="android:textColor">@color/white</item>
+    </style>
 </resources>

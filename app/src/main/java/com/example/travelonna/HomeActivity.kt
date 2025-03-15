@@ -44,6 +44,7 @@ class HomeActivity : AppCompatActivity() {
         // RecyclerView 설정
         val recyclerView = findViewById<RecyclerView>(R.id.postsRecyclerView)
         recyclerView.layoutManager = LinearLayoutManager(this)
+        recyclerView.setHasFixedSize(true)
         recyclerView.adapter = PostAdapter(dummyPosts)
     }
 } 

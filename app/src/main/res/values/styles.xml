@@ -1,0 +1,25 @@
+<resources>
+    <!-- 기존 스타일들... -->
+    
+    <style name="FollowToggleStyle">
+        <item name="android:thumb">@drawable/toggle_thumb</item>
+        <item name="track">@drawable/toggle_track_background</item>
+        <item name="android:switchMinWidth">52dp</item>
+        <item name="android:switchPadding">4dp</item>
+        <item name="showText">false</item>
+    </style>
+
+    <style name="BlueButton" parent="Widget.AppCompat.Button">
+        <item name="android:background">@color/blue_primary</item>
+        <item name="android:textColor">@color/white</item>
+    </style>
+
+    <style name="DatePickerDialogTheme" parent="android:Theme.DeviceDefault.Light.Dialog">
+        <item name="android:colorAccent">@color/blue_primary</item>
+        <item name="android:buttonBarButtonStyle">@style/DatePickerButtonStyle</item>
+    </style>
+
+    <style name="DatePickerButtonStyle" parent="android:Widget.DeviceDefault.Button.Borderless">
+        <item name="android:textColor">@color/blue_primary</item>
+    </style>
+</resources> 

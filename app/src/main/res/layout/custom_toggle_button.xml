@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:paddingVertical="3dp">
+    
+    <View
+        android:id="@+id/toggleTrack"
+        android:layout_width="56dp"
+        android:layout_height="22dp"
+        android:layout_gravity="center_vertical"
+        android:background="@drawable/toggle_track_background" />
+    
+    <View
+        android:id="@+id/toggleThumb"
+        android:layout_width="28dp"
+        android:layout_height="28dp"
+        android:layout_gravity="center_vertical|start"
+        android:background="@drawable/toggle_thumb" />
+    
+</FrameLayout> 
