@@ -2,23 +2,26 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
+    android:gravity="center"
     android:orientation="vertical"
-    android:padding="8dp"
-    android:gravity="center">
+    android:paddingHorizontal="24dp"
+    android:paddingVertical="16dp">
 
     <TextView
         android:id="@+id/dayNumber"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Day 01"
-        android:textStyle="bold"
-        android:textSize="16sp" />
+        android:text="Day 1"
+        android:textColor="@color/black"
+        android:textSize="18sp"
+        android:textStyle="bold" />
 
     <TextView
         android:id="@+id/dayDate"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="10 Nov 2024"
-        android:textSize="12sp" />
+        android:text="10 Mar 2025"
+        android:textColor="@color/gray_text"
+        android:textSize="14sp" />
 
 </LinearLayout> 

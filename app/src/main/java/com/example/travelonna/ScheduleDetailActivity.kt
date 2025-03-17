@@ -5,8 +5,10 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
@@ -16,12 +18,14 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 import java.util.concurrent.TimeUnit
+import android.widget.HorizontalScrollView
 
 class ScheduleDetailActivity : AppCompatActivity() {
 
     private lateinit var tabLayout: TabLayout
     private lateinit var viewPager: ViewPager2
     private lateinit var addPlaceButton: TextView
+    private lateinit var completeButton: TextView
     
     private val startDateCalendar = Calendar.getInstance()
     private val endDateCalendar = Calendar.getInstance()
@@ -32,9 +36,9 @@ class ScheduleDetailActivity : AppCompatActivity() {
         setContentView(R.layout.activity_schedule_detail)
         
         // 뷰 초기화
-        tabLayout = findViewById(R.id.tabLayout)
         viewPager = findViewById(R.id.viewPager)
         addPlaceButton = findViewById(R.id.addPlaceButton)
+        completeButton = findViewById(R.id.completeButton)
         
         // 인텐트에서 날짜 데이터 가져오기
         val startDate = intent.getLongExtra("START_DATE", System.currentTimeMillis())
@@ -49,27 +53,23 @@ class ScheduleDetailActivity : AppCompatActivity() {
         
         // ViewPager 설정
         viewPager.adapter = DayPagerAdapter(this, dayCount, startDateCalendar)
+        viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+            override fun onPageSelected(position: Int) {
+                updateTabSelection(position)
+            }
+        })
         
-        // TabLayout과 ViewPager 연결
-        TabLayoutMediator(tabLayout, viewPager) { tab, position ->
-            val calendar = Calendar.getInstance()
-            calendar.timeInMillis = startDateCalendar.timeInMillis
-            calendar.add(Calendar.DAY_OF_MONTH, position)
-            
-            val dateFormat = SimpleDateFormat("d MMM yyyy", Locale.getDefault())
-            val dayFormat = SimpleDateFormat("dd", Locale.getDefault())
-            val monthFormat = SimpleDateFormat("MMM", Locale.getDefault())
-            
-            tab.text = "Day ${position + 1}\n${dayFormat.format(calendar.time)}"
-            tab.setCustomView(R.layout.tab_day_item)
-            val customView = tab.customView
-            customView?.findViewById<TextView>(R.id.dayNumber)?.text = "Day ${position + 1}"
-            customView?.findViewById<TextView>(R.id.dayDate)?.text = "${dayFormat.format(calendar.time)} ${monthFormat.format(calendar.time)} ${calendar.get(Calendar.YEAR)}"
-        }.attach()
+        // 커스텀 탭 설정
+        setupCustomTabs()
         
         // 장소 추가 버튼 리스너
         addPlaceButton.setOnClickListener {
             // 장소 추가 기능 구현 (향후)
+        }
+        
+        // 완료 버튼 리스너
+        completeButton.setOnClickListener {
+            finish() // 현재 화면 종료하고 이전 화면으로 돌아가기
         }
     }
     
@@ -149,4 +149,78 @@ class ScheduleDetailActivity : AppCompatActivity() {
             PlaceItem("스파크랜드", "대구광역시 달서구 두류공원로 200", R.drawable.dummy_place_3)
         )
     }
-} 
+    
+    // 커스텀 탭 설정
+    private fun setupCustomTabs() {
+        val tabContainer = findViewById<LinearLayout>(R.id.tabContainer)
+        tabContainer.removeAllViews()
+        
+        for (i in 0 until dayCount) {
+            val tabView = LayoutInflater.from(this).inflate(R.layout.tab_day_item, tabContainer, false)
+            val dayNumber = tabView.findViewById<TextView>(R.id.dayNumber)
+            val dayDate = tabView.findViewById<TextView>(R.id.dayDate)
+            
+            val calendar = Calendar.getInstance()
+            calendar.timeInMillis = startDateCalendar.timeInMillis
+            calendar.add(Calendar.DAY_OF_MONTH, i)
+            
+            val dayFormat = SimpleDateFormat("dd", Locale.getDefault())
+            val monthFormat = SimpleDateFormat("MMM", Locale.getDefault())
+            val yearFormat = SimpleDateFormat("yyyy", Locale.getDefault())
+            
+            dayNumber.text = "Day ${i + 1}"
+            dayDate.text = "${dayFormat.format(calendar.time)} ${monthFormat.format(calendar.time)} ${yearFormat.format(calendar.time)}"
+            
+            // 첫 번째 탭을 선택된 상태로 표시
+            if (i == 0) {
+                dayNumber.setTextColor(ContextCompat.getColor(this, R.color.blue_primary))
+                dayDate.setTextColor(ContextCompat.getColor(this, R.color.blue_primary))
+                tabView.setBackgroundResource(R.drawable.selected_tab_background)
+            }
+            
+            tabView.tag = i
+            tabView.setOnClickListener { v ->
+                // 모든 탭 초기화
+                for (j in 0 until tabContainer.childCount) {
+                    val tab = tabContainer.getChildAt(j)
+                    tab.findViewById<TextView>(R.id.dayNumber).setTextColor(ContextCompat.getColor(this, R.color.black))
+                    tab.findViewById<TextView>(R.id.dayDate).setTextColor(ContextCompat.getColor(this, R.color.gray_text))
+                    tab.setBackgroundResource(0)
+                }
+                
+                // 선택된 탭 하이라이트
+                v.findViewById<TextView>(R.id.dayNumber).setTextColor(ContextCompat.getColor(this, R.color.blue_primary))
+                v.findViewById<TextView>(R.id.dayDate).setTextColor(ContextCompat.getColor(this, R.color.blue_primary))
+                v.setBackgroundResource(R.drawable.selected_tab_background)
+                
+                // ViewPager 페이지 변경
+                viewPager.currentItem = v.tag as Int
+            }
+            
+            tabContainer.addView(tabView)
+        }
+    }
+    
+    // 페이지 변경 시 탭 선택 상태 업데이트
+    private fun updateTabSelection(position: Int) {
+        val tabContainer = findViewById<LinearLayout>(R.id.tabContainer)
+        
+        // 모든 탭 초기화
+        for (i in 0 until tabContainer.childCount) {
+            val tab = tabContainer.getChildAt(i)
+            tab.findViewById<TextView>(R.id.dayNumber).setTextColor(ContextCompat.getColor(this, R.color.black))
+            tab.findViewById<TextView>(R.id.dayDate).setTextColor(ContextCompat.getColor(this, R.color.gray_text))
+            tab.setBackgroundResource(0)
+        }
+        
+        // 선택된 탭 하이라이트
+        val selectedTab = tabContainer.getChildAt(position)
+        selectedTab.findViewById<TextView>(R.id.dayNumber).setTextColor(ContextCompat.getColor(this, R.color.blue_primary))
+        selectedTab.findViewById<TextView>(R.id.dayDate).setTextColor(ContextCompat.getColor(this, R.color.blue_primary))
+        selectedTab.setBackgroundResource(R.drawable.selected_tab_background)
+        
+        // 선택된 탭이 보이도록 스크롤
+        val scrollView = findViewById<HorizontalScrollView>(R.id.tabScrollView)
+        scrollView.smoothScrollTo(selectedTab.left - 50, 0)
+    }
+}

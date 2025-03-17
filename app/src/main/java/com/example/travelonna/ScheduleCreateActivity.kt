@@ -68,14 +68,12 @@ class ScheduleCreateActivity : AppCompatActivity() {
         locationCard = findViewById(R.id.locationCard)
         memoCard = findViewById(R.id.memoCard)
         
-        // 초기 UI 설정 - 처음에는 일정 유형만 표시
+        // 초기 UI 설정 - 처음에는 일정 유형과 일정 이름 모두 바로 표시
         setupInitialUI()
 
         // 토글 버튼 리스너 수정
         typeToggle.setOnCheckedChangeListener { isChecked ->
             updateToggleTextColors(isChecked)
-            // 유형 선택 후 이름 입력 카드 표시
-            showNextStep(nameCard)
         }
         
         // 일정 이름 입력 감지 리스너 추가
@@ -199,7 +197,7 @@ class ScheduleCreateActivity : AppCompatActivity() {
             putExtra("SCHEDULE_NAME", scheduleNameInput.text.toString())
             putExtra("LOCATION", locationSelectButton.text.toString())
             putExtra("MEMO", memoInput.text.toString())
-            putExtra("IS_GROUP", typeToggle.isChecked)
+            putExtra("IS_GROUP", typeToggle.isChecked())
         }
         startActivity(intent)
         finish()
@@ -296,9 +294,9 @@ class ScheduleCreateActivity : AppCompatActivity() {
 
     // 초기 UI 설정 메서드
     private fun setupInitialUI() {
-        // 처음에는 일정 유형만 표시
+        // 처음에는 일정 유형과 일정 이름 모두 바로 표시
         typeCard.visibility = View.VISIBLE
-        nameCard.visibility = View.GONE
+        nameCard.visibility = View.VISIBLE  // 지연 없이 바로 표시
         dateCard.visibility = View.GONE
         locationCard.visibility = View.GONE
         memoCard.visibility = View.GONE
