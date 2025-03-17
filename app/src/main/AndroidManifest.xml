@@ -38,6 +38,11 @@
             android:name=".LoginActivity"
             android:exported="false" />
 
+        <activity
+            android:name=".PlanActivity"
+            android:exported="false" />
+
+
         <activity android:name=".HomeActivity" android:exported="false" />
     </application>
 
