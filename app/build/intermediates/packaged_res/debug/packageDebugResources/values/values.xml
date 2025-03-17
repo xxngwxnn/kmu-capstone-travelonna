@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="blue">#1E90FF</color>
+    <color name="gray">#808080</color>
+    <color name="red">#FF4500</color>
+    <color name="white">#FFFFFFFF</color>
+    <string name="app_name">travelonna</string>
+    <style name="Base.Theme.Travelonna" parent="Theme.Material3.DayNight.NoActionBar">
+        
+        
+    </style>
+    <style name="Theme.Travelonna" parent="Base.Theme.Travelonna"/>
+</resources>

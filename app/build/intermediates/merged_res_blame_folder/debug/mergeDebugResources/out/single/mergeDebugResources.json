@@ -1,0 +1,170 @@
+[
+    {
+        "merged": "com.example.travelonna.app-debug-36:/layout_item_plan.xml.flat",
+        "source": "com.example.travelonna.app-main-38:/layout/item_plan.xml"
+    },
+    {
+        "merged": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-debug-36:\\drawable_item_background.png.flat",
+        "source": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-main-38:\\drawable\\item_background.png"
+    },
+    {
+        "merged": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-debug-36:\\drawable_start_display.png.flat",
+        "source": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-main-38:\\drawable\\start_display.png"
+    },
+    {
+        "merged": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-debug-36:\\layout_activity_main.xml.flat",
+        "source": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-main-38:\\layout\\activity_main.xml"
+    },
+    {
+        "merged": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-debug-36:\\mipmap-xxhdpi_ic_launcher.webp.flat",
+        "source": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-main-38:\\mipmap-xxhdpi\\ic_launcher.webp"
+    },
+    {
+        "merged": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-debug-36:\\layout_activity_login.xml.flat",
+        "source": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-main-38:\\layout\\activity_login.xml"
+    },
+    {
+        "merged": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-debug-36:\\drawable_toggle_track_background.xml.flat",
+        "source": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-main-38:\\drawable\\toggle_track_background.xml"
+    },
+    {
+        "merged": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-debug-36:\\drawable_ic_profile_placeholder.png.flat",
+        "source": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-main-38:\\drawable\\ic_profile_placeholder.png"
+    },
+    {
+        "merged": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-debug-36:\\mipmap-xhdpi_ic_launcher.webp.flat",
+        "source": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-main-38:\\mipmap-xhdpi\\ic_launcher.webp"
+    },
+    {
+        "merged": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-debug-36:\\mipmap-xhdpi_ic_launcher_round.webp.flat",
+        "source": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-main-38:\\mipmap-xhdpi\\ic_launcher_round.webp"
+    },
+    {
+        "merged": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-debug-36:\\layout_item_post.xml.flat",
+        "source": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-main-38:\\layout\\item_post.xml"
+    },
+    {
+        "merged": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-debug-36:\\drawable_ic_launcher_foreground.xml.flat",
+        "source": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-main-38:\\drawable\\ic_launcher_foreground.xml"
+    },
+    {
+        "merged": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-debug-36:\\layout_activity_home.xml.flat",
+        "source": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-main-38:\\layout\\activity_home.xml"
+    },
+    {
+        "merged": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-debug-36:\\mipmap-xxhdpi_ic_launcher_round.webp.flat",
+        "source": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-main-38:\\mipmap-xxhdpi\\ic_launcher_round.webp"
+    },
+    {
+        "merged": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-debug-36:\\mipmap-xxxhdpi_ic_launcher_round.webp.flat",
+        "source": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-main-38:\\mipmap-xxxhdpi\\ic_launcher_round.webp"
+    },
+    {
+        "merged": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-debug-36:\\drawable_main_dummy_2.png.flat",
+        "source": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-main-38:\\drawable\\main_dummy_2.png"
+    },
+    {
+        "merged": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-debug-36:\\mipmap-xxxhdpi_ic_launcher.webp.flat",
+        "source": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-main-38:\\mipmap-xxxhdpi\\ic_launcher.webp"
+    },
+    {
+        "merged": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-debug-36:\\drawable_ad_banner.png.flat",
+        "source": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-main-38:\\drawable\\ad_banner.png"
+    },
+    {
+        "merged": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-debug-36:\\drawable_write_icon.xml.flat",
+        "source": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-main-38:\\drawable\\write_icon.xml"
+    },
+    {
+        "merged": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-debug-36:\\mipmap-mdpi_ic_launcher.webp.flat",
+        "source": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-main-38:\\mipmap-mdpi\\ic_launcher.webp"
+    },
+    {
+        "merged": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-debug-36:\\drawable_mark.png.flat",
+        "source": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-main-38:\\drawable\\mark.png"
+    },
+    {
+        "merged": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-debug-36:\\drawable_turn_on_icon.xml.flat",
+        "source": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-main-38:\\drawable\\turn_on_icon.xml"
+    },
+    {
+        "merged": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-debug-36:\\layout_item_plan.xml.flat",
+        "source": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-main-38:\\layout\\item_plan.xml"
+    },
+    {
+        "merged": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-debug-36:\\xml_backup_rules.xml.flat",
+        "source": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-main-38:\\xml\\backup_rules.xml"
+    },
+    {
+        "merged": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-debug-36:\\drawable_start_button.png.flat",
+        "source": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-main-38:\\drawable\\start_button.png"
+    },
+    {
+        "merged": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-debug-36:\\drawable_ic_add.png.flat",
+        "source": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-main-38:\\drawable\\ic_add.png"
+    },
+    {
+        "merged": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-debug-36:\\drawable_ic_alram.xml.flat",
+        "source": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-main-38:\\drawable\\ic_alram.xml"
+    },
+    {
+        "merged": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-debug-36:\\layout_activity_start.xml.flat",
+        "source": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-main-38:\\layout\\activity_start.xml"
+    },
+    {
+        "merged": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-debug-36:\\drawable_plan_whitebox.png.flat",
+        "source": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-main-38:\\drawable\\plan_whitebox.png"
+    },
+    {
+        "merged": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-debug-36:\\drawable_plan_bluebox.png.flat",
+        "source": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-main-38:\\drawable\\plan_bluebox.png"
+    },
+    {
+        "merged": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-debug-36:\\drawable_ic_launcher_background.xml.flat",
+        "source": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-main-38:\\drawable\\ic_launcher_background.xml"
+    },
+    {
+        "merged": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-debug-36:\\mipmap-hdpi_ic_launcher.webp.flat",
+        "source": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-main-38:\\mipmap-hdpi\\ic_launcher.webp"
+    },
+    {
+        "merged": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-debug-36:\\drawable_toggle_thumb.xml.flat",
+        "source": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-main-38:\\drawable\\toggle_thumb.xml"
+    },
+    {
+        "merged": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-debug-36:\\drawable_ic_back.xml.flat",
+        "source": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-main-38:\\drawable\\ic_back.xml"
+    },
+    {
+        "merged": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-debug-36:\\drawable_alarm_on_icon.xml.flat",
+        "source": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-main-38:\\drawable\\alarm_on_icon.xml"
+    },
+    {
+        "merged": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-debug-36:\\mipmap-anydpi-v26_ic_launcher_round.xml.flat",
+        "source": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-main-38:\\mipmap-anydpi-v26\\ic_launcher_round.xml"
+    },
+    {
+        "merged": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-debug-36:\\drawable_main_dummy_1.png.flat",
+        "source": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-main-38:\\drawable\\main_dummy_1.png"
+    },
+    {
+        "merged": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-debug-36:\\xml_data_extraction_rules.xml.flat",
+        "source": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-main-38:\\xml\\data_extraction_rules.xml"
+    },
+    {
+        "merged": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-debug-36:\\mipmap-mdpi_ic_launcher_round.webp.flat",
+        "source": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-main-38:\\mipmap-mdpi\\ic_launcher_round.webp"
+    },
+    {
+        "merged": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-debug-36:\\mipmap-hdpi_ic_launcher_round.webp.flat",
+        "source": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-main-38:\\mipmap-hdpi\\ic_launcher_round.webp"
+    },
+    {
+        "merged": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-debug-36:\\mipmap-anydpi-v26_ic_launcher.xml.flat",
+        "source": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-main-38:\\mipmap-anydpi-v26\\ic_launcher.xml"
+    },
+    {
+        "merged": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-debug-36:\\layout_activity_plan.xml.flat",
+        "source": "C:\\Users\\aqwo6\\.gradle\\daemon\\8.9\\com.example.travelonna.app-main-38:\\layout\\activity_plan.xml"
+    }
+]

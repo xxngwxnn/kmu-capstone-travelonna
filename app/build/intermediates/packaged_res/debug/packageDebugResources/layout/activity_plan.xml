@@ -1,0 +1,117 @@
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#F2F5FC">
+
+    <!-- 상단 파란색 박스 -->
+    <ImageView
+        android:id="@+id/blueBox"
+        android:layout_width="match_parent"
+        android:layout_height="300dp"
+        android:src="@drawable/plan_bluebox"
+        android:scaleType="fitXY"
+        android:layout_alignParentTop="true"/>
+
+    <!-- 뒤로가기 버튼 (파란색 박스 위에 위치) -->
+    <ImageView
+        android:id="@+id/backButton"
+        android:layout_width="10.29dp"
+        android:layout_height="19.43dp"
+        android:layout_alignParentTop="true"
+        android:layout_marginStart="20dp"
+        android:layout_marginTop="75dp"
+        android:src="@drawable/ic_back"/>
+
+    <!-- 알림 버튼 (파란색 박스 위에 위치) -->
+    <ImageView
+        android:id="@+id/alarmButton"
+        android:layout_width="26dp"
+        android:layout_height="26dp"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentEnd="true"
+        android:layout_marginEnd="20dp"
+        android:layout_marginTop="75dp"
+        android:src="@drawable/ic_alram"/>
+
+    <!-- 프로필 영역 (파란색 박스 안에서 배치) -->
+    <RelativeLayout
+        android:id="@+id/profileContainer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="119dp"
+        android:layout_marginStart="16dp">
+
+        <!-- 프로필 이미지 -->
+        <ImageView
+            android:id="@+id/profileImage"
+            android:layout_width="73dp"
+            android:layout_height="73dp"
+            android:scaleType="centerCrop"
+            android:src="@drawable/ic_profile_placeholder"/>
+
+        <!-- 닉네임 -->
+        <TextView
+            android:id="@+id/username"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_toEndOf="@id/profileImage"
+            android:layout_marginStart="16dp"
+            android:layout_centerVertical="true"
+            android:text="travel_on_me"
+            android:textColor="@color/white"
+            android:textSize="18sp"
+            android:textStyle="bold"/>
+    </RelativeLayout>
+
+    <!-- 일정 목록 배경 (plan_whitebox) -->
+    <ImageView
+        android:id="@+id/whiteBox"
+        android:layout_width="match_parent"
+        android:layout_height="600dp"
+        android:layout_alignParentTop="true"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="210dp"
+        android:layout_marginEnd="16dp"
+        android:scaleType="fitXY"
+        android:src="@drawable/plan_whitebox" />
+
+    <!-- 일정 목록 컨테이너 (백그라운드 박스 안에 묶음) -->
+    <TextView
+        android:id="@+id/titleSchedule"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/whiteBox"
+        android:layout_marginStart="36dp"
+        android:layout_marginTop="-570dp"
+        android:text="일정 목록"
+        android:textColor="@color/black"
+        android:textSize="18sp"
+        android:textStyle="bold" />
+
+    <RelativeLayout
+        android:id="@+id/scheduleContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/titleSchedule"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginTop="30dp">
+
+        <!-- RecyclerView (일정 목록) -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
+    </RelativeLayout>
+
+    <!-- 추가 버튼 -->
+    <ImageView
+        android:id="@+id/addButton"
+        android:layout_width="36dp"
+        android:layout_height="42dp"
+        android:layout_below="@id/whiteBox"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="-48dp"
+        android:src="@drawable/ic_add"/>
+</RelativeLayout>
