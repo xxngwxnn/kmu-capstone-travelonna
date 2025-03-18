@@ -21,7 +21,7 @@ class MainActivity : AppCompatActivity() {
 
         val loginButton = findViewById<Button>(R.id.loginButton)
         loginButton.setOnClickListener {
-            val intent = Intent(this, LoginActivity::class.java)
+            val intent = Intent(this, StartActivity::class.java)
             startActivity(intent)
         }
 
