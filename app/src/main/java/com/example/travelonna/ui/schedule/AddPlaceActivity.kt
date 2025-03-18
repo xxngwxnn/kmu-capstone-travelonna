@@ -15,6 +15,8 @@ import com.google.android.gms.maps.model.MarkerOptions
 import android.location.Geocoder
 import com.example.travelonna.R
 import com.example.travelonna.databinding.ActivityAddPlaceBinding
+import com.google.android.gms.maps.model.MapStyleOptions
+import java.util.*
 
 class AddPlaceActivity : AppCompatActivity(), OnMapReadyCallback {
     private lateinit var binding: ActivityAddPlaceBinding
@@ -73,6 +75,14 @@ class AddPlaceActivity : AppCompatActivity(), OnMapReadyCallback {
     override fun onMapReady(googleMap: GoogleMap) {
         map = googleMap
         
+        // 맵 언어를 한글로 설정
+        map.setMapStyle(
+            MapStyleOptions.loadRawResourceStyle(
+                this,
+                R.raw.map_style_korean
+            )
+        )
+
         // 초기 위치를 대한민국으로 설정
         val korea = LatLng(36.0, 128.0)
         map.moveCamera(CameraUpdateFactory.newLatLngZoom(korea, 7f))
@@ -83,7 +93,7 @@ class AddPlaceActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
     private fun searchPlace(query: String) {
-        val geocoder = Geocoder(this)
+        val geocoder = Geocoder(this, Locale.KOREA)
         try {
             val addresses = geocoder.getFromLocationName(query, 1)
             addresses?.firstOrNull()?.let { address ->
@@ -100,7 +110,7 @@ class AddPlaceActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
     private fun getAddressFromLocation(latLng: LatLng) {
-        val geocoder = Geocoder(this)
+        val geocoder = Geocoder(this, Locale.KOREA)
         try {
             val addresses = geocoder.getFromLocation(latLng.latitude, latLng.longitude, 1)
             addresses?.firstOrNull()?.let { address ->

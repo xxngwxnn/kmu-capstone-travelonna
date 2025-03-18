@@ -44,7 +44,6 @@
             android:name=".PlanActivity"
             android:exported="false" />
 
-
         <activity 
             android:name=".HomeActivity" 
             android:exported="false" />
@@ -63,7 +62,7 @@
 
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="your_maps_api_key" />
+            android:value="AIzaSyBJMN-SCNK9OHZHl7HKTEK76MmiXMSRa04" />
     </application>
 
 </manifest>
