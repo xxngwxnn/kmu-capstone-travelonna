@@ -19,13 +19,16 @@ import java.util.Calendar
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 import android.widget.HorizontalScrollView
+import android.content.Intent
+import android.widget.Toast
+import com.example.travelonna.ui.schedule.AddPlaceActivity
 
 class ScheduleDetailActivity : AppCompatActivity() {
 
     private lateinit var tabLayout: TabLayout
     private lateinit var viewPager: ViewPager2
-    private lateinit var addPlaceButton: TextView
-    private lateinit var completeButton: TextView
+    private lateinit var addNewPlaceButton: TextView
+    private lateinit var confirmButton: TextView
     
     private val startDateCalendar = Calendar.getInstance()
     private val endDateCalendar = Calendar.getInstance()
@@ -37,8 +40,8 @@ class ScheduleDetailActivity : AppCompatActivity() {
         
         // 뷰 초기화
         viewPager = findViewById(R.id.viewPager)
-        addPlaceButton = findViewById(R.id.addPlaceButton)
-        completeButton = findViewById(R.id.completeButton)
+        addNewPlaceButton = findViewById(R.id.addNewPlaceButton)
+        confirmButton = findViewById(R.id.confirmButton)
         
         // 인텐트에서 날짜 데이터 가져오기
         val startDate = intent.getLongExtra("START_DATE", System.currentTimeMillis())
@@ -63,13 +66,34 @@ class ScheduleDetailActivity : AppCompatActivity() {
         setupCustomTabs()
         
         // 장소 추가 버튼 리스너
-        addPlaceButton.setOnClickListener {
-            // 장소 추가 기능 구현 (향후)
+        addNewPlaceButton.setOnClickListener {
+            try {
+                val intent = Intent(this@ScheduleDetailActivity, AddPlaceActivity::class.java)
+                startActivityForResult(intent, 100)
+            } catch (e: Exception) {
+                Toast.makeText(this, "오류 발생: ${e.message}", Toast.LENGTH_SHORT).show()
+                e.printStackTrace()
+            }
         }
         
         // 완료 버튼 리스너
-        completeButton.setOnClickListener {
+        confirmButton.setOnClickListener {
             finish() // 현재 화면 종료하고 이전 화면으로 돌아가기
+        }
+    }
+    
+    // 결과 처리를 위한 onActivityResult 추가
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == 100 && resultCode == RESULT_OK) {
+            // 선택된 장소 정보 처리
+            val placeName = data?.getStringExtra("placeName")
+            val placeAddress = data?.getStringExtra("placeAddress")
+            val placeLat = data?.getDoubleExtra("placeLat", 0.0)
+            val placeLng = data?.getDoubleExtra("placeLng", 0.0)
+            
+            // TODO: 선택된 장소 정보를 화면에 추가하는 로직 구현
+            Toast.makeText(this, "선택된 장소: $placeName", Toast.LENGTH_SHORT).show()
         }
     }
     
