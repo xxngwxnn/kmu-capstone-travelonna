@@ -1,3 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">travelonna</string>
+    <string name="app_name">Travelonna</string>
+    <string name="google_maps_key">AIzaSyDsi4wg1BwtoztstYV2Z7NRtklS-eRyGxk</string>
 </resources>

@@ -1,6 +1,7 @@
 package com.example.travelonna.ui.schedule
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.View
 import android.view.inputmethod.EditorInfo
@@ -17,21 +18,45 @@ import com.example.travelonna.R
 import com.example.travelonna.databinding.ActivityAddPlaceBinding
 import com.google.android.gms.maps.model.MapStyleOptions
 import java.util.*
+import android.widget.SearchView
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.google.android.libraries.places.api.Places
+import com.google.android.libraries.places.api.model.Place
+import com.google.android.libraries.places.api.net.FetchPlaceRequest
+import com.google.android.libraries.places.api.net.FindAutocompletePredictionsRequest
+import com.google.android.libraries.places.api.net.PlacesClient
+import android.util.Log
 
 class AddPlaceActivity : AppCompatActivity(), OnMapReadyCallback {
+    companion object {
+        private const val TAG = "AddPlaceActivity"
+    }
+
     private lateinit var binding: ActivityAddPlaceBinding
     private lateinit var map: GoogleMap
     private var selectedPlace: PlaceInfo? = null
+    private lateinit var searchView: SearchView
+    private lateinit var recyclerView: RecyclerView
+    private lateinit var placesClient: PlacesClient
+    private lateinit var adapter: PlaceSearchAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityAddPlaceBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        // Places API 초기화
+        if (!Places.isInitialized()) {
+            Places.initialize(applicationContext, getString(R.string.google_maps_key))
+        }
+        placesClient = Places.createClient(this)
+
         setupToolbar()
         setupMap()
         setupSearchView()
         setupAddButton()
+        setupViews()
     }
 
     private fun setupToolbar() {
@@ -47,14 +72,24 @@ class AddPlaceActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
     private fun setupSearchView() {
-        binding.searchEditText.setOnEditorActionListener { v, actionId, _ ->
-            if (actionId == EditorInfo.IME_ACTION_SEARCH) {
-                searchPlace(v.text.toString())
-                true
-            } else {
-                false
+        searchView = findViewById(R.id.searchView)
+        Log.d(TAG, "SearchView setup started")
+        
+        searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+            override fun onQueryTextSubmit(query: String?): Boolean {
+                Log.d(TAG, "Search submitted: $query")
+                query?.let { performSearch(it) }
+                return true
             }
-        }
+
+            override fun onQueryTextChange(newText: String?): Boolean {
+                Log.d(TAG, "Search text changed: $newText")
+                if (!newText.isNullOrEmpty() && newText.length >= 2) {
+                    performSearch(newText)
+                }
+                return true
+            }
+        })
     }
 
     private fun setupAddButton() {
@@ -63,13 +98,84 @@ class AddPlaceActivity : AppCompatActivity(), OnMapReadyCallback {
                 val intent = Intent().apply {
                     putExtra("placeName", place.name)
                     putExtra("placeAddress", place.address)
-                    putExtra("placeLat", place.latLng.latitude)
-                    putExtra("placeLng", place.latLng.longitude)
+                    putExtra("placeLat", place.latitude)
+                    putExtra("placeLng", place.longitude)
                 }
                 setResult(RESULT_OK, intent)
                 finish()
             }
         }
+    }
+
+    private fun setupViews() {
+        recyclerView = findViewById(R.id.recyclerView)
+
+        adapter = PlaceSearchAdapter(
+            onPlaceClick = { place ->
+                fetchPlaceDetails(place.placeId)
+            },
+            onRouteClick = { place ->
+                // 경로 안내 전에 장소 상세 정보를 먼저 가져옵니다
+                val placeFields = listOf(Place.Field.LAT_LNG)
+                val request = FetchPlaceRequest.builder(place.placeId, placeFields).build()
+                
+                placesClient.fetchPlace(request)
+                    .addOnSuccessListener { response ->
+                        val latLng = response.place.latLng
+                        if (latLng != null) {
+                            // 구글 맵으로 바로 경로 안내
+                            val uri = Uri.parse("https://www.google.com/maps/dir/?api=1&destination=${latLng.latitude},${latLng.longitude}")
+                            val mapIntent = Intent(Intent.ACTION_VIEW, uri)
+                            startActivity(mapIntent)
+                        }
+                    }
+                    .addOnFailureListener { exception ->
+                        Toast.makeText(this, "경로 안내를 시작할 수 없습니다.", Toast.LENGTH_SHORT).show()
+                        Log.e(TAG, "Failed to fetch place details for navigation", exception)
+                    }
+            },
+            onWebsiteClick = null
+        )
+
+        recyclerView.layoutManager = LinearLayoutManager(this)
+        recyclerView.adapter = adapter
+    }
+
+    private fun performSearch(query: String) {
+        Log.d(TAG, "Performing search for query: $query")
+        
+        val request = FindAutocompletePredictionsRequest.builder()
+            .setQuery(query)
+            .setCountries("KR")  // 한국 내 장소로 제한
+            .build()
+        
+        Log.d(TAG, "Search request built, calling Places API")
+
+        placesClient.findAutocompletePredictions(request)
+            .addOnSuccessListener { response ->
+                Log.d(TAG, "Search successful, predictions count: ${response.autocompletePredictions.size}")
+                
+                val places = response.autocompletePredictions.map { prediction ->
+                    Log.d(TAG, "Processing prediction: primary=${prediction.getPrimaryText(null)}, secondary=${prediction.getSecondaryText(null)}")
+                    
+                    PlaceInfo(
+                        placeId = prediction.placeId,
+                        name = prediction.getPrimaryText(null).toString(),
+                        address = prediction.getSecondaryText(null).toString(),
+                        rating = null,
+                        latitude = 0.0,
+                        longitude = 0.0,
+                        websiteUri = null,
+                        phoneNumber = null
+                    )
+                }
+                Log.d(TAG, "Mapped ${places.size} places, updating adapter")
+                adapter.updatePlaces(places)
+            }
+            .addOnFailureListener { exception ->
+                Log.e(TAG, "Search failed", exception)
+                Toast.makeText(this, "검색에 실패했습니다: ${exception.message}", Toast.LENGTH_SHORT).show()
+            }
     }
 
     override fun onMapReady(googleMap: GoogleMap) {
@@ -125,7 +231,16 @@ class AddPlaceActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
     private fun updateSelectedPlace(name: String, address: String, latLng: LatLng) {
-        selectedPlace = PlaceInfo(name, address, latLng)
+        selectedPlace = PlaceInfo(
+            placeId = "", // 직접 선택한 장소는 placeId가 없음
+            name = name,
+            address = address,
+            rating = null,  // 지도에서 직접 선택한 장소는 rating 정보가 없음
+            latitude = latLng.latitude,
+            longitude = latLng.longitude,
+            websiteUri = null,
+            phoneNumber = null
+        )
         
         // 마커 업데이트
         map.clear()
@@ -137,9 +252,56 @@ class AddPlaceActivity : AppCompatActivity(), OnMapReadyCallback {
         binding.placeAddressText.text = address
     }
 
-    data class PlaceInfo(
-        val name: String,
-        val address: String,
-        val latLng: LatLng
-    )
+    private fun fetchPlaceDetails(placeId: String) {
+        Log.d(TAG, "Fetching details for place ID: $placeId")
+        
+        val placeFields = listOf(
+            Place.Field.LAT_LNG,
+            Place.Field.NAME,
+            Place.Field.ADDRESS,
+            Place.Field.RATING,
+            Place.Field.WEBSITE_URI,
+            Place.Field.PHONE_NUMBER
+        )
+
+        val request = FetchPlaceRequest.builder(placeId, placeFields).build()
+        Log.d(TAG, "Place details request built with fields: $placeFields")
+
+        placesClient.fetchPlace(request)
+            .addOnSuccessListener { response ->
+                Log.d(TAG, "Place details fetched successfully")
+                val place = response.place
+                val latLng = place.latLng
+                if (latLng != null) {
+                    Log.d(TAG, "Place location: lat=${latLng.latitude}, lng=${latLng.longitude}")
+                    selectedPlace = PlaceInfo(
+                        placeId = placeId,
+                        name = place.name ?: "",
+                        address = place.address ?: "",
+                        rating = place.rating?.toFloat(),
+                        latitude = latLng.latitude,
+                        longitude = latLng.longitude,
+                        websiteUri = place.websiteUri?.toString(),
+                        phoneNumber = place.phoneNumber
+                    )
+                    showMap(latLng, place.name)
+                } else {
+                    Log.e(TAG, "Place location is null")
+                }
+            }
+            .addOnFailureListener { exception ->
+                Log.e(TAG, "Failed to fetch place details", exception)
+                Toast.makeText(this, "장소 상세 정보를 가져오는데 실패했습니다: ${exception.message}", Toast.LENGTH_SHORT).show()
+            }
+    }
+
+    private fun showMap(latLng: LatLng, title: String?) {
+        Log.d(TAG, "Showing map for location: lat=${latLng.latitude}, lng=${latLng.longitude}, title=$title")
+        findViewById<View>(R.id.searchContainer).visibility = View.GONE
+        findViewById<View>(R.id.mapContainer).visibility = View.VISIBLE
+
+        map.clear()
+        map.addMarker(MarkerOptions().position(latLng).title(title))
+        map.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15f))
+    }
 } 

@@ -22,6 +22,7 @@ import android.widget.HorizontalScrollView
 import android.content.Intent
 import android.widget.Toast
 import com.example.travelonna.ui.schedule.AddPlaceActivity
+import androidx.recyclerview.widget.ItemTouchHelper
 
 class ScheduleDetailActivity : AppCompatActivity() {
 
@@ -97,38 +98,59 @@ class ScheduleDetailActivity : AppCompatActivity() {
         }
     }
     
-    // Day별 페이지 어댑터
-    inner class DayPagerAdapter(private val activity: AppCompatActivity, 
-                               private val dayCount: Int, 
-                               private val startDate: Calendar) : 
-        RecyclerView.Adapter<DayPagerAdapter.DayPageHolder>() {
-        
-        inner class DayPageHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-            val recyclerView: RecyclerView = itemView.findViewById(R.id.dayRecyclerView)
-        }
-        
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): DayPageHolder {
-            val view = LayoutInflater.from(parent.context)
-                .inflate(R.layout.day_page_layout, parent, false)
-            return DayPageHolder(view)
-        }
-        
-        override fun onBindViewHolder(holder: DayPageHolder, position: Int) {
-            // 날짜별 데이터 설정
-            val calendar = Calendar.getInstance()
-            calendar.timeInMillis = startDate.timeInMillis
-            calendar.add(Calendar.DAY_OF_MONTH, position)
-            
-            // 더미 데이터로 RecyclerView 설정
-            holder.recyclerView.layoutManager = LinearLayoutManager(activity)
-            holder.recyclerView.adapter = PlaceAdapter(generateDummyData())
-        }
-        
-        override fun getItemCount(): Int = dayCount
+    // 드래그 앤 드롭 헬퍼 설정
+    private fun setupItemTouchHelper(recyclerView: RecyclerView) {
+        val itemTouchHelper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(
+            ItemTouchHelper.UP or ItemTouchHelper.DOWN,  // 드래그 방향
+            0  // 스와이프 사용하지 않음
+        ) {
+            private var dragFrom = -1
+            private var dragTo = -1
+
+            override fun onMove(
+                recyclerView: RecyclerView,
+                viewHolder: RecyclerView.ViewHolder,
+                target: RecyclerView.ViewHolder
+            ): Boolean {
+                val adapter = recyclerView.adapter as PlaceAdapter
+                val fromPosition = viewHolder.adapterPosition
+                val toPosition = target.adapterPosition
+
+                if (dragFrom == -1) {
+                    dragFrom = fromPosition
+                }
+                dragTo = toPosition
+
+                adapter.moveItem(fromPosition, toPosition)
+                return true
+            }
+
+            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+                // 스와이프 기능 사용하지 않음
+            }
+
+            override fun isLongPressDragEnabled(): Boolean {
+                return true  // 롱 프레스로 드래그 활성화
+            }
+
+            override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
+                super.clearView(recyclerView, viewHolder)
+                
+                if (dragFrom != -1 && dragTo != -1 && dragFrom != dragTo) {
+                    // 드래그가 끝났을 때 전체 리스트 갱신
+                    recyclerView.adapter?.notifyDataSetChanged()
+                }
+                
+                // 드래그 위치 초기화
+                dragFrom = -1
+                dragTo = -1
+            }
+        })
+        itemTouchHelper.attachToRecyclerView(recyclerView)
     }
     
     // 장소 목록 어댑터
-    inner class PlaceAdapter(private val places: List<PlaceItem>) : 
+    inner class PlaceAdapter(private val places: MutableList<PlaceItem>) : 
         RecyclerView.Adapter<PlaceAdapter.PlaceViewHolder>() {
         
         inner class PlaceViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -156,8 +178,59 @@ class ScheduleDetailActivity : AppCompatActivity() {
                 // 편집 기능 구현 (향후)
             }
         }
+
+        fun moveItem(fromPosition: Int, toPosition: Int) {
+            if (fromPosition < toPosition) {
+                for (i in fromPosition until toPosition) {
+                    places.swap(i, i + 1)
+                }
+            } else {
+                for (i in fromPosition downTo toPosition + 1) {
+                    places.swap(i, i - 1)
+                }
+            }
+            notifyItemMoved(fromPosition, toPosition)
+        }
+
+        private fun MutableList<PlaceItem>.swap(index1: Int, index2: Int) {
+            val tmp = this[index1]
+            this[index1] = this[index2]
+            this[index2] = tmp
+        }
         
-        override fun getItemCount(): Int = places.size
+        override fun getItemCount() = places.size
+    }
+    
+    // Day별 페이지 어댑터
+    inner class DayPagerAdapter(private val activity: AppCompatActivity, 
+                               private val dayCount: Int, 
+                               private val startDate: Calendar) : 
+        RecyclerView.Adapter<DayPagerAdapter.DayPageHolder>() {
+        
+        inner class DayPageHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+            val recyclerView: RecyclerView = itemView.findViewById(R.id.dayRecyclerView)
+        }
+        
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): DayPageHolder {
+            val view = LayoutInflater.from(parent.context)
+                .inflate(R.layout.day_page_layout, parent, false)
+            return DayPageHolder(view)
+        }
+        
+        override fun onBindViewHolder(holder: DayPageHolder, position: Int) {
+            // 날짜별 데이터 설정
+            val calendar = Calendar.getInstance()
+            calendar.timeInMillis = startDate.timeInMillis
+            calendar.add(Calendar.DAY_OF_MONTH, position)
+            
+            // 더미 데이터로 RecyclerView 설정
+            holder.recyclerView.layoutManager = LinearLayoutManager(activity)
+            val adapter = PlaceAdapter(generateDummyData().toMutableList())
+            holder.recyclerView.adapter = adapter
+            setupItemTouchHelper(holder.recyclerView)
+        }
+        
+        override fun getItemCount(): Int = dayCount
     }
     
     // 장소 아이템 데이터 클래스
