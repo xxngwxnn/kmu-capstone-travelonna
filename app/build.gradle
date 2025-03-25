@@ -18,9 +18,15 @@ android {
     }
 
     buildTypes {
+        debug {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            buildConfigField "String", "ANDROID_CLIENT_ID", "\"57756654565-3k5i08mi4scvmes6bt6el8g1sbn4e8m5.apps.googleusercontent.com\""
+        }
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            buildConfigField "String", "ANDROID_CLIENT_ID", "\"57756654565-jv075le18g5tak72rrkialskgqv9c35t.apps.googleusercontent.com\""
         }
     }
     compileOptions {
