@@ -23,6 +23,7 @@ import android.widget.HorizontalScrollView
 import android.content.Intent
 import android.widget.Toast
 import com.example.travelonna.ui.schedule.AddPlaceActivity
+import com.example.travelonna.ui.schedule.PlaceInfoActivity
 import androidx.recyclerview.widget.ItemTouchHelper
 
 class ScheduleDetailActivity : AppCompatActivity() {
@@ -88,7 +89,11 @@ class ScheduleDetailActivity : AppCompatActivity() {
         // 장소 추가 버튼 리스너
         addNewPlaceButton.setOnClickListener {
             try {
-                val intent = Intent(this@ScheduleDetailActivity, AddPlaceActivity::class.java)
+                val intent = Intent(this@ScheduleDetailActivity, PlaceInfoActivity::class.java)
+                intent.putExtra("SELECTED_DAY", viewPager.currentItem)
+                intent.putExtra("START_DATE", startDateCalendar.timeInMillis)
+                intent.putExtra("END_DATE", endDateCalendar.timeInMillis)
+                intent.putExtra("SCHEDULE_NAME", scheduleName)
                 startActivityForResult(intent, 100)
             } catch (e: Exception) {
                 Toast.makeText(this, "오류 발생: ${e.message}", Toast.LENGTH_SHORT).show()
