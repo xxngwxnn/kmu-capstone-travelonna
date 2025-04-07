@@ -7,6 +7,7 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.Button
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -47,9 +48,27 @@ class ScheduleDetailActivity : AppCompatActivity() {
         // 인텐트에서 날짜 데이터 가져오기
         val startDate = intent.getLongExtra("START_DATE", System.currentTimeMillis())
         val endDate = intent.getLongExtra("END_DATE", System.currentTimeMillis())
+        val scheduleName = intent.getStringExtra("SCHEDULE_NAME") ?: "일정"
         
         startDateCalendar.timeInMillis = startDate
         endDateCalendar.timeInMillis = endDate
+        
+        // 일정 이름과 날짜 표시
+        val titleText = findViewById<TextView>(R.id.titleText)
+        val dateRangeText = findViewById<TextView>(R.id.dateRangeText)
+        
+        titleText.text = scheduleName
+        
+        val dateFormat = SimpleDateFormat("yyyy년 MM월 dd일", Locale.getDefault())
+        val startDateStr = dateFormat.format(startDateCalendar.time)
+        val endDateStr = dateFormat.format(endDateCalendar.time)
+        dateRangeText.text = "$startDateStr ~ $endDateStr"
+        
+        // 뒤로가기 버튼 설정
+        val backButton = findViewById<ImageView>(R.id.backButton)
+        backButton.setOnClickListener {
+            finish()
+        }
         
         // 총 일수 계산
         val diffInMillis = endDateCalendar.timeInMillis - startDateCalendar.timeInMillis
@@ -256,23 +275,32 @@ class ScheduleDetailActivity : AppCompatActivity() {
             val tabView = LayoutInflater.from(this).inflate(R.layout.tab_day_item, tabContainer, false)
             val dayNumber = tabView.findViewById<TextView>(R.id.dayNumber)
             val dayDate = tabView.findViewById<TextView>(R.id.dayDate)
+            val selectionIndicator = tabView.findViewById<View>(R.id.selectionIndicator)
             
             val calendar = Calendar.getInstance()
             calendar.timeInMillis = startDateCalendar.timeInMillis
             calendar.add(Calendar.DAY_OF_MONTH, i)
             
-            val dayFormat = SimpleDateFormat("dd", Locale.getDefault())
-            val monthFormat = SimpleDateFormat("MMM", Locale.getDefault())
-            val yearFormat = SimpleDateFormat("yyyy", Locale.getDefault())
+            // 요일과 일자 형식으로 변경
+            val dayOfWeekFormat = SimpleDateFormat("E", Locale.KOREA) // 요일
+            val dayOfMonthFormat = SimpleDateFormat("dd", Locale.KOREA) // 일
+            val dayOfWeek = dayOfWeekFormat.format(calendar.time)
+            val dayOfMonth = dayOfMonthFormat.format(calendar.time)
             
-            dayNumber.text = "Day ${i + 1}"
-            dayDate.text = "${dayFormat.format(calendar.time)} ${monthFormat.format(calendar.time)} ${yearFormat.format(calendar.time)}"
+            // Day N 형식
+            val dayNum = i + 1
+            val dayNumStr = String.format("%02d", dayNum) // 01, 02, ... 형식으로
+            dayNumber.text = "DAY $dayNumStr"
+            
+            // 요일.일 형식
+            dayDate.text = "$dayOfWeek.$dayOfMonth"
             
             // 첫 번째 탭을 선택된 상태로 표시
             if (i == 0) {
-                dayNumber.setTextColor(ContextCompat.getColor(this, R.color.blue_primary))
-                dayDate.setTextColor(ContextCompat.getColor(this, R.color.blue_primary))
-                tabView.setBackgroundResource(R.drawable.selected_tab_background)
+                dayNumber.setTextColor(ContextCompat.getColor(this, R.color.black))
+                selectionIndicator.visibility = View.VISIBLE
+            } else {
+                selectionIndicator.visibility = View.INVISIBLE
             }
             
             tabView.tag = i
@@ -281,14 +309,12 @@ class ScheduleDetailActivity : AppCompatActivity() {
                 for (j in 0 until tabContainer.childCount) {
                     val tab = tabContainer.getChildAt(j)
                     tab.findViewById<TextView>(R.id.dayNumber).setTextColor(ContextCompat.getColor(this, R.color.black))
-                    tab.findViewById<TextView>(R.id.dayDate).setTextColor(ContextCompat.getColor(this, R.color.gray_text))
-                    tab.setBackgroundResource(0)
+                    tab.findViewById<View>(R.id.selectionIndicator).visibility = View.INVISIBLE
                 }
                 
                 // 선택된 탭 하이라이트
-                v.findViewById<TextView>(R.id.dayNumber).setTextColor(ContextCompat.getColor(this, R.color.blue_primary))
-                v.findViewById<TextView>(R.id.dayDate).setTextColor(ContextCompat.getColor(this, R.color.blue_primary))
-                v.setBackgroundResource(R.drawable.selected_tab_background)
+                v.findViewById<TextView>(R.id.dayNumber).setTextColor(ContextCompat.getColor(this, R.color.black))
+                v.findViewById<View>(R.id.selectionIndicator).visibility = View.VISIBLE
                 
                 // ViewPager 페이지 변경
                 viewPager.currentItem = v.tag as Int
@@ -306,15 +332,13 @@ class ScheduleDetailActivity : AppCompatActivity() {
         for (i in 0 until tabContainer.childCount) {
             val tab = tabContainer.getChildAt(i)
             tab.findViewById<TextView>(R.id.dayNumber).setTextColor(ContextCompat.getColor(this, R.color.black))
-            tab.findViewById<TextView>(R.id.dayDate).setTextColor(ContextCompat.getColor(this, R.color.gray_text))
-            tab.setBackgroundResource(0)
+            tab.findViewById<View>(R.id.selectionIndicator).visibility = View.INVISIBLE
         }
         
         // 선택된 탭 하이라이트
         val selectedTab = tabContainer.getChildAt(position)
-        selectedTab.findViewById<TextView>(R.id.dayNumber).setTextColor(ContextCompat.getColor(this, R.color.blue_primary))
-        selectedTab.findViewById<TextView>(R.id.dayDate).setTextColor(ContextCompat.getColor(this, R.color.blue_primary))
-        selectedTab.setBackgroundResource(R.drawable.selected_tab_background)
+        selectedTab.findViewById<TextView>(R.id.dayNumber).setTextColor(ContextCompat.getColor(this, R.color.black))
+        selectedTab.findViewById<View>(R.id.selectionIndicator).visibility = View.VISIBLE
         
         // 선택된 탭이 보이도록 스크롤
         val scrollView = findViewById<HorizontalScrollView>(R.id.tabScrollView)
