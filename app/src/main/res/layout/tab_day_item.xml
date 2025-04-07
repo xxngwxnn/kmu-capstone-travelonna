@@ -15,6 +15,15 @@
         android:textColor="@color/black"
         android:textSize="18sp"
         android:textStyle="bold" />
+        
+    <View
+        android:id="@+id/selectionIndicator"
+        android:layout_width="match_parent"
+        android:layout_height="3dp"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="4dp"
+        android:background="#FF9800"
+        android:visibility="invisible" />
 
     <TextView
         android:id="@+id/dayDate"
@@ -23,13 +32,5 @@
         android:text="목.01"
         android:textColor="@color/gray_text"
         android:textSize="14sp" />
-
-    <View
-        android:id="@+id/selectionIndicator"
-        android:layout_width="match_parent"
-        android:layout_height="3dp"
-        android:layout_marginTop="4dp"
-        android:background="#FF9800"
-        android:visibility="invisible" />
 
 </LinearLayout> 
