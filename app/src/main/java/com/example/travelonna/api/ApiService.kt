@@ -15,4 +15,7 @@ interface ApiService {
     
     @POST("api/v1/plans")
     fun createPlan(@Body request: PlanCreateRequest): Call<PlanCreateResponse>
+    
+    @POST("api/v1/plans/transportation/search")
+    fun searchTransportation(@Body request: TransportationRequest): Call<TransportationResponse>
 } 

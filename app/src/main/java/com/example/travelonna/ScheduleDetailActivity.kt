@@ -59,18 +59,18 @@ class ScheduleDetailActivity : AppCompatActivity() {
         addNewPlaceButton = findViewById(R.id.addNewPlaceButton)
         confirmButton = findViewById(R.id.confirmButton)
         
-        // 인텐트에서 날짜 데이터 가져오기
-        val startDate = intent.getLongExtra("START_DATE", System.currentTimeMillis())
-        val endDate = intent.getLongExtra("END_DATE", System.currentTimeMillis())
+            // 인텐트에서 날짜 데이터 가져오기
+            val startDate = intent.getLongExtra("START_DATE", System.currentTimeMillis())
+            val endDate = intent.getLongExtra("END_DATE", System.currentTimeMillis())
         val scheduleName = intent.getStringExtra("SCHEDULE_NAME") ?: "일정"
         planId = intent.getIntExtra("PLAN_ID", 0)
         
         // planId 확인을 위한 로그 추가
         Log.d("ScheduleDetail", "Received Plan ID: $planId")
-        
-        startDateCalendar.timeInMillis = startDate
-        endDateCalendar.timeInMillis = endDate
-        
+            
+            startDateCalendar.timeInMillis = startDate
+            endDateCalendar.timeInMillis = endDate
+            
         // 일정 이름과 날짜 표시
         val titleText = findViewById<TextView>(R.id.titleText)
         val dateRangeText = findViewById<TextView>(R.id.dateRangeText)
@@ -78,8 +78,8 @@ class ScheduleDetailActivity : AppCompatActivity() {
         titleText.text = scheduleName
         
         val dateFormat = SimpleDateFormat("yyyy.MM.dd", Locale.KOREA)
-        val startDateStr = dateFormat.format(startDateCalendar.time)
-        val endDateStr = dateFormat.format(endDateCalendar.time)
+            val startDateStr = dateFormat.format(startDateCalendar.time)
+            val endDateStr = dateFormat.format(endDateCalendar.time)
         dateRangeText.text = "$startDateStr - $endDateStr"
         
         // 뒤로가기 버튼 설정
@@ -87,10 +87,10 @@ class ScheduleDetailActivity : AppCompatActivity() {
         backButton.setOnClickListener {
             finish()
         }
-        
-        // 총 일수 계산
-        val diffInMillis = endDateCalendar.timeInMillis - startDateCalendar.timeInMillis
-        dayCount = TimeUnit.MILLISECONDS.toDays(diffInMillis).toInt() + 1
+                                
+                                // 총 일수 계산
+                                val diffInMillis = endDateCalendar.timeInMillis - startDateCalendar.timeInMillis
+                                dayCount = TimeUnit.MILLISECONDS.toDays(diffInMillis).toInt() + 1
         
         // ViewPager 설정
         viewPager.adapter = DayPagerAdapter(this, dayCount, startDateCalendar)
@@ -117,12 +117,12 @@ class ScheduleDetailActivity : AppCompatActivity() {
                 Log.d("ScheduleDetail", "Sending Plan ID: $planId to PlaceInfoActivity")
                 
                 startActivityForResult(intent, 100)
-            } catch (e: Exception) {
+        } catch (e: Exception) {
                 Toast.makeText(this, "오류 발생: ${e.message}", Toast.LENGTH_SHORT).show()
-                e.printStackTrace()
-            }
+            e.printStackTrace()
         }
-        
+    }
+    
         // 완료 버튼 리스너
         confirmButton.setOnClickListener {
             finish() // 현재 화면 종료하고 이전 화면으로 돌아가기
@@ -155,7 +155,7 @@ class ScheduleDetailActivity : AppCompatActivity() {
                 if (planId > 0) {
                     Log.d("ScheduleDetail", "Refreshing plan details after adding new place: planId=$planId, selectedDay=$selectedDay")
                     fetchPlanDetail(planId)
-                } else {
+                        } else {
                     Log.d("ScheduleDetail", "Cannot refresh plan details: Invalid planId=$planId")
                 }
                 return
@@ -199,44 +199,44 @@ class ScheduleDetailActivity : AppCompatActivity() {
     // 드래그 앤 드롭 헬퍼 설정
     private fun setupItemTouchHelper(recyclerView: RecyclerView) {
         val itemTouchHelper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(
-            ItemTouchHelper.UP or ItemTouchHelper.DOWN,  // 드래그 방향
-            0  // 스와이프 사용하지 않음
-        ) {
-            private var dragFrom = -1
-            private var dragTo = -1
+        ItemTouchHelper.UP or ItemTouchHelper.DOWN,  // 드래그 방향
+        0  // 스와이프 사용하지 않음
+    ) {
+        private var dragFrom = -1
+        private var dragTo = -1
 
-            override fun onMove(
-                recyclerView: RecyclerView,
-                viewHolder: RecyclerView.ViewHolder,
-                target: RecyclerView.ViewHolder
-            ): Boolean {
-                val adapter = recyclerView.adapter as PlaceAdapter
-                val fromPosition = viewHolder.adapterPosition
-                val toPosition = target.adapterPosition
+        override fun onMove(
+            recyclerView: RecyclerView,
+            viewHolder: RecyclerView.ViewHolder,
+            target: RecyclerView.ViewHolder
+        ): Boolean {
+            val adapter = recyclerView.adapter as PlaceAdapter
+            val fromPosition = viewHolder.adapterPosition
+            val toPosition = target.adapterPosition
 
-                if (dragFrom == -1) {
-                    dragFrom = fromPosition
-                }
-                dragTo = toPosition
-
-                adapter.moveItem(fromPosition, toPosition)
-                return true
+            if (dragFrom == -1) {
+                dragFrom = fromPosition
             }
+            dragTo = toPosition
 
-            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
-                // 스와이프 기능 사용하지 않음
-            }
+            adapter.moveItem(fromPosition, toPosition)
+            return true
+        }
 
-            override fun isLongPressDragEnabled(): Boolean {
-                return true  // 롱 프레스로 드래그 활성화
-            }
+        override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+            // 스와이프 기능 사용하지 않음
+        }
 
-            override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
-                super.clearView(recyclerView, viewHolder)
-                
-                if (dragFrom != -1 && dragTo != -1 && dragFrom != dragTo) {
-                    // 드래그가 끝났을 때 전체 리스트 갱신
-                    recyclerView.adapter?.notifyDataSetChanged()
+        override fun isLongPressDragEnabled(): Boolean {
+            return true  // 롱 프레스로 드래그 활성화
+        }
+
+        override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
+            super.clearView(recyclerView, viewHolder)
+            
+            if (dragFrom != -1 && dragTo != -1 && dragFrom != dragTo) {
+                // 드래그가 끝났을 때 전체 리스트 갱신
+                recyclerView.adapter?.notifyDataSetChanged()
                 }
                 
                 // 드래그 위치 초기화

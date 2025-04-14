@@ -34,6 +34,8 @@ import java.util.Locale
 import android.util.Log
 import android.content.Context
 import android.widget.RadioGroup
+import com.example.travelonna.util.TransportationSearchManager
+import android.widget.ImageButton
 
 class ScheduleCreateActivity : AppCompatActivity() {
 
@@ -418,6 +420,10 @@ class ScheduleCreateActivity : AppCompatActivity() {
         val transportViews = listOf(transportCar, transportBus, transportTrain, transportEtc)
         val transportValues = listOf("car", "bus", "train", "etc")
         
+        // 교통수단 검색 버튼 참조
+        val searchTransportButton = findViewById<ImageButton>(R.id.searchTransportButton)
+        searchTransportButton.visibility = View.GONE
+        
         // 각 교통수단 TextView에 클릭 리스너 설정
         transportViews.forEachIndexed { index, view ->
             view.setOnClickListener {
@@ -434,9 +440,31 @@ class ScheduleCreateActivity : AppCompatActivity() {
                 // 선택된 교통수단 값 저장
                 selectedTransport = transportValues[index]
                 
+                // 버스나 기차 선택 시 검색 버튼 표시, 그 외에는 숨김
+                searchTransportButton.visibility = if (selectedTransport == "bus" || selectedTransport == "train") {
+                    View.VISIBLE
+                } else {
+                    View.GONE
+                }
+                
                 // 교통수단 선택 후 메모 카드와 생성 버튼 표시
                 showNextStep(memoCard)
                 showNextStep(createScheduleButton)
+            }
+        }
+        
+        // 교통수단 검색 버튼 리스너 설정
+        searchTransportButton.setOnClickListener {
+            if (locationSelectButton.text.toString() != "위치를 선택해주세요." && 
+                dateRangeButton.text.toString() != "날짜를 선택해주세요") {
+                
+                // 위치와 날짜가 모두 선택된 경우에만 교통수단 검색 다이얼로그 표시
+                val destinationName = locationSelectButton.text.toString()
+                val searchManager = TransportationSearchManager(this)
+                // 선택된 교통수단(bus 또는 train)을 자동으로 전달
+                searchManager.showTransportationSearchDialog(destinationName, startDateCalendar.timeInMillis, selectedTransport)
+            } else {
+                Toast.makeText(this, "위치와 날짜를 먼저 선택해주세요", Toast.LENGTH_SHORT).show()
             }
         }
     }

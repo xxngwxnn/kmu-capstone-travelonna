@@ -224,12 +224,30 @@
                     android:orientation="vertical"
                     android:padding="16dp">
 
-                    <TextView
-                        android:layout_width="wrap_content"
+                    <LinearLayout
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="(필수)교통수단 선택"
-                        android:textColor="@color/gray_text"
-                        android:textSize="14sp" />
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+                        
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="(필수)교통수단 선택"
+                            android:textColor="@color/gray_text"
+                            android:textSize="14sp" />
+                            
+                        <ImageButton
+                            android:id="@+id/searchTransportButton"
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:contentDescription="교통수단 검색"
+                            android:src="@drawable/ic_search"
+                            android:tint="@color/gray_text"
+                            android:visibility="gone"/>
+                    </LinearLayout>
 
                     <LinearLayout
                         android:layout_width="match_parent"
