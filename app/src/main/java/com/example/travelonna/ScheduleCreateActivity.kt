@@ -36,6 +36,8 @@ import android.content.Context
 import android.widget.RadioGroup
 import com.example.travelonna.util.TransportationSearchManager
 import android.widget.ImageButton
+import com.example.travelonna.api.GroupUrlRequest
+import com.example.travelonna.api.GroupUrlResponse
 
 class ScheduleCreateActivity : AppCompatActivity() {
 
@@ -246,8 +248,6 @@ class ScheduleCreateActivity : AppCompatActivity() {
         RetrofitClient.apiService.createPlan(planRequest)
             .enqueue(object : Callback<PlanCreateResponse> {
                 override fun onResponse(call: Call<PlanCreateResponse>, response: Response<PlanCreateResponse>) {
-                    loadingDialog.dismiss()
-                    
                     if (response.isSuccessful && response.body()?.success == true) {
                         val planData = response.body()?.data
                         val planId = planData?.planId ?: 0
@@ -255,22 +255,17 @@ class ScheduleCreateActivity : AppCompatActivity() {
                         // 계획 ID 로그 추가
                         Log.d("ScheduleCreate", "Plan ID from API: $planId")
                         
-                        Toast.makeText(this@ScheduleCreateActivity, "일정이 생성되었습니다.", Toast.LENGTH_SHORT).show()
-                        
-                        // 일정 상세 화면으로 이동
-                        val intent = Intent(this@ScheduleCreateActivity, ScheduleDetailActivity::class.java).apply {
-                            putExtra("START_DATE", startDateCalendar.timeInMillis)
-                            putExtra("END_DATE", endDateCalendar.timeInMillis)
-                            putExtra("SCHEDULE_NAME", scheduleNameInput.text.toString())
-                            putExtra("LOCATION", locationSelectButton.text.toString())
-                            putExtra("MEMO", memoInput.text.toString())
-                            putExtra("IS_GROUP", typeToggle.isChecked())
-                            putExtra("PLAN_ID", planId)
+                        // 그룹 여행인 경우 그룹 URL 생성 API 호출
+                        if (typeToggle.isChecked()) {
+                            createGroupUrl(planId, loadingDialog)
+                        } else {
+                            loadingDialog.dismiss()
+                            Toast.makeText(this@ScheduleCreateActivity, "일정이 생성되었습니다.", Toast.LENGTH_SHORT).show()
+                            navigateToDetailActivity(planId)
                         }
-                        startActivity(intent)
-                        finish()
                     } else {
                         // 에러 처리
+                        loadingDialog.dismiss()
                         val errorMsg = response.errorBody()?.string() ?: "일정 생성 중 오류가 발생했습니다"
                         Toast.makeText(this@ScheduleCreateActivity, errorMsg, Toast.LENGTH_SHORT).show()
                         Log.e("ScheduleCreate", "API Error: $errorMsg")
@@ -288,6 +283,75 @@ class ScheduleCreateActivity : AppCompatActivity() {
             })
     }
     
+    // 그룹 URL 생성 메서드
+    private fun createGroupUrl(planId: Int, loadingDialog: AlertDialog) {
+        val groupUrlRequest = GroupUrlRequest(isGroup = true)
+        
+        // 요청 본문 로그
+        Log.d("ScheduleCreate", "GroupUrlRequest: $groupUrlRequest")
+        
+        RetrofitClient.apiService.createGroupUrl(groupUrlRequest)
+            .enqueue(object : Callback<GroupUrlResponse> {
+                override fun onResponse(call: Call<GroupUrlResponse>, response: Response<GroupUrlResponse>) {
+                    loadingDialog.dismiss()
+                    
+                    // 응답 코드 및 본문 로그
+                    Log.d("ScheduleCreate", "GroupUrl API Response Code: ${response.code()}")
+                    Log.d("ScheduleCreate", "GroupUrl API Response Body: ${response.body()}")
+                    
+                    if (response.isSuccessful) {
+                        val groupUrlResponse = response.body()
+                        val groupUrl = groupUrlResponse?.url ?: ""
+                        
+                        Log.d("ScheduleCreate", "Group URL created: $groupUrl")
+                        Toast.makeText(
+                            this@ScheduleCreateActivity, 
+                            "그룹 일정이 생성되었습니다. 공유 URL: $groupUrl", 
+                            Toast.LENGTH_LONG
+                        ).show()
+                        
+                        // 일정 상세 화면으로 이동, 그룹 URL 전달
+                        navigateToDetailActivity(planId, groupUrl)
+                    } else {
+                        val errorMsg = response.errorBody()?.string() ?: "그룹 URL 생성 중 오류가 발생했습니다"
+                        Toast.makeText(this@ScheduleCreateActivity, errorMsg, Toast.LENGTH_SHORT).show()
+                        Log.e("ScheduleCreate", "Group URL API Error: $errorMsg")
+                        
+                        // 그룹 URL 생성에 실패해도 일정 상세 화면으로 이동
+                        navigateToDetailActivity(planId)
+                    }
+                }
+                
+                override fun onFailure(call: Call<GroupUrlResponse>, t: Throwable) {
+                    loadingDialog.dismiss()
+                    Log.e("ScheduleCreate", "Group URL Network Error: ${t.message}")
+                    Log.e("ScheduleCreate", "Error details:", t)
+                    Toast.makeText(this@ScheduleCreateActivity, "네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
+                    
+                    // 네트워크 오류 시에도 일정 상세 화면으로 이동
+                    navigateToDetailActivity(planId)
+                }
+            })
+    }
+    
+    // 일정 상세 화면으로 이동하는 메서드
+    private fun navigateToDetailActivity(planId: Int, groupUrl: String = "") {
+        val intent = Intent(this@ScheduleCreateActivity, ScheduleDetailActivity::class.java).apply {
+            putExtra("START_DATE", startDateCalendar.timeInMillis)
+            putExtra("END_DATE", endDateCalendar.timeInMillis)
+            putExtra("SCHEDULE_NAME", scheduleNameInput.text.toString())
+            putExtra("LOCATION", locationSelectButton.text.toString())
+            putExtra("MEMO", memoInput.text.toString())
+            putExtra("IS_GROUP", typeToggle.isChecked())
+            putExtra("PLAN_ID", planId)
+            if (groupUrl.isNotEmpty()) {
+                putExtra("GROUP_URL", groupUrl)
+            }
+        }
+        startActivity(intent)
+        finish()
+    }
+
     // 네트워크 오류 시 로컬 모드로 상세 화면 시작
     private fun startLocalDetailActivity() {
         val intent = Intent(this, ScheduleDetailActivity::class.java).apply {

@@ -18,4 +18,7 @@ interface ApiService {
     
     @POST("api/v1/plans/transportation/search")
     fun searchTransportation(@Body request: TransportationRequest): Call<TransportationResponse>
+    
+    @POST("api/v1/groups")
+    fun createGroupUrl(@Body request: GroupUrlRequest): Call<GroupUrlResponse>
 } 

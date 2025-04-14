@@ -37,6 +37,7 @@ import com.google.android.libraries.places.api.model.PhotoMetadata
 import com.google.android.libraries.places.api.net.FetchPlaceRequest
 import com.google.android.libraries.places.api.net.FetchPhotoRequest
 import com.google.android.libraries.places.api.net.PlacesClient
+import android.widget.ImageButton
 
 class ScheduleDetailActivity : AppCompatActivity() {
 
@@ -44,6 +45,7 @@ class ScheduleDetailActivity : AppCompatActivity() {
     private lateinit var viewPager: ViewPager2
     private lateinit var addNewPlaceButton: TextView
     private lateinit var confirmButton: TextView
+    private lateinit var shareButton: ImageButton
     
     private val startDateCalendar = Calendar.getInstance()
     private val endDateCalendar = Calendar.getInstance()
@@ -58,19 +60,29 @@ class ScheduleDetailActivity : AppCompatActivity() {
         viewPager = findViewById(R.id.viewPager)
         addNewPlaceButton = findViewById(R.id.addNewPlaceButton)
         confirmButton = findViewById(R.id.confirmButton)
+        shareButton = findViewById(R.id.shareButton)
         
-            // 인텐트에서 날짜 데이터 가져오기
-            val startDate = intent.getLongExtra("START_DATE", System.currentTimeMillis())
-            val endDate = intent.getLongExtra("END_DATE", System.currentTimeMillis())
+        // 인텐트에서 날짜 데이터 가져오기
+        val startDate = intent.getLongExtra("START_DATE", System.currentTimeMillis())
+        val endDate = intent.getLongExtra("END_DATE", System.currentTimeMillis())
         val scheduleName = intent.getStringExtra("SCHEDULE_NAME") ?: "일정"
         planId = intent.getIntExtra("PLAN_ID", 0)
+        val isGroup = intent.getBooleanExtra("IS_GROUP", false)
+        val groupUrl = intent.getStringExtra("GROUP_URL")
         
         // planId 확인을 위한 로그 추가
         Log.d("ScheduleDetail", "Received Plan ID: $planId")
+        
+        // 그룹 URL이 있는 경우 로그 및 필요한 처리
+        if (isGroup && !groupUrl.isNullOrEmpty()) {
+            Log.d("ScheduleDetail", "Group URL received: $groupUrl")
+            // 여기에 그룹 URL로 필요한 처리 추가
+            setupGroupFunctionality(groupUrl)
+        }
             
-            startDateCalendar.timeInMillis = startDate
-            endDateCalendar.timeInMillis = endDate
-            
+        startDateCalendar.timeInMillis = startDate
+        endDateCalendar.timeInMillis = endDate
+        
         // 일정 이름과 날짜 표시
         val titleText = findViewById<TextView>(R.id.titleText)
         val dateRangeText = findViewById<TextView>(R.id.dateRangeText)
@@ -638,5 +650,22 @@ class ScheduleDetailActivity : AppCompatActivity() {
         } ?: run {
             Log.w("ScheduleDetail", "Cannot update UI: planDetail is null")
         }
+    }
+
+    // 그룹 기능 설정
+    private fun setupGroupFunctionality(groupUrl: String) {
+        // 그룹 여행일 경우에만 공유 버튼 표시
+        shareButton.visibility = View.VISIBLE
+        shareButton.setOnClickListener {
+            // 공유 기능 구현
+            val shareIntent = Intent().apply {
+                action = Intent.ACTION_SEND
+                putExtra(Intent.EXTRA_TEXT, "여행 일정에 참여하세요! 공유 URL: $groupUrl")
+                type = "text/plain"
+            }
+            startActivity(Intent.createChooser(shareIntent, "공유 방법 선택"))
+        }
+        
+        // 웹소켓 연결 등 추가 처리는 여기에 구현
     }
 }
