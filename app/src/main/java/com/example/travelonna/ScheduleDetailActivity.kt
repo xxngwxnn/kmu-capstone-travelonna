@@ -31,6 +31,12 @@ import com.example.travelonna.api.RetrofitClient
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import com.google.android.libraries.places.api.Places
+import com.google.android.libraries.places.api.model.Place
+import com.google.android.libraries.places.api.model.PhotoMetadata
+import com.google.android.libraries.places.api.net.FetchPlaceRequest
+import com.google.android.libraries.places.api.net.FetchPhotoRequest
+import com.google.android.libraries.places.api.net.PlacesClient
 
 class ScheduleDetailActivity : AppCompatActivity() {
 
@@ -242,10 +248,20 @@ class ScheduleDetailActivity : AppCompatActivity() {
     }
     
     // 장소 목록 어댑터
-    inner class PlaceAdapter(val places: MutableList<PlaceItem>) : 
-        RecyclerView.Adapter<PlaceAdapter.PlaceViewHolder>() {
+    inner class PlaceAdapter(
+        internal val places: MutableList<PlaceItem>
+    ) : RecyclerView.Adapter<PlaceAdapter.PlaceViewHolder>() {
         
-        // 장소 목록 업데이트 메서드 추가
+        private lateinit var placesClient: PlacesClient
+        
+        init {
+            // Places API 초기화
+            if (!Places.isInitialized()) {
+                Places.initialize(applicationContext, getString(R.string.google_maps_key))
+            }
+            placesClient = Places.createClient(applicationContext)
+        }
+        
         fun updatePlaces(newPlaces: List<PlaceItem>) {
             places.clear()
             places.addAll(newPlaces)
@@ -272,7 +288,14 @@ class ScheduleDetailActivity : AppCompatActivity() {
         override fun onBindViewHolder(holder: PlaceViewHolder, position: Int) {
             val place = places[position]
             holder.numberCircle.text = (position + 1).toString()
+            
+            // 기본 이미지 먼저 설정
             holder.placeImage.setImageResource(place.imageResId)
+            
+            // googleId가 있으면 Google Places API를 사용해 실제 이미지 로드
+            if (place.googleId.isNotEmpty()) {
+                loadPlaceImage(place.googleId, holder.placeImage)
+            }
             
             // 장소명 표시 (name 필드)
             holder.placeName.text = place.name
@@ -307,6 +330,51 @@ class ScheduleDetailActivity : AppCompatActivity() {
             
             holder.editButton.setOnClickListener {
                 // 편집 기능 구현 (향후)
+            }
+        }
+        
+        // Google Places API를 사용하여 장소 이미지 로드
+        private fun loadPlaceImage(googleId: String, imageView: ImageView) {
+            if (googleId.isEmpty()) return
+            
+            try {
+                Log.d("PlaceAdapter", "Loading image for Google Place ID: $googleId")
+                
+                // Places Photo API를 사용하여 사진 요청
+                val placeFields = listOf(Place.Field.PHOTO_METADATAS)
+                val request = FetchPlaceRequest.builder(googleId, placeFields).build()
+                
+                placesClient.fetchPlace(request).addOnSuccessListener { response ->
+                    val place = response.place
+                    val metadatas = place.photoMetadatas
+                    
+                    if (metadatas == null || metadatas.isEmpty()) {
+                        Log.d("PlaceAdapter", "No photos found for place ID: $googleId")
+                        return@addOnSuccessListener
+                    }
+                    
+                    // 첫 번째 사진 가져오기
+                    val photoMetadata = metadatas[0]
+                    
+                    // 사진 가져오기 요청 생성
+                    val photoRequest = FetchPhotoRequest.builder(photoMetadata)
+                        .setMaxWidth(500) // 이미지 최대 폭 설정
+                        .setMaxHeight(300) // 이미지 최대 높이 설정
+                        .build()
+                    
+                    // 사진 가져오기
+                    placesClient.fetchPhoto(photoRequest).addOnSuccessListener { fetchPhotoResponse ->
+                        val bitmap = fetchPhotoResponse.bitmap
+                        imageView.setImageBitmap(bitmap)
+                        Log.d("PlaceAdapter", "Successfully loaded image for place ID: $googleId")
+                    }.addOnFailureListener { exception ->
+                        Log.e("PlaceAdapter", "Failed to fetch photo for place ID: $googleId", exception)
+                    }
+                }.addOnFailureListener { exception ->
+                    Log.e("PlaceAdapter", "Failed to fetch place details for ID: $googleId", exception)
+                }
+            } catch (e: Exception) {
+                Log.e("PlaceAdapter", "Error loading place image for ID: $googleId", e)
             }
         }
 
