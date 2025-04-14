@@ -1,5 +1,6 @@
 package com.example.travelonna.ui.schedule
 
+import android.net.Uri
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -11,14 +12,15 @@ import com.example.travelonna.R
 class PlaceSearchAdapter(
     private val onPlaceClick: (PlaceInfo) -> Unit,
     private val onRouteClick: (PlaceInfo) -> Unit,
-    private val onWebsiteClick: ((PlaceInfo) -> Unit)? = null  // nullable and optional
+    private val onWebsiteClick: ((PlaceInfo) -> Unit)?
 ) : RecyclerView.Adapter<PlaceSearchAdapter.PlaceViewHolder>() {
 
-    private var places = listOf<PlaceInfo>()
+    private var places: List<PlaceInfo> = emptyList()
 
-    fun updatePlaces(newPlaces: List<PlaceInfo>) {
-        places = newPlaces
-        notifyDataSetChanged()
+    inner class PlaceViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        val placeName: TextView = itemView.findViewById(R.id.placeName)
+        val placeAddress: TextView = itemView.findViewById(R.id.placeAddress)
+        val directionButton: ImageButton = itemView.findViewById(R.id.directionButton)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PlaceViewHolder {
@@ -29,24 +31,24 @@ class PlaceSearchAdapter(
 
     override fun onBindViewHolder(holder: PlaceViewHolder, position: Int) {
         val place = places[position]
-        holder.bind(place)
+        holder.placeName.text = place.name
+        holder.placeAddress.text = place.address
+
+        // 전체 아이템 클릭 시 장소 상세 정보 표시
+        holder.itemView.setOnClickListener {
+            onPlaceClick(place)
+        }
+
+        // 길 찾기 버튼 클릭 시
+        holder.directionButton.setOnClickListener {
+            onRouteClick(place)
+        }
     }
 
     override fun getItemCount() = places.size
 
-    inner class PlaceViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        private val tvPlaceName: TextView = itemView.findViewById(R.id.tvPlaceName)
-        private val tvPlaceAddress: TextView = itemView.findViewById(R.id.tvPlaceAddress)
-        private val tvRating: TextView = itemView.findViewById(R.id.tvRating)
-        private val btnRoute: ImageButton = itemView.findViewById(R.id.btnRoute)
-
-        fun bind(place: PlaceInfo) {
-            tvPlaceName.text = place.name
-            tvPlaceAddress.text = place.address
-            tvRating.text = if (place.rating != null) "★ ${place.rating}" else ""
-
-            itemView.setOnClickListener { onPlaceClick(place) }
-            btnRoute.setOnClickListener { onRouteClick(place) }
-        }
+    fun updatePlaces(newPlaces: List<PlaceInfo>) {
+        places = newPlaces
+        notifyDataSetChanged()
     }
 } 

@@ -6,37 +6,37 @@
     android:padding="16dp">
 
     <TextView
-        android:id="@+id/tvPlaceName"
+        android:id="@+id/placeName"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:textSize="16sp"
         android:textStyle="bold"
-        app:layout_constraintEnd_toStartOf="@+id/btnRoute"
+        app:layout_constraintEnd_toStartOf="@+id/directionButton"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
-        android:id="@+id/tvPlaceAddress"
+        android:id="@+id/placeAddress"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
         android:textSize="14sp"
         android:textColor="#666666"
-        app:layout_constraintEnd_toStartOf="@+id/btnRoute"
+        app:layout_constraintEnd_toStartOf="@+id/directionButton"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/tvPlaceName" />
+        app:layout_constraintTop_toBottomOf="@+id/placeName" />
 
     <TextView
-        android:id="@+id/tvRating"
+        android:id="@+id/rating"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
         android:drawablePadding="4dp"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/tvPlaceAddress" />
+        app:layout_constraintTop_toBottomOf="@+id/placeAddress" />
 
     <ImageButton
-        android:id="@+id/btnRoute"
+        android:id="@+id/directionButton"
         android:layout_width="40dp"
         android:layout_height="40dp"
         android:background="?attr/selectableItemBackgroundBorderless"

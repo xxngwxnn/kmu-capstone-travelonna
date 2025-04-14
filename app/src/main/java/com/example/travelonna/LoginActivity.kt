@@ -23,6 +23,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import com.google.android.gms.auth.api.signin.SignInAccount
+import com.example.travelonna.api.RetrofitClient
 
 class LoginActivity : AppCompatActivity() {
     private lateinit var googleSignInClient: GoogleSignInClient
@@ -207,7 +208,18 @@ class LoginActivity : AppCompatActivity() {
                     Log.d(TAG, "Expires In: ${tokenResponse?.expiresIn}")
                     Log.d(TAG, "Full token response: $tokenResponse")
                     Log.d(TAG, "=====================")
+                    
+                    // 토큰 저장
+                    tokenResponse?.accessToken?.let { token ->
+                        RetrofitClient.saveToken(token)
+                        Log.d(TAG, "Token saved to RetrofitClient")
+                    }
+                    
                     Toast.makeText(this@LoginActivity, "로그인 성공!", Toast.LENGTH_SHORT).show()
+                    
+                    // PlanActivity로 이동
+                    val intent = Intent(this@LoginActivity, PlanActivity::class.java)
+                    startActivity(intent)
                     finish()
                 } else {
                     Log.e(TAG, "Error!")

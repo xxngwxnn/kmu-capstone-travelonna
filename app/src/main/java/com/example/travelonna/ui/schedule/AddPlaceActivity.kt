@@ -43,20 +43,56 @@ class AddPlaceActivity : AppCompatActivity(), OnMapReadyCallback {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // 바인딩 초기화 및 콘텐츠 뷰 설정
         binding = ActivityAddPlaceBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
+        
         // Places API 초기화
         if (!Places.isInitialized()) {
             Places.initialize(applicationContext, getString(R.string.google_maps_key))
         }
-        placesClient = Places.createClient(this)
 
+        // 디버그 로그 추가
+        val planId = intent.getIntExtra("PLAN_ID", 0)
+        Log.d("AddPlaceActivity", "Received Plan ID: $planId")
+        
+        placesClient = Places.createClient(this)
+        
+        // 뷰 초기화 및 설정
+        setupViews()
+        
+        // 초기 UI 상태 설정
+        updateNoticeVisibility(true)
+    }
+
+    private fun setupViews() {
         setupToolbar()
         setupMap()
         setupSearchView()
         setupAddButton()
-        setupViews()
+        setupRecyclerView()
+        
+        // 버튼 리스너 설정
+        binding.toolbar.setNavigationOnClickListener {
+            finish()
+        }
+        
+        // 장소 추가 버튼 상태 업데이트
+        binding.addButton.isEnabled = false
+        
+        // 추가: planId 가져오기
+        Log.d(TAG, "In setupViews - Plan ID: ${intent.getIntExtra("PLAN_ID", 0)}")
+    }
+
+    private fun setupListeners() {
+        // 뒤로가기 버튼
+        binding.toolbar.setNavigationOnClickListener {
+            finish()
+        }
+        
+        // 장소 추가 버튼 상태 업데이트
+        binding.addButton.isEnabled = false
     }
 
     private fun setupToolbar() {
@@ -95,21 +131,26 @@ class AddPlaceActivity : AppCompatActivity(), OnMapReadyCallback {
     private fun setupAddButton() {
         binding.addButton.setOnClickListener {
             selectedPlace?.let { place ->
+                Log.d(TAG, "Selected Place - Name: ${place.name}, Address: ${place.address}")
+                
                 val intent = Intent().apply {
-                    putExtra("placeName", place.name)
-                    putExtra("placeAddress", place.address)
+                    putExtra("placeName", place.name)  // 장소명 필드에 실제 장소명 전달
+                    putExtra("placeAddress", place.address)  // 주소 필드에 주소 전달
                     putExtra("placeLat", place.latitude)
                     putExtra("placeLng", place.longitude)
+                    putExtra("placeId", place.placeId)
                 }
+                
+                Log.d(TAG, "Sending data back: placeName=${place.name}, placeAddress=${place.address}")
+                
                 setResult(RESULT_OK, intent)
                 finish()
             }
         }
     }
 
-    private fun setupViews() {
+    private fun setupRecyclerView() {
         recyclerView = findViewById(R.id.recyclerView)
-
         adapter = PlaceSearchAdapter(
             onPlaceClick = { place ->
                 fetchPlaceDetails(place.placeId)
@@ -255,53 +296,79 @@ class AddPlaceActivity : AppCompatActivity(), OnMapReadyCallback {
     private fun fetchPlaceDetails(placeId: String) {
         Log.d(TAG, "Fetching details for place ID: $placeId")
         
+        // Place API 필드 지정
         val placeFields = listOf(
-            Place.Field.LAT_LNG,
+            Place.Field.ID,
             Place.Field.NAME,
             Place.Field.ADDRESS,
+            Place.Field.LAT_LNG,
             Place.Field.RATING,
             Place.Field.WEBSITE_URI,
             Place.Field.PHONE_NUMBER
         )
-
+        
         val request = FetchPlaceRequest.builder(placeId, placeFields).build()
-        Log.d(TAG, "Place details request built with fields: $placeFields")
-
+        
         placesClient.fetchPlace(request)
             .addOnSuccessListener { response ->
-                Log.d(TAG, "Place details fetched successfully")
                 val place = response.place
-                val latLng = place.latLng
-                if (latLng != null) {
-                    Log.d(TAG, "Place location: lat=${latLng.latitude}, lng=${latLng.longitude}")
+                Log.d(TAG, "Place details fetched successfully: ${place.name}")
+                Log.d(TAG, "Place details - Name: ${place.name}, Address: ${place.address}")
+                
+                // 지도에 마커 추가 및 카메라 이동
+                place.latLng?.let { latLng ->
+                    // 지도 컨테이너를 보이게 설정
+                    binding.searchContainer.visibility = View.GONE
+                    binding.mapContainer.visibility = View.VISIBLE
+                    
+                    map.clear()
+                    map.addMarker(
+                        MarkerOptions()
+                            .position(latLng)
+                            .title(place.name)
+                    )
+                    map.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15f))
+                    
+                    // 선택된 장소 정보 저장
+                    val placeName = place.name ?: "" // 정확한 장소명 저장
+                    val placeAddress = place.address ?: "" // 주소 저장
+                    
+                    Log.d(TAG, "Storing selected place with Name: $placeName, Address: $placeAddress")
+                    
                     selectedPlace = PlaceInfo(
-                        placeId = placeId,
-                        name = place.name ?: "",
-                        address = place.address ?: "",
-                        rating = place.rating?.toFloat(),
+                        placeId = place.id ?: "",
+                        name = placeName,
+                        address = placeAddress,
+                        rating = place.rating,
                         latitude = latLng.latitude,
                         longitude = latLng.longitude,
-                        websiteUri = place.websiteUri?.toString(),
+                        websiteUri = place.websiteUri,
                         phoneNumber = place.phoneNumber
                     )
-                    showMap(latLng, place.name)
-                } else {
-                    Log.e(TAG, "Place location is null")
+                    
+                    // 장소 정보 카드에 정보 채우기
+                    binding.placeInfoCard.visibility = View.VISIBLE
+                    binding.placeNameText.text = placeName
+                    binding.placeAddressText.text = placeAddress
+                    
+                    // 장소 선택 후 UI 업데이트
+                    updateNoticeVisibility(false)
+                    binding.addButton.isEnabled = true
                 }
             }
             .addOnFailureListener { exception ->
-                Log.e(TAG, "Failed to fetch place details", exception)
-                Toast.makeText(this, "장소 상세 정보를 가져오는데 실패했습니다: ${exception.message}", Toast.LENGTH_SHORT).show()
+                Log.e(TAG, "Error fetching place details", exception)
+                Toast.makeText(this, "장소 정보를 가져오는데 실패했습니다.", Toast.LENGTH_SHORT).show()
             }
     }
 
-    private fun showMap(latLng: LatLng, title: String?) {
-        Log.d(TAG, "Showing map for location: lat=${latLng.latitude}, lng=${latLng.longitude}, title=$title")
-        findViewById<View>(R.id.searchContainer).visibility = View.GONE
-        findViewById<View>(R.id.mapContainer).visibility = View.VISIBLE
-
-        map.clear()
-        map.addMarker(MarkerOptions().position(latLng).title(title))
-        map.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15f))
+    private fun updateNoticeVisibility(showNotice: Boolean) {
+        if (showNotice) {
+            binding.placeInfoCard.visibility = View.GONE
+            binding.addButton.isEnabled = false
+        } else {
+            binding.placeInfoCard.visibility = View.VISIBLE
+            binding.addButton.isEnabled = true
+        }
     }
 } 

@@ -17,6 +17,20 @@ import com.example.travelonna.R
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
+import com.google.android.libraries.places.api.Places
+import com.google.android.libraries.places.api.net.PlacesClient
+import com.bumptech.glide.Glide
+import android.util.Log
+import com.google.android.libraries.places.api.model.Place
+import com.google.android.libraries.places.api.net.FetchPlaceRequest
+import com.google.android.libraries.places.api.net.FetchPhotoRequest
+import com.google.android.libraries.places.api.net.FetchPhotoResponse
+import com.example.travelonna.api.PlaceCreateRequest
+import com.example.travelonna.api.PlaceCreateResponse
+import com.example.travelonna.api.RetrofitClient
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 
 class PlaceInfoActivity : AppCompatActivity() {
     private lateinit var titleText: TextView
@@ -28,11 +42,18 @@ class PlaceInfoActivity : AppCompatActivity() {
     private lateinit var searchPlaceButton: ImageButton
     private lateinit var cancelButton: Button
     private lateinit var confirmButton: Button
+    private lateinit var privacyToggle: com.example.travelonna.view.CustomToggleButton
+    private lateinit var privacyPrivateText: TextView
+    private lateinit var privacyPublicText: TextView
+    
+    // Places API
+    private lateinit var placesClient: PlacesClient
     
     private var selectedDay: Int = 0
     private var startDate: Long = 0
     private var endDate: Long = 0
     private var scheduleName: String = ""
+    private var isPublic: Boolean = true  // 기본값을 true(공개)로 변경
     
     // 위치 정보
     private var placeId: String = ""
@@ -41,15 +62,27 @@ class PlaceInfoActivity : AppCompatActivity() {
     private var placeLat: Double = 0.0
     private var placeLng: Double = 0.0
     
+    // 로그 태그
+    private val TAG = "PlaceInfoActivity"
+    
+    private var planId: Int = 0
+    
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_place_info)
+        
+        // Places API 초기화
+        if (!Places.isInitialized()) {
+            Places.initialize(applicationContext, getString(R.string.google_maps_key))
+        }
+        placesClient = Places.createClient(this)
         
         // 인텐트에서 데이터 가져오기
         selectedDay = intent.getIntExtra("SELECTED_DAY", 0)
         startDate = intent.getLongExtra("START_DATE", System.currentTimeMillis())
         endDate = intent.getLongExtra("END_DATE", System.currentTimeMillis())
         scheduleName = intent.getStringExtra("SCHEDULE_NAME") ?: "일정"
+        planId = intent.getIntExtra("PLAN_ID", 0)
         
         // 뷰 초기화
         initViews()
@@ -74,10 +107,35 @@ class PlaceInfoActivity : AppCompatActivity() {
         searchPlaceButton = findViewById(R.id.searchPlaceButton)
         cancelButton = findViewById(R.id.cancelButton)
         confirmButton = findViewById(R.id.confirmButton)
+        privacyToggle = findViewById(R.id.privacyToggle)
+        privacyPrivateText = findViewById(R.id.privacyPrivateText)
+        privacyPublicText = findViewById(R.id.privacyPublicText)
         
         // 뒤로가기 버튼 설정
         findViewById<ImageView>(R.id.backButton).setOnClickListener {
             finish()
+        }
+        
+        // 공개 여부 토글 설정 - 기본값은 공개(true)
+        privacyToggle.setChecked(isPublic)
+        updatePrivacyTextColors(isPublic)
+        
+        privacyToggle.setOnCheckedChangeListener { isChecked ->
+            isPublic = isChecked
+            updatePrivacyTextColors(isChecked)
+        }
+        
+        // 텍스트 클릭 시에도 토글 상태 변경
+        privacyPrivateText.setOnClickListener {
+            privacyToggle.setChecked(false)
+            isPublic = false
+            updatePrivacyTextColors(false)
+        }
+        
+        privacyPublicText.setOnClickListener {
+            privacyToggle.setChecked(true)
+            isPublic = true
+            updatePrivacyTextColors(true)
         }
     }
     
@@ -147,6 +205,8 @@ class PlaceInfoActivity : AppCompatActivity() {
         // 위치 검색 버튼
         searchPlaceButton.setOnClickListener {
             val intent = Intent(this, AddPlaceActivity::class.java)
+            intent.putExtra("PLAN_ID", planId)
+            Log.d(TAG, "Sending Plan ID: $planId to AddPlaceActivity")
             startActivityForResult(intent, 100)
         }
         
@@ -176,10 +236,124 @@ class PlaceInfoActivity : AppCompatActivity() {
             return false
         }
         
+        // 계획 ID 검증
+        Log.d(TAG, "Plan ID: $planId")
+        if (planId <= 0) {
+            Toast.makeText(this, "유효한 일정 ID가 없습니다. 일정을 다시 생성해주세요.", Toast.LENGTH_SHORT).show()
+            return false
+        }
+        
         return true
     }
     
     private fun saveAndReturn() {
+        if (planId > 0) {
+            // API로 새 장소 생성
+            createPlace()
+        } else {
+            // 로컬 데이터만 반환 (이전 동작 유지)
+            returnLocalData()
+        }
+    }
+    
+    private fun createPlace() {
+        // 로딩 다이얼로그 표시
+        val loadingDialog = android.app.AlertDialog.Builder(this)
+            .setView(R.layout.dialog_loading)
+            .setCancelable(false)
+            .create()
+        loadingDialog.show()
+        
+        // 날짜 형식 변환
+        val calendar = Calendar.getInstance()
+        calendar.timeInMillis = startDate
+        calendar.add(Calendar.DAY_OF_MONTH, selectedDay)
+        
+        val visitDateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+        val visitDate = visitDateFormat.format(calendar.time)
+        
+        // 비용 파싱 (예외 처리)
+        val costStr = estimatedCostInput.text.toString()
+        val cost = if (costStr.isEmpty()) 0 else try {
+            costStr.toInt()
+        } catch (e: Exception) {
+            0
+        }
+        
+        // 사용자가 입력한 장소명 가져오기 (이것이 실제 name 필드에 들어가야 함)
+        val placeName = placeNameInput.text.toString().trim()
+        
+        // 로그 추가: 실제 전송 데이터 표시
+        Log.d(TAG, "Creating place with data:")
+        Log.d(TAG, "Plan ID: $planId")
+        Log.d(TAG, "Place Name (사용자 입력): $placeName")
+        Log.d(TAG, "Place Address: $placeAddress")
+        Log.d(TAG, "Visit Date: $visitDate")
+        Log.d(TAG, "Is Public: $isPublic")
+        Log.d(TAG, "Cost: $cost")
+        Log.d(TAG, "Coordinates: $placeLat, $placeLng")
+        
+        // 요청 모델 생성
+        val placeRequest = PlaceCreateRequest(
+            place = placeAddress,  // address 필드에는 주소를 보냄
+            isPublic = isPublic,
+            visitDate = visitDate,
+            placeCost = cost,
+            memo = memoInput.text.toString(),
+            lat = placeLat.toString(),
+            lon = placeLng.toString(),
+            name = placeName,  // name 필드에는 사용자가 입력한 장소명을 보냄
+            order = 1, // 서버에서 자동 할당하도록 1로 설정
+            googleId = placeId
+        )
+        
+        // API 요청 로그
+        Log.d(TAG, "API Request: $placeRequest")
+        
+        // API 호출
+        RetrofitClient.apiService.createPlace(planId, placeRequest)
+            .enqueue(object: Callback<PlaceCreateResponse> {
+                override fun onResponse(call: Call<PlaceCreateResponse>, response: Response<PlaceCreateResponse>) {
+                    loadingDialog.dismiss()
+                    
+                    if (response.isSuccessful && response.body()?.success == true) {
+                        val placeData = response.body()?.data
+                        Log.d(TAG, "Place added successfully with response: ${response.body()}")
+                        Log.d(TAG, "Added place - Name: ${placeData?.name}, Address: ${placeData?.address}")
+                        
+                        // 반환된 이름이 요청한 이름과 다른지 확인
+                        if (placeData?.name != placeRequest.name) {
+                            Log.w(TAG, "⚠️ Warning: Sent name '${placeRequest.name}' but received '${placeData?.name}'")
+                        }
+                        
+                        Toast.makeText(this@PlaceInfoActivity, "장소가 추가되었습니다", Toast.LENGTH_SHORT).show()
+                        
+                        // 결과 전달 및 액티비티 종료
+                        val resultIntent = Intent()
+                        resultIntent.putExtra("PLACE_ADDED", true)
+                        resultIntent.putExtra("SELECTED_DAY", selectedDay)
+                        setResult(RESULT_OK, resultIntent)
+                        finish()
+                    } else {
+                        // 에러 처리
+                        val errorMsg = response.errorBody()?.string() ?: "장소 추가 중 오류가 발생했습니다"
+                        Toast.makeText(this@PlaceInfoActivity, errorMsg, Toast.LENGTH_SHORT).show()
+                        Log.e(TAG, "API Error: $errorMsg")
+                        Log.e(TAG, "Response code: ${response.code()}")
+                        Log.e(TAG, "Request sent: name='${placeRequest.name}', place='${placeRequest.place}'")
+                    }
+                }
+                
+                override fun onFailure(call: Call<PlaceCreateResponse>, t: Throwable) {
+                    loadingDialog.dismiss()
+                    Toast.makeText(this@PlaceInfoActivity, "네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
+                    Log.e(TAG, "Network Error: ${t.message}")
+                }
+            })
+    }
+    
+    // 이전 방식 (로컬 데이터 반환)
+    private fun returnLocalData() {
         val intent = Intent()
         intent.putExtra("PLACE_ID", placeId)
         intent.putExtra("PLACE_NAME", placeNameInput.text.toString())
@@ -189,6 +363,7 @@ class PlaceInfoActivity : AppCompatActivity() {
         intent.putExtra("ESTIMATED_COST", estimatedCostInput.text.toString())
         intent.putExtra("MEMO", memoInput.text.toString())
         intent.putExtra("SELECTED_DAY", selectedDay)
+        intent.putExtra("IS_PUBLIC", isPublic)
         
         setResult(RESULT_OK, intent)
         finish()
@@ -203,13 +378,27 @@ class PlaceInfoActivity : AppCompatActivity() {
             placeAddress = data.getStringExtra("placeAddress") ?: ""
             placeLat = data.getDoubleExtra("placeLat", 0.0)
             placeLng = data.getDoubleExtra("placeLng", 0.0)
+            placeId = data.getStringExtra("placeId") ?: ""
             
             // 주소에서 '대한민국' 제거
             placeAddress = removeCountryPrefix(placeAddress)
             
-            // UI 업데이트
-            placeNameInput.setText(placeName)
-            placeAddressText.text = placeAddress
+            Log.d(TAG, "Received place data - name: '$placeName', address: '$placeAddress'")
+            
+            // UI 업데이트 - 이제 장소명이 올바르게 설정되었는지 확인
+            if (placeName.isNotEmpty()) {
+                placeNameInput.setText(placeName)  // 장소명 필드에 실제 장소명 설정
+                Log.d(TAG, "Setting place name input to: '$placeName'")
+            } else {
+                // 장소명이 비어있다면 주소를 기반으로 임시 이름 설정
+                placeNameInput.setText(placeAddress.split(",").firstOrNull() ?: "")
+                Log.d(TAG, "Place name was empty, using address part instead")
+            }
+            
+            placeAddressText.text = placeAddress  // 주소 필드에 주소 설정
+            
+            // 장소 이미지 로드
+            loadPlaceImage()
         }
     }
     
@@ -218,5 +407,76 @@ class PlaceInfoActivity : AppCompatActivity() {
         return address.replace("대한민국", "")
             .replace("^\\s+".toRegex(), "") // 앞쪽 공백 제거
             .trim()
+    }
+    
+    // Google Places API를 사용하여 장소 이미지 로드
+    private fun loadPlaceImage() {
+        if (placeId.isNotEmpty()) {
+            try {
+                Log.d(TAG, "Loading image for place ID: $placeId")
+                
+                // Places Photo API를 사용하여 사진 요청
+                val placeFields = listOf(Place.Field.PHOTO_METADATAS)
+                val request = FetchPlaceRequest.builder(placeId, placeFields).build()
+                
+                placesClient.fetchPlace(request).addOnSuccessListener { response ->
+                    val place = response.place
+                    val metadatas = place.photoMetadatas
+                    
+                    if (metadatas == null || metadatas.isEmpty()) {
+                        Log.d(TAG, "No photos found for this place")
+                        return@addOnSuccessListener
+                    }
+                    
+                    // 첫 번째 사진 가져오기
+                    val photoMetadata = metadatas[0]
+                    
+                    // 사진 가져오기 요청 생성
+                    val photoRequest = FetchPhotoRequest.builder(photoMetadata)
+                        .setMaxWidth(800) // 이미지 최대 폭 설정
+                        .setMaxHeight(480) // 이미지 최대 높이 설정
+                        .build()
+                    
+                    // 사진 가져오기
+                    placesClient.fetchPhoto(photoRequest).addOnSuccessListener { fetchPhotoResponse ->
+                        val bitmap = fetchPhotoResponse.bitmap
+                        // 안내 메시지 텍스트 숨기기
+                        findViewById<LinearLayout>(R.id.infoTextContainer).visibility = View.GONE
+                        
+                        // 이미지 표시
+                        val infoImage = findViewById<ImageView>(R.id.infoImage)
+                        val imageCardView = findViewById<androidx.cardview.widget.CardView>(R.id.imageCardView)
+                        imageCardView.visibility = View.VISIBLE
+                        infoImage.setImageBitmap(bitmap)
+                        
+                        // 컨테이너 스타일 변경
+                        val infoContainer = findViewById<LinearLayout>(R.id.infoContainer)
+                        infoContainer.background = null
+                        
+                        Log.d(TAG, "Image loaded successfully")
+                    }.addOnFailureListener { exception ->
+                        Log.e(TAG, "Failed to fetch photo", exception)
+                        Toast.makeText(this, "이미지를 불러오는데 실패했습니다", Toast.LENGTH_SHORT).show()
+                    }
+                }.addOnFailureListener { exception ->
+                    Log.e(TAG, "Failed to fetch place", exception)
+                    Toast.makeText(this, "장소 정보를 불러오는데 실패했습니다", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error loading place image", e)
+                Toast.makeText(this, "이미지를 불러오는데 실패했습니다", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+    
+    // 공개/비공개 텍스트 색상 업데이트
+    private fun updatePrivacyTextColors(isPublic: Boolean) {
+        if (isPublic) {
+            privacyPublicText.setTextColor(ContextCompat.getColor(this, R.color.blue))
+            privacyPrivateText.setTextColor(ContextCompat.getColor(this, R.color.gray_text))
+        } else {
+            privacyPublicText.setTextColor(ContextCompat.getColor(this, R.color.gray_text))
+            privacyPrivateText.setTextColor(ContextCompat.getColor(this, R.color.blue))
+        }
     }
 } 

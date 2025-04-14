@@ -75,12 +75,21 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="동대구역"
+                        android:text="장소명"
                         android:textColor="@color/black"
-                        android:textSize="15sp"
+                        android:textSize="17sp"
                         android:textStyle="bold"
                         android:ellipsize="end"
                         android:maxLines="1" />
+                        
+                    <TextView
+                        android:id="@+id/privacyStatus"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="비공개"
+                        android:textColor="@color/gray_text"
+                        android:textSize="12sp"
+                        android:layout_marginEnd="8dp" />
 
                     <TextView
                         android:id="@+id/editButton"
@@ -97,11 +106,41 @@
                     android:id="@+id/placeAddress"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="대구광역시 동구 동대구로 550 (신암동)"
+                    android:text="장소 주소"
                     android:textColor="@color/gray_text"
-                    android:textSize="12sp"
+                    android:textSize="13sp"
+                    android:layout_marginTop="2dp"
                     android:ellipsize="end"
                     android:maxLines="1" />
+                    
+                <!-- 가격 정보 -->
+                <LinearLayout
+                    android:id="@+id/costLayout"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="4dp">
+                    
+                    <TextView
+                        android:id="@+id/placeCost"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="15,000원"
+                        android:textColor="@color/gray_text"
+                        android:textSize="12sp" />
+                </LinearLayout>
+                
+                <!-- 메모 정보 -->
+                <TextView
+                    android:id="@+id/placeMemo"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="오후 3시에 도착 예정"
+                    android:textColor="@color/gray_text"
+                    android:textSize="12sp"
+                    android:maxLines="2"
+                    android:ellipsize="end" />
             </LinearLayout>
         </LinearLayout>
     </androidx.cardview.widget.CardView>
