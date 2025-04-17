@@ -32,4 +32,7 @@ interface ApiService {
     
     @GET("api/v1/stations/search")
     fun searchStations(@Query("keyword") keyword: String): Call<StationSearchResponse>
+    
+    @GET("api/v1/stations/region")
+    fun searchStationsByRegion(@Query("region") region: String): Call<StationSearchResponse>
 } 

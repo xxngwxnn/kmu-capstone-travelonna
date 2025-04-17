@@ -8,7 +8,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.travelonna.R
 import com.example.travelonna.api.Station
 
-class StationAdapter(
+open class StationAdapter(
     private var stations: List<Station> = emptyList(),
     private val onItemClick: (Station) -> Unit
 ) : RecyclerView.Adapter<StationAdapter.StationViewHolder>() {
@@ -28,13 +28,21 @@ class StationAdapter(
     override fun onBindViewHolder(holder: StationViewHolder, position: Int) {
         val station = stations[position]
         
-        holder.stationName.text = station.name
+        // 역 이름 바인딩 (오버라이드 가능)
+        bindStationName(holder.stationName, station)
+        
+        // 나머지 정보 바인딩
         holder.stationType.text = station.type
         holder.stationLocation.text = station.location
         
         holder.itemView.setOnClickListener {
             onItemClick(station)
         }
+    }
+    
+    // 역 이름 바인딩 메소드 (서브클래스에서 오버라이드 가능)
+    open fun bindStationName(stationView: TextView, station: Station) {
+        stationView.text = station.name
     }
 
     override fun getItemCount() = stations.size

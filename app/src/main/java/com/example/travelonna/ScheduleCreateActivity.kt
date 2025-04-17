@@ -505,8 +505,8 @@ class ScheduleCreateActivity : AppCompatActivity() {
                 // 선택된 교통수단 값 저장
                 selectedTransport = transportValues[index]
                 
-                // 버스나 기차 선택 시 검색 버튼 표시, 그 외에는 숨김
-                searchTransportButton.visibility = if (selectedTransport == "bus" || selectedTransport == "train") {
+                // 기차 선택 시에만 검색 버튼 표시, 그 외에는 숨김
+                searchTransportButton.visibility = if (selectedTransport == "train") {
                     View.VISIBLE
                 } else {
                     View.GONE
@@ -526,7 +526,7 @@ class ScheduleCreateActivity : AppCompatActivity() {
                 // 위치와 날짜가 모두 선택된 경우에만 교통수단 검색 다이얼로그 표시
                 val destinationName = locationSelectButton.text.toString()
                 val searchManager = TransportationSearchManager(this)
-                // 선택된 교통수단(bus 또는 train)을 자동으로 전달
+                // 선택된 교통수단(train)을 자동으로 전달
                 searchManager.showTransportationSearchDialog(destinationName, startDateCalendar.timeInMillis, selectedTransport)
             } else {
                 Toast.makeText(this, "위치와 날짜를 먼저 선택해주세요", Toast.LENGTH_SHORT).show()
