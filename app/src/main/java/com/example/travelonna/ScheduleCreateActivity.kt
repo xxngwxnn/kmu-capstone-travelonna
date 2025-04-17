@@ -24,6 +24,7 @@ import com.example.travelonna.data.LocationData
 import com.example.travelonna.view.CustomToggleButton
 import com.example.travelonna.api.PlanCreateRequest
 import com.example.travelonna.api.PlanCreateResponse
+import com.example.travelonna.api.PlanCreateData
 import com.example.travelonna.api.RetrofitClient
 import retrofit2.Call
 import retrofit2.Callback
@@ -248,9 +249,9 @@ class ScheduleCreateActivity : AppCompatActivity() {
         RetrofitClient.apiService.createPlan(planRequest)
             .enqueue(object : Callback<PlanCreateResponse> {
                 override fun onResponse(call: Call<PlanCreateResponse>, response: Response<PlanCreateResponse>) {
-                    if (response.isSuccessful && response.body()?.success == true) {
-                        val planData = response.body()?.data
-                        val planId = planData?.planId ?: 0
+                    if (response.isSuccessful) {
+                        val planCreateData = response.body()?.data
+                        val planId = planCreateData?.planId ?: 0
                         
                         // 계획 ID 로그 추가
                         Log.d("ScheduleCreate", "Plan ID from API: $planId")

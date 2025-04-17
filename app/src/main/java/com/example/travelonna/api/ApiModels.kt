@@ -12,4 +12,6 @@ data class GroupUrlResponse(
     val isGroup: Boolean = false,
     val createdDate: String = "",
     val hostId: Int = 0
-) 
+)
+
+// 참고: 일정 관련 모델은 PlanResponse.kt 파일에 정의되어 있습니다. 

@@ -28,6 +28,7 @@ import androidx.recyclerview.widget.ItemTouchHelper
 import android.util.Log
 import com.example.travelonna.api.PlanDetailResponse
 import com.example.travelonna.api.RetrofitClient
+import com.example.travelonna.api.GroupInfoResponse
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -51,10 +52,19 @@ class ScheduleDetailActivity : AppCompatActivity() {
     private val endDateCalendar = Calendar.getInstance()
     private var dayCount = 0
     private var planId = 0
+    
+    // 액티비티 레벨에서 Places 클라이언트를 공유
+    private lateinit var placesClient: PlacesClient
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_schedule_detail)
+        
+        // Places API 초기화 - 한 번만 실행
+        if (!Places.isInitialized()) {
+            Places.initialize(applicationContext, getString(R.string.google_maps_key))
+        }
+        placesClient = Places.createClient(this)
         
         // 뷰 초기화
         viewPager = findViewById(R.id.viewPager)
@@ -71,7 +81,10 @@ class ScheduleDetailActivity : AppCompatActivity() {
         val groupUrl = intent.getStringExtra("GROUP_URL")
         
         // planId 확인을 위한 로그 추가
-        Log.d("ScheduleDetail", "Received Plan ID: $planId")
+        Log.d("ScheduleDetail", "Received Plan ID: $planId from intent with extras: ${intent.extras}")
+        if (planId <= 0) {
+            Log.w("ScheduleDetail", "Invalid Plan ID received: $planId")
+        }
         
         // 그룹 URL이 있는 경우 로그 및 필요한 처리
         if (isGroup && !groupUrl.isNullOrEmpty()) {
@@ -137,13 +150,18 @@ class ScheduleDetailActivity : AppCompatActivity() {
     
         // 완료 버튼 리스너
         confirmButton.setOnClickListener {
-            finish() // 현재 화면 종료하고 이전 화면으로 돌아가기
+            // 일정 완료 화면으로 이동
+            val intent = Intent(this, ScheduleCompleteActivity::class.java)
+            startActivity(intent)
+            finish() // 현재 화면 종료
         }
         
         // 최초 로드 시 일정 정보 가져오기 (planId가 유효한 경우)
         if (planId > 0) {
             Log.d("ScheduleDetail", "Initial loading of plan details: planId=$planId, scheduleName=$scheduleName")
             fetchPlanDetail(planId)
+            // 그룹 정보 확인
+            fetchGroupInfo(planId)
         } else {
             Log.d("ScheduleDetail", "No valid planId provided ($planId), skipping plan detail fetch")
         }
@@ -264,14 +282,8 @@ class ScheduleDetailActivity : AppCompatActivity() {
         internal val places: MutableList<PlaceItem>
     ) : RecyclerView.Adapter<PlaceAdapter.PlaceViewHolder>() {
         
-        private lateinit var placesClient: PlacesClient
-        
         init {
-            // Places API 초기화
-            if (!Places.isInitialized()) {
-                Places.initialize(applicationContext, getString(R.string.google_maps_key))
-            }
-            placesClient = Places.createClient(applicationContext)
+            // Places 초기화 코드 제거 - 액티비티 수준에서 관리
         }
         
         fun updatePlaces(newPlaces: List<PlaceItem>) {
@@ -356,6 +368,7 @@ class ScheduleDetailActivity : AppCompatActivity() {
                 val placeFields = listOf(Place.Field.PHOTO_METADATAS)
                 val request = FetchPlaceRequest.builder(googleId, placeFields).build()
                 
+                // 액티비티의 공유된 placesClient 사용
                 placesClient.fetchPlace(request).addOnSuccessListener { response ->
                     val place = response.place
                     val metadatas = place.photoMetadatas
@@ -660,12 +673,72 @@ class ScheduleDetailActivity : AppCompatActivity() {
             // 공유 기능 구현
             val shareIntent = Intent().apply {
                 action = Intent.ACTION_SEND
-                putExtra(Intent.EXTRA_TEXT, "여행 일정에 참여하세요! 공유 URL: $groupUrl")
+                putExtra(Intent.EXTRA_TEXT, "'여행온나'에서 여행 일정에 참여하세요! 공유 URL: $groupUrl")
                 type = "text/plain"
             }
             startActivity(Intent.createChooser(shareIntent, "공유 방법 선택"))
         }
         
         // 웹소켓 연결 등 추가 처리는 여기에 구현
+    }
+
+    // 그룹 정보를 가져오는 함수
+    private fun fetchGroupInfo(planId: Int) {
+        Log.d("ScheduleDetail", "Fetching group info for planId: $planId")
+        
+        RetrofitClient.apiService.getGroupInfo(planId).enqueue(object : Callback<GroupInfoResponse> {
+            override fun onResponse(call: Call<GroupInfoResponse>, response: Response<GroupInfoResponse>) {
+                if (response.isSuccessful) {
+                    val groupInfo = response.body()
+                    Log.d("ScheduleDetail", "Group info fetched: $groupInfo")
+                    
+                    // 그룹인 경우 공유 버튼 설정
+                    groupInfo?.let {
+                        if (it.isGroup) {
+                            setupGroupFunctionality(it.url)
+                            Log.d("ScheduleDetail", "Setup group functionality with URL: ${it.url}")
+                        } else {
+                            // 그룹이 아닌 경우 공유 버튼 숨김
+                            shareButton.visibility = View.GONE
+                            Log.d("ScheduleDetail", "This is not a group plan, hiding share button")
+                        }
+                    }
+                } else {
+                    // API 호출은 성공했지만 응답이 실패한 경우
+                    Log.e("ScheduleDetail", "Failed to fetch group info: ${response.code()}")
+                    Log.e("ScheduleDetail", "Error body: ${response.errorBody()?.string()}")
+                    
+                    // 그룹 정보가 없는 경우 공유 버튼 숨김
+                    shareButton.visibility = View.GONE
+                }
+            }
+            
+            override fun onFailure(call: Call<GroupInfoResponse>, t: Throwable) {
+                // 네트워크 오류 등으로 API 호출 자체가 실패한 경우
+                Log.e("ScheduleDetail", "Network error when fetching group info: ${t.message}")
+                Log.e("ScheduleDetail", "Exception details:", t)
+                
+                // 그룹 정보를 가져오지 못한 경우 공유 버튼 숨김
+                shareButton.visibility = View.GONE
+            }
+        })
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // Places API 클라이언트를 명시적으로 종료하여 채널 누수 방지
+        try {
+            val field = Places::class.java.getDeclaredField("zza")
+            field.isAccessible = true
+            val instance = field.get(null)
+            
+            val shutdownMethod = instance.javaClass.getDeclaredMethod("shutdown")
+            shutdownMethod.isAccessible = true
+            shutdownMethod.invoke(instance)
+            
+            Log.d("ScheduleDetail", "Successfully shut down Places API client")
+        } catch (e: Exception) {
+            Log.e("ScheduleDetail", "Failed to shut down Places API client", e)
+        }
     }
 }

@@ -9,10 +9,13 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.travelonna.R
 import com.example.travelonna.adapter.TransportOptionAdapter
+import com.example.travelonna.adapter.StationAdapter
 import com.example.travelonna.api.RetrofitClient
 import com.example.travelonna.api.TransportationData
 import com.example.travelonna.api.TransportationRequest
 import com.example.travelonna.api.TransportationResponse
+import com.example.travelonna.api.StationSearchResponse
+import com.example.travelonna.api.Station
 import com.example.travelonna.data.LocationData
 import retrofit2.Call
 import retrofit2.Callback
@@ -26,6 +29,10 @@ class TransportationSearchManager(private val context: Context) {
     private var destinationLocation: String = ""
     private var departureDate: String = ""
     private var selectedTransportType: String = "car"
+    
+    // 출발지가 역(station)인지 여부를 나타내는 플래그
+    private var isSourceStation: Boolean = false
+    private var selectedSourceStation: Station? = null
     
     // 지역 선택 대화상자를 표시하는 메서드
     private fun showRegionSelectionDialog(isMainRegion: Boolean, mainRegion: String = "", callback: (String) -> Unit) {
@@ -50,6 +57,100 @@ class TransportationSearchManager(private val context: Context) {
                 dialog.dismiss()
             }
             .show()
+    }
+    
+    // 역 검색 다이얼로그를 표시하는 메서드
+    private fun showStationSearchDialog(callback: (Station) -> Unit) {
+        val dialog = AlertDialog.Builder(context)
+            .setView(R.layout.dialog_station_search)
+            .setCancelable(true)
+            .create()
+        
+        dialog.show()
+        
+        // 뷰 참조
+        val searchKeywordInput = dialog.findViewById<EditText>(R.id.searchKeywordInput)
+        val searchButton = dialog.findViewById<ImageButton>(R.id.searchButton)
+        val searchResultsTitle = dialog.findViewById<TextView>(R.id.searchResultsTitle)
+        val stationResultsRecyclerView = dialog.findViewById<RecyclerView>(R.id.stationResultsRecyclerView)
+        val searchProgressBar = dialog.findViewById<ProgressBar>(R.id.searchProgressBar)
+        val noResultsText = dialog.findViewById<TextView>(R.id.noResultsText)
+        val cancelButton = dialog.findViewById<Button>(R.id.cancelButton)
+        
+        // RecyclerView 설정
+        stationResultsRecyclerView?.layoutManager = LinearLayoutManager(context)
+        val stationAdapter = StationAdapter(emptyList()) { station ->
+            callback(station)
+            dialog.dismiss()
+        }
+        stationResultsRecyclerView?.adapter = stationAdapter
+        
+        // 검색 버튼 클릭 리스너
+        searchButton?.setOnClickListener {
+            val keyword = searchKeywordInput?.text?.toString()?.trim() ?: ""
+            if (keyword.isNotEmpty()) {
+                searchStations(keyword, stationAdapter, searchResultsTitle, searchProgressBar, noResultsText)
+            } else {
+                Toast.makeText(context, "검색어를 입력해주세요", Toast.LENGTH_SHORT).show()
+            }
+        }
+        
+        // 취소 버튼 클릭 리스너
+        cancelButton?.setOnClickListener {
+            dialog.dismiss()
+        }
+    }
+    
+    // 역 검색 API 호출
+    private fun searchStations(
+        keyword: String,
+        adapter: StationAdapter,
+        resultsTitle: TextView?,
+        progressBar: ProgressBar?,
+        noResultsText: TextView?
+    ) {
+        progressBar?.visibility = View.VISIBLE
+        noResultsText?.visibility = View.GONE
+        
+        RetrofitClient.apiService.searchStations(keyword)
+            .enqueue(object : Callback<StationSearchResponse> {
+                override fun onResponse(
+                    call: Call<StationSearchResponse>,
+                    response: Response<StationSearchResponse>
+                ) {
+                    progressBar?.visibility = View.GONE
+                    
+                    if (response.isSuccessful && response.body()?.success == true) {
+                        val stations = response.body()?.data ?: emptyList()
+                        
+                        if (stations.isNotEmpty()) {
+                            resultsTitle?.visibility = View.VISIBLE
+                            noResultsText?.visibility = View.GONE
+                            adapter.updateData(stations)
+                        } else {
+                            resultsTitle?.visibility = View.GONE
+                            noResultsText?.visibility = View.VISIBLE
+                        }
+                    } else {
+                        resultsTitle?.visibility = View.GONE
+                        noResultsText?.visibility = View.VISIBLE
+                        Log.e("StationSearch", "Error: ${response.errorBody()?.string()}")
+                    }
+                }
+                
+                override fun onFailure(call: Call<StationSearchResponse>, t: Throwable) {
+                    progressBar?.visibility = View.GONE
+                    resultsTitle?.visibility = View.GONE
+                    noResultsText?.visibility = View.VISIBLE
+                    
+                    Toast.makeText(
+                        context, 
+                        "네트워크 오류: ${t.message}", 
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    Log.e("StationSearch", "Network error", t)
+                }
+            })
     }
     
     // 검색 다이얼로그
@@ -80,6 +181,8 @@ class TransportationSearchManager(private val context: Context) {
         val sourceRegionText = dialog.findViewById<TextView>(R.id.sourceRegionText)
         val sourceSubRegionLayout = dialog.findViewById<LinearLayout>(R.id.sourceSubRegionLayout)
         val sourceSubRegionText = dialog.findViewById<TextView>(R.id.sourceSubRegionText)
+        val findStationButton = dialog.findViewById<Button>(R.id.findStationButton)
+        val selectedSourceInfo = dialog.findViewById<TextView>(R.id.selectedSourceInfo)
         val destinationText = dialog.findViewById<TextView>(R.id.destinationText)
         val transportTypeText = dialog.findViewById<TextView>(R.id.transportTypeText)
         val departureDateText = dialog.findViewById<TextView>(R.id.departureDateText)
@@ -102,6 +205,12 @@ class TransportationSearchManager(private val context: Context) {
         
         // 시/도 선택 클릭 리스너
         sourceRegionText?.setOnClickListener {
+            // 역 선택을 해제
+            isSourceStation = false
+            selectedSourceStation = null
+            selectedSourceInfo?.visibility = View.GONE
+            sourceRegionText.visibility = View.VISIBLE
+            
             showRegionSelectionDialog(true) { selectedRegion ->
                 sourceRegionText.text = selectedRegion
                 sourceLocation = selectedRegion
@@ -128,6 +237,25 @@ class TransportationSearchManager(private val context: Context) {
                 }
             } else {
                 Toast.makeText(context, "먼저 시/도를 선택해주세요", Toast.LENGTH_SHORT).show()
+            }
+        }
+        
+        // 역 찾기 버튼 클릭 리스너
+        findStationButton?.setOnClickListener {
+            showStationSearchDialog { station ->
+                isSourceStation = true
+                selectedSourceStation = station
+                
+                // 선택한 역 정보를 표시
+                selectedSourceInfo?.visibility = View.VISIBLE
+                selectedSourceInfo?.text = "${station.name} (${station.type})\n${station.location}"
+                
+                // 지역 선택 UI 숨김
+                sourceRegionText.visibility = View.GONE
+                sourceSubRegionLayout?.visibility = View.GONE
+                
+                // 역 이름을 sourceLocation에 저장
+                sourceLocation = station.name
             }
         }
         
