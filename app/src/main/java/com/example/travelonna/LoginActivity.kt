@@ -13,6 +13,8 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.example.travelonna.api.AuthApi
 import com.example.travelonna.api.GoogleLoginRequest
+import com.example.travelonna.api.ProfileResponse
+import com.example.travelonna.api.RetrofitClient
 import com.example.travelonna.api.TokenResponse
 import com.example.travelonna.BuildConfig
 import com.google.android.gms.auth.api.signin.GoogleSignIn
@@ -20,7 +22,6 @@ import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.SignInButton
 import com.google.android.gms.common.api.ApiException
-import com.google.android.gms.common.api.Status
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -28,8 +29,6 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
-import com.google.android.gms.auth.api.signin.SignInAccount
-import com.example.travelonna.api.RetrofitClient
 
 class LoginActivity : AppCompatActivity() {
     private lateinit var googleSignInClient: GoogleSignInClient
@@ -187,12 +186,12 @@ class LoginActivity : AppCompatActivity() {
                 Log.d(TAG, "ID Token: $idToken")
                 Log.d(TAG, "========================")
                 
-                // 서버에 인증 코드 전송
+                // 서버에 인증 코득 전송
                 if (serverAuthCode != null) {
                     sendAuthCodeToServer(serverAuthCode)
                 } else {
                     Log.e(TAG, "Server auth code is null, cannot authenticate with backend")
-                    Toast.makeText(this, "인증 코드를 받아오지 못했습니다.", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "인증 코득를 받아오지 못했습니다.", Toast.LENGTH_SHORT).show()
                 }
             } catch (e: ApiException) {
                 // 구글 로그인 실패
@@ -236,12 +235,24 @@ class LoginActivity : AppCompatActivity() {
                 if (response.isSuccessful) {
                     val tokenResponse = response.body()
                     Log.d(TAG, "Success!")
+                    
+                    // More detailed response logging
+                    Log.d(TAG, "===== /auth/google Response =====")
                     Log.d(TAG, "Access Token: ${tokenResponse?.accessToken}")
                     Log.d(TAG, "Refresh Token: ${tokenResponse?.refreshToken}")
                     Log.d(TAG, "Token Type: ${tokenResponse?.tokenType}")
                     Log.d(TAG, "Expires In: ${tokenResponse?.expiresIn}")
-                    Log.d(TAG, "Full token response: $tokenResponse")
-                    Log.d(TAG, "=====================")
+                    
+                    // Safely access userId and scope fields
+                    try {
+                        Log.d(TAG, "User ID: ${tokenResponse?.userId}")
+                        Log.d(TAG, "Scope: ${tokenResponse?.scope}")
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error accessing userId or scope fields: ${e.message}")
+                    }
+                    
+                    Log.d(TAG, "Complete Response JSON: ${tokenResponseToJson(tokenResponse)}")
+                    Log.d(TAG, "==============================")
                     
                     // 토큰 저장
                     tokenResponse?.accessToken?.let { token ->
@@ -249,12 +260,14 @@ class LoginActivity : AppCompatActivity() {
                         Log.d(TAG, "Token saved to RetrofitClient")
                     }
                     
-                    Toast.makeText(this@LoginActivity, "로그인 성공!", Toast.LENGTH_SHORT).show()
-                    
-                    // PlanActivity로 이동
-                    val intent = Intent(this@LoginActivity, PlanActivity::class.java)
-                    startActivity(intent)
-                    finish()
+                    // Check if user profile exists
+                    tokenResponse?.userId?.let { userId ->
+                        Log.d(TAG, "Checking if user profile exists for userId: $userId")
+                        checkUserProfile(userId)
+                    } ?: run {
+                        Log.e(TAG, "User ID is null, cannot check profile")
+                        navigateToPlanActivity()
+                    }
                 } else {
                     Log.e(TAG, "Error!")
                     Log.e(TAG, "Error Code: ${response.code()}")
@@ -281,6 +294,21 @@ class LoginActivity : AppCompatActivity() {
         })
     }
 
+    // Helper function to convert TokenResponse to a JSON string representation
+    private fun tokenResponseToJson(response: TokenResponse?): String {
+        if (response == null) return "null"
+        return """
+            {
+              "accessToken": "${response.accessToken}",
+              "refreshToken": "${response.refreshToken}",
+              "tokenType": "${response.tokenType}",
+              "expiresIn": ${response.expiresIn}
+              ${if (response.userId > 0) """, "user_id": ${response.userId}""" else ""}
+              ${if (response.scope.isNotEmpty()) """, "scope": "${response.scope}"""" else ""}
+            }
+        """.trimIndent()
+    }
+
     override fun onStart() {
         super.onStart()
         Log.d(TAG, "=== onStart ===")
@@ -295,5 +323,52 @@ class LoginActivity : AppCompatActivity() {
         } else {
             Log.d(TAG, "No user is signed in")
         }
+    }
+
+    // Add a new method to check user profile
+    private fun checkUserProfile(userId: Int) {
+        Log.d(TAG, "Making API call to check user profile: userId=$userId")
+        RetrofitClient.apiService.getUserProfile(userId).enqueue(object : Callback<ProfileResponse> {
+            override fun onResponse(call: Call<ProfileResponse>, response: Response<ProfileResponse>) {
+                Log.d(TAG, "Profile check response code: ${response.code()}")
+                
+                if (response.isSuccessful && response.body()?.success == true) {
+                    // Profile exists, navigate to PlanActivity
+                    Log.d(TAG, "User profile exists, navigating to PlanActivity")
+                    navigateToPlanActivity()
+                } else if (response.code() == 400 || response.code() == 404) {
+                    // 400/404 indicates profile doesn't exist
+                    Log.d(TAG, "User profile doesn't exist (${response.code()}), navigating to ProfileCreateActivity")
+                    Toast.makeText(this@LoginActivity, "프로필을 생성해주세요", Toast.LENGTH_SHORT).show()
+                    navigateToProfileCreateActivity()
+                } else {
+                    // Other error
+                    Log.e(TAG, "Error checking profile: ${response.code()}, ${response.message()}")
+                    Log.e(TAG, "Error body: ${response.errorBody()?.string()}")
+                    // Navigate to plan activity anyway as fallback
+                    navigateToPlanActivity()
+                }
+            }
+            
+            override fun onFailure(call: Call<ProfileResponse>, t: Throwable) {
+                Log.e(TAG, "Network error when checking profile", t)
+                // Navigate to plan activity as fallback
+                navigateToPlanActivity()
+            }
+        })
+    }
+    
+    // Helper method to navigate to PlanActivity
+    private fun navigateToPlanActivity() {
+        val intent = Intent(this@LoginActivity, PlanActivity::class.java)
+        startActivity(intent)
+        finish()
+    }
+    
+    // Helper method to navigate to ProfileCreateActivity
+    private fun navigateToProfileCreateActivity() {
+        val intent = Intent(this@LoginActivity, ProfileCreateActivity::class.java)
+        startActivity(intent)
+        finish()
     }
 } 

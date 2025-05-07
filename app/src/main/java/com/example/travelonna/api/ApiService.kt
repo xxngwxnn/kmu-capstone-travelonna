@@ -43,4 +43,11 @@ interface ApiService {
     
     @DELETE("api/v1/plans/{planId}/places/{placeId}")
     fun deletePlace(@Path("planId") planId: Int, @Path("placeId") placeId: Int): Call<BasicResponse>
+    
+    // User profile endpoints
+    @GET("api/v1/profiles/user/{userId}")
+    fun getUserProfile(@Path("userId") userId: Int): Call<ProfileResponse>
+    
+    @POST("api/v1/profiles")
+    fun createUserProfile(@Body request: ProfileCreateRequest): Call<ProfileResponse>
 } 

@@ -1,9 +1,9 @@
 -- Merging decision tree log ---
 manifest
-ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:2:1-80:12
-INJECTED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:2:1-80:12
-INJECTED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:2:1-80:12
-INJECTED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:2:1-80:12
+ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:2:1-84:12
+INJECTED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:2:1-84:12
+INJECTED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:2:1-84:12
+INJECTED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:2:1-84:12
 MERGED from [androidx.databinding:viewbinding:8.1.0] /Users/oubin/.gradle/caches/transforms-3/6b01d527d9f4c2cca46e9d9b19d7e8dd/transformed/viewbinding-8.1.0/AndroidManifest.xml:2:1-7:12
 MERGED from [com.google.android.material:material:1.11.0] /Users/oubin/.gradle/caches/transforms-3/063015173dfe85b7ffd3260626a46116/transformed/material-1.11.0/AndroidManifest.xml:17:1-24:12
 MERGED from [androidx.constraintlayout:constraintlayout:2.1.4] /Users/oubin/.gradle/caches/transforms-3/24888596994c39c74949fe0400b4a051/transformed/constraintlayout-2.1.4/AndroidManifest.xml:2:1-11:12
@@ -108,8 +108,8 @@ MERGED from [com.google.android.datatransport:transport-runtime:2.2.3] /Users/ou
 	android:name
 		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:9:22-76
 application
-ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:11:5-78:19
-INJECTED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:11:5-78:19
+ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:11:5-82:19
+INJECTED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:11:5-82:19
 MERGED from [com.google.android.material:material:1.11.0] /Users/oubin/.gradle/caches/transforms-3/063015173dfe85b7ffd3260626a46116/transformed/material-1.11.0/AndroidManifest.xml:22:5-20
 MERGED from [com.google.android.material:material:1.11.0] /Users/oubin/.gradle/caches/transforms-3/063015173dfe85b7ffd3260626a46116/transformed/material-1.11.0/AndroidManifest.xml:22:5-20
 MERGED from [androidx.constraintlayout:constraintlayout:2.1.4] /Users/oubin/.gradle/caches/transforms-3/24888596994c39c74949fe0400b4a051/transformed/constraintlayout-2.1.4/AndroidManifest.xml:9:5-20
@@ -252,12 +252,18 @@ ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/Andr
 		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:73:13-63
 	android:name
 		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:71:13-53
-meta-data#com.google.android.geo.API_KEY
-ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:75:9-77:71
-	android:value
-		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:77:13-68
+activity#com.example.travelonna.ProfileCreateActivity
+ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:75:9-77:40
+	android:exported
+		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:77:13-37
 	android:name
-		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:76:13-58
+		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:76:13-50
+meta-data#com.google.android.geo.API_KEY
+ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:79:9-81:71
+	android:value
+		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:81:13-68
+	android:name
+		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:80:13-58
 uses-sdk
 INJECTED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml reason: use-sdk injection requested
 INJECTED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml
