@@ -1,9 +1,9 @@
 -- Merging decision tree log ---
 manifest
-ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:2:1-79:12
-INJECTED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:2:1-79:12
-INJECTED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:2:1-79:12
-INJECTED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:2:1-79:12
+ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:2:1-80:12
+INJECTED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:2:1-80:12
+INJECTED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:2:1-80:12
+INJECTED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:2:1-80:12
 MERGED from [androidx.databinding:viewbinding:8.1.0] /Users/oubin/.gradle/caches/transforms-3/6b01d527d9f4c2cca46e9d9b19d7e8dd/transformed/viewbinding-8.1.0/AndroidManifest.xml:2:1-7:12
 MERGED from [com.google.android.material:material:1.11.0] /Users/oubin/.gradle/caches/transforms-3/063015173dfe85b7ffd3260626a46116/transformed/material-1.11.0/AndroidManifest.xml:17:1-24:12
 MERGED from [androidx.constraintlayout:constraintlayout:2.1.4] /Users/oubin/.gradle/caches/transforms-3/24888596994c39c74949fe0400b4a051/transformed/constraintlayout-2.1.4/AndroidManifest.xml:2:1-11:12
@@ -108,8 +108,8 @@ MERGED from [com.google.android.datatransport:transport-runtime:2.2.3] /Users/ou
 	android:name
 		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:9:22-76
 application
-ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:11:5-77:19
-INJECTED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:11:5-77:19
+ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:11:5-78:19
+INJECTED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:11:5-78:19
 MERGED from [com.google.android.material:material:1.11.0] /Users/oubin/.gradle/caches/transforms-3/063015173dfe85b7ffd3260626a46116/transformed/material-1.11.0/AndroidManifest.xml:22:5-20
 MERGED from [com.google.android.material:material:1.11.0] /Users/oubin/.gradle/caches/transforms-3/063015173dfe85b7ffd3260626a46116/transformed/material-1.11.0/AndroidManifest.xml:22:5-20
 MERGED from [androidx.constraintlayout:constraintlayout:2.1.4] /Users/oubin/.gradle/caches/transforms-3/24888596994c39c74949fe0400b4a051/transformed/constraintlayout-2.1.4/AndroidManifest.xml:9:5-20
@@ -181,83 +181,83 @@ MERGED from [com.google.android.gms:play-services-basement:18.2.0] /Users/oubin/
 	android:name
 		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:25:13-58
 activity#com.example.travelonna.MainActivity
-ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:28:9-35:20
+ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:28:9-31:20
 	android:exported
-		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:30:13-36
+		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:30:13-37
 	android:name
 		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:29:13-41
-intent-filter#action:name:android.intent.action.MAIN+category:name:android.intent.category.LAUNCHER
-ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:31:13-34:29
-action#android.intent.action.MAIN
-ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:32:17-69
-	android:name
-		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:32:25-66
-category#android.intent.category.LAUNCHER
-ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:33:17-77
-	android:name
-		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:33:27-74
 activity#com.example.travelonna.StartActivity
-ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:37:9-39:40
+ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:33:9-40:20
 	android:exported
-		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:39:13-37
+		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:35:13-36
 	android:name
-		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:38:13-42
+		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:34:13-42
+intent-filter#action:name:android.intent.action.MAIN+category:name:android.intent.category.LAUNCHER
+ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:36:13-39:29
+action#android.intent.action.MAIN
+ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:37:17-69
+	android:name
+		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:37:25-66
+category#android.intent.category.LAUNCHER
+ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:38:17-77
+	android:name
+		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:38:27-74
 activity#com.example.travelonna.LoginActivity
-ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:41:9-43:40
+ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:42:9-44:40
 	android:exported
-		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:43:13-37
+		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:44:13-37
 	android:name
-		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:42:13-42
+		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:43:13-42
 activity#com.example.travelonna.PlanActivity
-ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:45:9-47:40
+ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:46:9-48:40
 	android:exported
-		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:47:13-37
+		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:48:13-37
 	android:name
-		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:46:13-41
+		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:47:13-41
 activity#com.example.travelonna.HomeActivity
-ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:49:9-51:40
+ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:50:9-52:40
 	android:exported
-		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:51:13-37
+		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:52:13-37
 	android:name
-		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:50:13-41
+		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:51:13-41
 activity#com.example.travelonna.ScheduleCreateActivity
-ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:53:9-55:40
+ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:54:9-56:40
 	android:exported
-		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:55:13-37
+		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:56:13-37
 	android:name
-		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:54:13-51
+		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:55:13-51
 activity#com.example.travelonna.ScheduleDetailActivity
-ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:57:9-59:40
+ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:58:9-60:40
 	android:exported
-		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:59:13-37
+		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:60:13-37
 	android:name
-		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:58:13-51
+		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:59:13-51
 activity#com.example.travelonna.ui.schedule.AddPlaceActivity
-ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:61:9-63:40
+ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:62:9-64:40
 	android:exported
-		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:63:13-37
+		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:64:13-37
 	android:name
-		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:62:13-57
+		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:63:13-57
 activity#com.example.travelonna.ui.schedule.PlaceInfoActivity
-ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:65:9-67:40
+ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:66:9-68:40
 	android:exported
-		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:67:13-37
+		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:68:13-37
 	android:name
-		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:66:13-58
+		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:67:13-58
 activity#com.example.travelonna.ScheduleCompleteActivity
-ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:69:9-72:66
+ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:70:9-73:66
 	android:exported
-		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:71:13-37
+		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:72:13-37
 	android:theme
-		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:72:13-63
+		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:73:13-63
 	android:name
-		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:70:13-53
+		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:71:13-53
 meta-data#com.google.android.geo.API_KEY
-ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:74:9-76:71
+ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:75:9-77:71
 	android:value
-		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:76:13-68
+		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:77:13-68
 	android:name
-		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:75:13-58
+		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:76:13-58
 uses-sdk
 INJECTED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml reason: use-sdk injection requested
 INJECTED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml
