@@ -22,7 +22,11 @@ data class PlanDetail(
     val memo: String,
     val createdAt: String,
     val updatedAt: String,
-    val places: List<PlaceDetail>
+    val places: List<PlaceDetail>,
+    @SerializedName("is_group") val isGroup: Boolean = false,
+    @SerializedName("isGroup") val isGroup2: Boolean? = null,
+    @SerializedName("group_id") val groupId: Int = 0,
+    @SerializedName("groupId") val groupId2: Int? = null
 )
 
 data class PlaceDetail(

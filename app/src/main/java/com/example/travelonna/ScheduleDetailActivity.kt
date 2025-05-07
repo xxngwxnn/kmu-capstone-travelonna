@@ -28,7 +28,6 @@ import androidx.recyclerview.widget.ItemTouchHelper
 import android.util.Log
 import com.example.travelonna.api.PlanDetailResponse
 import com.example.travelonna.api.RetrofitClient
-import com.example.travelonna.api.GroupInfoResponse
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -79,24 +78,15 @@ class ScheduleDetailActivity : AppCompatActivity() {
         val endDate = intent.getLongExtra("END_DATE", System.currentTimeMillis())
         val scheduleName = intent.getStringExtra("SCHEDULE_NAME") ?: "일정"
         planId = intent.getIntExtra("PLAN_ID", 0)
-        val isGroup = intent.getBooleanExtra("IS_GROUP", false)
-        val groupUrl = intent.getStringExtra("GROUP_URL")
         
         // planId 확인을 위한 로그 추가
         Log.d("ScheduleDetail", "Received Plan ID: $planId from intent with extras: ${intent.extras}")
         if (planId <= 0) {
             Log.w("ScheduleDetail", "Invalid Plan ID received: $planId")
         }
-        
-        // 그룹 URL이 있는 경우 로그 및 필요한 처리
-        if (isGroup && !groupUrl.isNullOrEmpty()) {
-            Log.d("ScheduleDetail", "Group URL received: $groupUrl")
-            // 여기에 그룹 URL로 필요한 처리 추가
-            setupGroupFunctionality(groupUrl)
-        }
             
-            startDateCalendar.timeInMillis = startDate
-            endDateCalendar.timeInMillis = endDate
+        startDateCalendar.timeInMillis = startDate
+        endDateCalendar.timeInMillis = endDate
             
         // 일정 이름과 날짜 표시
         val titleText = findViewById<TextView>(R.id.titleText)
@@ -162,8 +152,6 @@ class ScheduleDetailActivity : AppCompatActivity() {
         if (planId > 0) {
             Log.d("ScheduleDetail", "Initial loading of plan details: planId=$planId, scheduleName=$scheduleName")
             fetchPlanDetail(planId)
-            // 그룹 정보 확인
-            fetchGroupInfo(planId)
         } else {
             Log.d("ScheduleDetail", "No valid planId provided ($planId), skipping plan detail fetch")
         }
@@ -819,6 +807,15 @@ class ScheduleDetailActivity : AppCompatActivity() {
                     
                     if (response.isSuccessful && response.body()?.success == true) {
                         val planDetail = response.body()?.data
+                        // JSON 응답 전체를 로그로 출력
+                        val gson = com.google.gson.GsonBuilder().setPrettyPrinting().create()
+                        val jsonResponse = gson.toJson(response.body())
+                        Log.d("ScheduleDetail", "Full JSON response: $jsonResponse")
+                        
+                        // is_group 값 확인
+                        Log.d("ScheduleDetail", "Is group plan?: ${planDetail?.isGroup}")
+                        Log.d("ScheduleDetail", "Group ID: ${planDetail?.groupId}")
+                        
                         Log.d("ScheduleDetail", "Plan detail fetched successfully: ${response.body()}")
                         Log.d("ScheduleDetail", "Plan Title: ${planDetail?.title}")
                         Log.d("ScheduleDetail", "Places count: ${planDetail?.places?.size ?: 0}")
@@ -867,6 +864,21 @@ class ScheduleDetailActivity : AppCompatActivity() {
             // 현재 일자에 맞게 탭 선택 유지
             updateTabSelection(viewPager.currentItem)
             
+            // 그룹 일정인지 확인하고 공유 버튼 설정
+            if (detail.isGroup) {
+                // groupId와 URL 생성
+                val groupId = detail.groupId
+                Log.d("ScheduleDetail", "This is a group plan with groupId: $groupId")
+                
+                // 그룹 URL이 있다면 바로 그룹 기능 설정
+                val groupUrl = "https://travelonna.shop/group/$groupId"
+                setupGroupFunctionality(groupUrl)
+            } else {
+                // 그룹이 아닌 경우 공유 버튼 숨김
+                shareButton.visibility = View.GONE
+                Log.d("ScheduleDetail", "This is not a group plan, hiding share button")
+            }
+            
             Toast.makeText(this, "일정 정보가 업데이트되었습니다", Toast.LENGTH_SHORT).show()
             Log.d("ScheduleDetail", "UI update completed for plan: ${detail.title}")
         } ?: run {
@@ -889,48 +901,6 @@ class ScheduleDetailActivity : AppCompatActivity() {
         }
         
         // 웹소켓 연결 등 추가 처리는 여기에 구현
-    }
-
-    // 그룹 정보를 가져오는 함수
-    private fun fetchGroupInfo(planId: Int) {
-        Log.d("ScheduleDetail", "Fetching group info for planId: $planId")
-        
-        RetrofitClient.apiService.getGroupInfo(planId).enqueue(object : Callback<GroupInfoResponse> {
-            override fun onResponse(call: Call<GroupInfoResponse>, response: Response<GroupInfoResponse>) {
-                if (response.isSuccessful) {
-                    val groupInfo = response.body()
-                    Log.d("ScheduleDetail", "Group info fetched: $groupInfo")
-                    
-                    // 그룹인 경우 공유 버튼 설정
-                    groupInfo?.let {
-                        if (it.isGroup) {
-                            setupGroupFunctionality(it.url)
-                            Log.d("ScheduleDetail", "Setup group functionality with URL: ${it.url}")
-                        } else {
-                            // 그룹이 아닌 경우 공유 버튼 숨김
-                            shareButton.visibility = View.GONE
-                            Log.d("ScheduleDetail", "This is not a group plan, hiding share button")
-                        }
-                    }
-                } else {
-                    // API 호출은 성공했지만 응답이 실패한 경우
-                    Log.e("ScheduleDetail", "Failed to fetch group info: ${response.code()}")
-                    Log.e("ScheduleDetail", "Error body: ${response.errorBody()?.string()}")
-                    
-                    // 그룹 정보가 없는 경우 공유 버튼 숨김
-                    shareButton.visibility = View.GONE
-                }
-            }
-            
-            override fun onFailure(call: Call<GroupInfoResponse>, t: Throwable) {
-                // 네트워크 오류 등으로 API 호출 자체가 실패한 경우
-                Log.e("ScheduleDetail", "Network error when fetching group info: ${t.message}")
-                Log.e("ScheduleDetail", "Exception details:", t)
-                
-                // 그룹 정보를 가져오지 못한 경우 공유 버튼 숨김
-                shareButton.visibility = View.GONE
-            }
-        })
     }
 
     override fun onDestroy() {

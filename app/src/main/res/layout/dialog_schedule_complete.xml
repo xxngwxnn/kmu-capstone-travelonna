@@ -9,7 +9,7 @@
         android:id="@+id/completeImage"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:src="@drawable/schedule_create_complete"
+            android:src="@drawable/schedule_create_complete"
         android:scaleType="centerCrop"
         android:background="@color/blue_primary"
         app:layout_constraintTop_toTopOf="parent"
@@ -18,12 +18,12 @@
         app:layout_constraintEnd_toEndOf="parent" />
 
     <!-- Confirmation button centered at the bottom part of screen -->
-    <ImageButton
-        android:id="@+id/confirmButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:src="@drawable/confirm_button"
-        android:background="@android:color/transparent"
+        <ImageButton
+            android:id="@+id/confirmButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/confirm_button"
+            android:background="@android:color/transparent"
         android:layout_marginBottom="120dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
