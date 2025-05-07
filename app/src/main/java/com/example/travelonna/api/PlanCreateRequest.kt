@@ -7,5 +7,6 @@ data class PlanCreateRequest(
     val location: String,       // 위치
     val memo: String,           // 메모
     val isGroupPlan: Boolean,   // 그룹 일정 여부
-    val transportInfo: String = "car" // 교통 정보 (기본값: 차량)
+    val transportInfo: String = "car", // 교통 정보 (기본값: 차량)
+    val groupId: Int? = null    // 그룹 ID (null이면 일반 일정)
 ) 

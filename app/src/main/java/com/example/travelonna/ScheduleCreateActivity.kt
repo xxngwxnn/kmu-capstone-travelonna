@@ -234,6 +234,66 @@ class ScheduleCreateActivity : AppCompatActivity() {
         val startDateStr = apiDateFormat.format(startDateCalendar.time)
         val endDateStr = apiDateFormat.format(endDateCalendar.time)
         
+        // 그룹 여행인 경우 먼저 그룹 URL 생성 API 호출
+        if (typeToggle.isChecked()) {
+            createGroupUrlFirst(startDateStr, endDateStr, loadingDialog)
+        } else {
+            // 개인 여행의 경우 바로 일정 생성
+            createPlan(startDateStr, endDateStr, null, loadingDialog)
+        }
+    }
+    
+    // 그룹 URL을 먼저 생성하는 메서드
+    private fun createGroupUrlFirst(startDateStr: String, endDateStr: String, loadingDialog: AlertDialog) {
+        val groupUrlRequest = GroupUrlRequest(isGroup = true)
+        
+        // 요청 본문 로그
+        Log.d("ScheduleCreate", "GroupUrlRequest: $groupUrlRequest")
+        
+        RetrofitClient.apiService.createGroupUrl(groupUrlRequest)
+            .enqueue(object : Callback<GroupUrlResponse> {
+                override fun onResponse(call: Call<GroupUrlResponse>, response: Response<GroupUrlResponse>) {
+                    // 응답 코드 및 본문 로그
+                    Log.d("ScheduleCreate", "GroupUrl API Response Code: ${response.code()}")
+                    Log.d("ScheduleCreate", "GroupUrl API Response Body: ${response.body()}")
+                    
+                    if (response.isSuccessful) {
+                        val groupUrlResponse = response.body()
+                        val groupId = groupUrlResponse?.id ?: 0
+                        val groupUrl = groupUrlResponse?.url ?: ""
+                        
+                        Log.d("ScheduleCreate", "Group created with ID: $groupId, URL: $groupUrl")
+                        
+                        // 그룹 ID를 이용하여 일정 생성
+                        if (groupId > 0) {
+                            createPlan(startDateStr, endDateStr, groupId, loadingDialog, groupUrl)
+                        } else {
+                            Toast.makeText(this@ScheduleCreateActivity, "유효하지 않은 그룹 ID입니다.", Toast.LENGTH_SHORT).show()
+                            loadingDialog.dismiss()
+                        }
+                    } else {
+                        val errorMsg = response.errorBody()?.string() ?: "그룹 URL 생성 중 오류가 발생했습니다"
+                        Toast.makeText(this@ScheduleCreateActivity, errorMsg, Toast.LENGTH_SHORT).show()
+                        Log.e("ScheduleCreate", "Group URL API Error: $errorMsg")
+                        
+                        // 그룹 생성 실패 시 그룹 ID 없이 일정 생성
+                        createPlan(startDateStr, endDateStr, null, loadingDialog)
+                    }
+                }
+                
+                override fun onFailure(call: Call<GroupUrlResponse>, t: Throwable) {
+                    Log.e("ScheduleCreate", "Group URL Network Error: ${t.message}")
+                    Log.e("ScheduleCreate", "Error details:", t)
+                    Toast.makeText(this@ScheduleCreateActivity, "네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
+                    
+                    // 네트워크 오류 시에도 그룹 ID 없이 일정 생성
+                    createPlan(startDateStr, endDateStr, null, loadingDialog)
+                }
+            })
+    }
+    
+    // 일정 생성 메서드 (그룹 ID 포함)
+    private fun createPlan(startDateStr: String, endDateStr: String, groupId: Int?, loadingDialog: AlertDialog, groupUrl: String = "") {
         // 요청 객체 생성
         val planRequest = PlanCreateRequest(
             title = scheduleNameInput.text.toString(),
@@ -242,13 +302,19 @@ class ScheduleCreateActivity : AppCompatActivity() {
             location = locationSelectButton.text.toString(),
             memo = memoInput.text.toString(),
             isGroupPlan = typeToggle.isChecked(),
-            transportInfo = selectedTransport
+            transportInfo = selectedTransport,
+            groupId = groupId
         )
+        
+        // 요청 로그
+        Log.d("ScheduleCreate", "Plan Request: $planRequest (with groupId: $groupId)")
         
         // API 호출
         RetrofitClient.apiService.createPlan(planRequest)
             .enqueue(object : Callback<PlanCreateResponse> {
                 override fun onResponse(call: Call<PlanCreateResponse>, response: Response<PlanCreateResponse>) {
+                    loadingDialog.dismiss()
+                    
                     if (response.isSuccessful) {
                         val planCreateData = response.body()?.data
                         val planId = planCreateData?.planId ?: 0
@@ -256,17 +322,24 @@ class ScheduleCreateActivity : AppCompatActivity() {
                         // 계획 ID 로그 추가
                         Log.d("ScheduleCreate", "Plan ID from API: $planId")
                         
-                        // 그룹 여행인 경우 그룹 URL 생성 API 호출
-                        if (typeToggle.isChecked()) {
-                            createGroupUrl(planId, loadingDialog)
+                        if (planId > 0) {
+                            if (typeToggle.isChecked() && groupUrl.isNotEmpty()) {
+                                Toast.makeText(
+                                    this@ScheduleCreateActivity, 
+                                    "그룹 일정이 생성되었습니다. 공유 URL: $groupUrl", 
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            } else {
+                                Toast.makeText(this@ScheduleCreateActivity, "일정이 생성되었습니다.", Toast.LENGTH_SHORT).show()
+                            }
+                            
+                            // 일정 상세 화면으로 이동
+                            navigateToDetailActivity(planId, groupUrl)
                         } else {
-                            loadingDialog.dismiss()
-                            Toast.makeText(this@ScheduleCreateActivity, "일정이 생성되었습니다.", Toast.LENGTH_SHORT).show()
-                            navigateToDetailActivity(planId)
+                            Toast.makeText(this@ScheduleCreateActivity, "유효하지 않은 일정 ID입니다.", Toast.LENGTH_SHORT).show()
                         }
                     } else {
                         // 에러 처리
-                        loadingDialog.dismiss()
                         val errorMsg = response.errorBody()?.string() ?: "일정 생성 중 오류가 발생했습니다"
                         Toast.makeText(this@ScheduleCreateActivity, errorMsg, Toast.LENGTH_SHORT).show()
                         Log.e("ScheduleCreate", "API Error: $errorMsg")
@@ -280,57 +353,6 @@ class ScheduleCreateActivity : AppCompatActivity() {
                     
                     // 오류 발생 시 로컬 모드로 전환 (선택사항)
                     startLocalDetailActivity()
-                }
-            })
-    }
-    
-    // 그룹 URL 생성 메서드
-    private fun createGroupUrl(planId: Int, loadingDialog: AlertDialog) {
-        val groupUrlRequest = GroupUrlRequest(isGroup = true)
-        
-        // 요청 본문 로그
-        Log.d("ScheduleCreate", "GroupUrlRequest: $groupUrlRequest")
-        
-        RetrofitClient.apiService.createGroupUrl(groupUrlRequest)
-            .enqueue(object : Callback<GroupUrlResponse> {
-                override fun onResponse(call: Call<GroupUrlResponse>, response: Response<GroupUrlResponse>) {
-                    loadingDialog.dismiss()
-                    
-                    // 응답 코드 및 본문 로그
-                    Log.d("ScheduleCreate", "GroupUrl API Response Code: ${response.code()}")
-                    Log.d("ScheduleCreate", "GroupUrl API Response Body: ${response.body()}")
-                    
-                    if (response.isSuccessful) {
-                        val groupUrlResponse = response.body()
-                        val groupUrl = groupUrlResponse?.url ?: ""
-                        
-                        Log.d("ScheduleCreate", "Group URL created: $groupUrl")
-                        Toast.makeText(
-                            this@ScheduleCreateActivity, 
-                            "그룹 일정이 생성되었습니다. 공유 URL: $groupUrl", 
-                            Toast.LENGTH_LONG
-                        ).show()
-                        
-                        // 일정 상세 화면으로 이동, 그룹 URL 전달
-                        navigateToDetailActivity(planId, groupUrl)
-                    } else {
-                        val errorMsg = response.errorBody()?.string() ?: "그룹 URL 생성 중 오류가 발생했습니다"
-                        Toast.makeText(this@ScheduleCreateActivity, errorMsg, Toast.LENGTH_SHORT).show()
-                        Log.e("ScheduleCreate", "Group URL API Error: $errorMsg")
-                        
-                        // 그룹 URL 생성에 실패해도 일정 상세 화면으로 이동
-                        navigateToDetailActivity(planId)
-                    }
-                }
-                
-                override fun onFailure(call: Call<GroupUrlResponse>, t: Throwable) {
-                    loadingDialog.dismiss()
-                    Log.e("ScheduleCreate", "Group URL Network Error: ${t.message}")
-                    Log.e("ScheduleCreate", "Error details:", t)
-                    Toast.makeText(this@ScheduleCreateActivity, "네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
-                    
-                    // 네트워크 오류 시에도 일정 상세 화면으로 이동
-                    navigateToDetailActivity(planId)
                 }
             })
     }
