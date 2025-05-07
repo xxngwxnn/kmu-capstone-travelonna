@@ -17,7 +17,15 @@ data class ProfileData(
 )
 
 data class ProfileCreateRequest(
+    @SerializedName("userId")
+    val userId: Int,
+    
+    @SerializedName("nickname")
     val nickname: String,
-    val profileImage: String? = null,
+    
+    @SerializedName("profileImageUrl")
+    val profileImageUrl: String? = null,
+    
+    @SerializedName("introduction")
     val introduction: String? = null
 ) 

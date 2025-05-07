@@ -258,6 +258,12 @@ class LoginActivity : AppCompatActivity() {
                     tokenResponse?.accessToken?.let { token ->
                         RetrofitClient.saveToken(token)
                         Log.d(TAG, "Token saved to RetrofitClient")
+                        
+                        // userId도 저장
+                        tokenResponse.userId.let { userId ->
+                            RetrofitClient.saveUserId(userId)
+                            Log.d(TAG, "User ID saved to RetrofitClient: $userId")
+                        }
                     }
                     
                     // Check if user profile exists

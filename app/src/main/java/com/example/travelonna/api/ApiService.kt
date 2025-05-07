@@ -9,6 +9,12 @@ import retrofit2.http.Path
 import retrofit2.http.Body
 import retrofit2.http.Header
 import retrofit2.http.Query
+import retrofit2.http.Multipart
+import retrofit2.http.Part
+import retrofit2.http.PartMap
+import retrofit2.http.HeaderMap
+import okhttp3.RequestBody
+import okhttp3.MultipartBody
 
 interface ApiService {
     @GET("api/v1/plans/{planId}/detail")
@@ -50,4 +56,14 @@ interface ApiService {
     
     @POST("api/v1/profiles")
     fun createUserProfile(@Body request: ProfileCreateRequest): Call<ProfileResponse>
+    
+    // Multipart 요청을 위한 프로필 생성 API
+    @Multipart
+    @POST("api/v1/profiles")
+    fun createUserProfileWithImage(
+        @Part("userId") userId: RequestBody,
+        @Part("nickname") nickname: RequestBody,
+        @Part("introduction") introduction: RequestBody,
+        @Part profileImage: MultipartBody.Part?
+    ): Call<ProfileResponse>
 } 

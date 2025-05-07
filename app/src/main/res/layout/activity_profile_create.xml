@@ -1,54 +1,146 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="16dp">
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:background="@android:color/white">
 
-    <!-- Toolbar -->
-    <RelativeLayout
-        android:id="@+id/toolbarLayout"
+    <!-- Top bar with back button -->
+    <ImageButton
+        android:id="@+id/backButton"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="뒤로가기"
+        android:src="@drawable/ic_back" />
+
+    <!-- Profile image section -->
+    <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="56dp"
-        android:layout_alignParentTop="true">
+        android:layout_height="wrap_content"
+        android:layout_marginTop="30dp"
+        android:layout_marginBottom="30dp"
+        android:gravity="center">
 
-        <ImageButton
-            android:id="@+id/backButton"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_alignParentStart="true"
-            android:layout_centerVertical="true"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="뒤로가기"
-            android:src="@drawable/ic_back" />
+        <!-- Circle border for profile image -->
+        <androidx.cardview.widget.CardView
+            android:id="@+id/profileCardView"
+            android:layout_width="120dp"
+            android:layout_height="120dp"
+            android:layout_gravity="center"
+            app:cardBackgroundColor="#F5F5F5"
+            app:cardCornerRadius="60dp"
+            app:cardElevation="0dp">
+            <!-- 테두리를 위한 내부 View 추가 -->
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+                
+                <!-- 회색 테두리 효과를 위한 배경 -->
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/circle_border" />
 
+                <ImageView
+                    android:id="@+id/profileAddIcon"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_gravity="center"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_profile_add" />
+            </FrameLayout>
+        </androidx.cardview.widget.CardView>
+    </FrameLayout>
+
+    <!-- Profile information form -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <!-- Email field (readonly) -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_centerInParent="true"
-            android:text="프로필 생성"
-            android:textColor="@android:color/black"
-            android:textSize="18sp"
-            android:textStyle="bold" />
-    </RelativeLayout>
+            android:text="계정"
+            android:textColor="#777777"
+            android:textSize="14sp" />
 
-    <!-- Profile creation placeholder text -->
-    <TextView
-        android:id="@+id/placeholderText"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_centerInParent="true"
-        android:text="여기에 프로필 생성 양식이 들어갑니다"
-        android:textSize="16sp" />
+        <EditText
+            android:id="@+id/emailEditText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="16dp"
+            android:background="@drawable/input_field_background"
+            android:enabled="false"
+            android:hint="abcdef@gmail.com"
+            android:padding="12dp"
+            android:textColor="#999999"
+            android:textSize="16sp" />
+
+        <!-- Nickname field -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="닉네임"
+            android:textColor="#777777"
+            android:textSize="14sp" />
+
+        <EditText
+            android:id="@+id/nicknameEditText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="16dp"
+            android:background="@drawable/input_field_background"
+            android:hint="사용하실 이름을 입력해주세요"
+            android:padding="12dp"
+            android:textSize="16sp" />
+
+        <!-- Introduction field -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="소개글"
+            android:textColor="#777777"
+            android:textSize="14sp" />
+
+        <EditText
+            android:id="@+id/introductionEditText"
+            android:layout_width="match_parent"
+            android:layout_height="100dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/input_field_background"
+            android:gravity="top"
+            android:hint="나를 소개하는 글을 써주세요"
+            android:inputType="textMultiLine"
+            android:padding="12dp"
+            android:textSize="16sp" />
+    </LinearLayout>
+
+    <!-- 여백을 더 적게 사용하여 버튼을 위로 올립니다 -->
+    <View
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_weight="0.5" />
 
     <!-- Confirm Button -->
-    <Button
+    <ImageButton
         android:id="@+id/confirmButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:layout_marginBottom="16dp"
-        android:background="@color/blue_primary"
-        android:text="확인"
-        android:textColor="@android:color/white" />
+        android:layout_marginTop="0dp"
+        android:layout_marginBottom="32dp"
+        android:adjustViewBounds="true"
+        android:background="@android:color/transparent"
+        android:contentDescription="수정하기"
+        android:scaleType="fitCenter"
+        android:src="@drawable/profile_button" />
 
-</RelativeLayout> 
+</LinearLayout> 
