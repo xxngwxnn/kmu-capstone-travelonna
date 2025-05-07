@@ -2,7 +2,13 @@ package com.example.travelonna
 
 import android.content.Intent
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
+import android.view.View
+import android.view.animation.AlphaAnimation
+import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.example.travelonna.api.AuthApi
@@ -72,28 +78,56 @@ class LoginActivity : AppCompatActivity() {
         googleSignInClient = GoogleSignIn.getClient(this, gso)
         Log.d(TAG, "GoogleSignInClient initialized")
 
-        // 로그인 버튼 클릭 시 먼저 로그아웃
-        findViewById<SignInButton>(R.id.googleSignInButton).setOnClickListener {
-            Log.d(TAG, "=== Sign In Button Clicked ===")
+        // Get the background image and login button
+        val loginDisplayImage = findViewById<ImageView>(R.id.loginDisplayImage)
+        val customLoginButton = findViewById<ImageButton>(R.id.customLoginButton)
+        
+        // Hide both initially
+        loginDisplayImage.alpha = 0f
+        customLoginButton.visibility = View.INVISIBLE
+        
+        // Create fade-in animation for background image
+        loginDisplayImage.animate()
+            .alpha(1f)
+            .setDuration(1000)
+            .start()
+
+        // Show the button after 1 second with fade-in animation
+        Handler(Looper.getMainLooper()).postDelayed({
+            // Create fade-in animation for button
+            val fadeIn = AlphaAnimation(0.0f, 1.0f)
+            fadeIn.duration = 500 // 0.5 seconds duration
+            fadeIn.fillAfter = true
             
-            // 먼저 로그아웃
-            Log.d(TAG, "Signing out previous session...")
-            googleSignInClient.signOut().addOnCompleteListener {
-                // 모든 권한 해제
-                googleSignInClient.revokeAccess().addOnCompleteListener { revokeTask ->
-                    Log.d(TAG, "Access revoked: ${revokeTask.isSuccessful}")
-                    
-                    // 로그아웃 후 로그인 시도
-                    val signInIntent = googleSignInClient.signInIntent
-                    Log.d(TAG, "Sign In Intent created: $signInIntent")
-                    Log.d(TAG, "Intent extras: ${signInIntent.extras}")
-                    Log.d(TAG, "Intent component: ${signInIntent.component}")
-                    startActivityForResult(signInIntent, RC_SIGN_IN)
-                    Log.d(TAG, "startActivityForResult called with RC_SIGN_IN: $RC_SIGN_IN")
-                }
+            // Make button visible and start animation
+            customLoginButton.visibility = View.VISIBLE
+            customLoginButton.startAnimation(fadeIn)
+        }, 1000) // 1 second delay
+
+        // Set click listener for custom login button
+        customLoginButton.setOnClickListener {
+            Log.d(TAG, "=== Custom Login Button Clicked ===")
+            triggerGoogleSignIn()
+        }
+    }
+
+    private fun triggerGoogleSignIn() {
+        // 먼저 로그아웃
+        Log.d(TAG, "Signing out previous session...")
+        googleSignInClient.signOut().addOnCompleteListener {
+            // 모든 권한 해제
+            googleSignInClient.revokeAccess().addOnCompleteListener { revokeTask ->
+                Log.d(TAG, "Access revoked: ${revokeTask.isSuccessful}")
+                
+                // 로그아웃 후 로그인 시도
+                val signInIntent = googleSignInClient.signInIntent
+                Log.d(TAG, "Sign In Intent created: $signInIntent")
+                Log.d(TAG, "Intent extras: ${signInIntent.extras}")
+                Log.d(TAG, "Intent component: ${signInIntent.component}")
+                startActivityForResult(signInIntent, RC_SIGN_IN)
+                Log.d(TAG, "startActivityForResult called with RC_SIGN_IN: $RC_SIGN_IN")
             }
         }
-        Log.d(TAG, "=== LoginActivity onCreate complete ===")
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -180,7 +214,7 @@ class LoginActivity : AppCompatActivity() {
     }
 
     private fun sendAuthCodeToServer(serverAuthCode: String) {
-        // 인증 코드를 백엔드로 전송하는 부분
+        // 인증 코득를 백엔드로 전송하는 부분
         Log.d(TAG, "Creating request body: GoogleLoginRequest(code=$serverAuthCode)")
         val request = GoogleLoginRequest(serverAuthCode)
         Log.d(TAG, "Calling API: authApi.googleLogin")
