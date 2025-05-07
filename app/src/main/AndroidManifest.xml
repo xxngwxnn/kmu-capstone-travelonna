@@ -66,6 +66,11 @@
             android:name=".ui.schedule.PlaceInfoActivity"
             android:exported="false" />
 
+        <activity
+            android:name=".ScheduleCompleteActivity"
+            android:exported="false"
+            android:theme="@style/Theme.AppCompat.NoActionBar" />
+
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyDsi4wg1BwtoztstYV2Z7NRtklS-eRyGxk" />

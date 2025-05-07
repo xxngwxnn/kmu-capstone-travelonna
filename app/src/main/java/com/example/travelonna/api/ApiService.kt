@@ -3,6 +3,8 @@ package com.example.travelonna.api
 import retrofit2.Call
 import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.DELETE
+import retrofit2.http.PUT
 import retrofit2.http.Path
 import retrofit2.http.Body
 import retrofit2.http.Header
@@ -14,6 +16,9 @@ interface ApiService {
     
     @POST("api/v1/plans/{planId}/places")
     fun createPlace(@Path("planId") planId: Int, @Body request: PlaceCreateRequest): Call<PlaceCreateResponse>
+    
+    @PUT("api/v1/plans/{planId}/places/{placeId}")
+    fun updatePlace(@Path("planId") planId: Int, @Path("placeId") placeId: Int, @Body request: PlaceCreateRequest): Call<BasicResponse>
     
     @POST("api/v1/plans")
     fun createPlan(@Body request: PlanCreateRequest): Call<PlanCreateResponse>
@@ -35,4 +40,7 @@ interface ApiService {
     
     @GET("api/v1/stations/region")
     fun searchStationsByRegion(@Query("region") region: String): Call<StationSearchResponse>
+    
+    @DELETE("api/v1/plans/{planId}/places/{placeId}")
+    fun deletePlace(@Path("planId") planId: Int, @Path("placeId") placeId: Int): Call<BasicResponse>
 } 

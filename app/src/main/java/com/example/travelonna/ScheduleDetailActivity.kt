@@ -39,6 +39,8 @@ import com.google.android.libraries.places.api.net.FetchPlaceRequest
 import com.google.android.libraries.places.api.net.FetchPhotoRequest
 import com.google.android.libraries.places.api.net.PlacesClient
 import android.widget.ImageButton
+import android.graphics.Canvas
+import android.graphics.Paint
 
 class ScheduleDetailActivity : AppCompatActivity() {
 
@@ -93,9 +95,9 @@ class ScheduleDetailActivity : AppCompatActivity() {
             setupGroupFunctionality(groupUrl)
         }
             
-        startDateCalendar.timeInMillis = startDate
-        endDateCalendar.timeInMillis = endDate
-        
+            startDateCalendar.timeInMillis = startDate
+            endDateCalendar.timeInMillis = endDate
+            
         // 일정 이름과 날짜 표시
         val titleText = findViewById<TextView>(R.id.titleText)
         val dateRangeText = findViewById<TextView>(R.id.dateRangeText)
@@ -224,16 +226,51 @@ class ScheduleDetailActivity : AppCompatActivity() {
             
             Toast.makeText(this, "장소가 추가되었습니다: $placeName", Toast.LENGTH_SHORT).show()
         }
+        // 장소 편집 결과 처리 (요청 코드 200)
+        else if (requestCode == 200 && resultCode == RESULT_OK && data != null) {
+            // API를 통해 장소가 수정된 경우
+            if (data.getBooleanExtra("PLACE_UPDATED", false) || data.getBooleanExtra("PLACE_ADDED", false)) {
+                val selectedDay = data.getIntExtra("SELECTED_DAY", viewPager.currentItem)
+                
+                // 현재 뷰페이저 위치가 선택한 날짜와 다르면 해당 날짜로 이동
+                if (viewPager.currentItem != selectedDay) {
+                    viewPager.currentItem = selectedDay
+                }
+                
+                Toast.makeText(this, "장소 정보가 업데이트되었습니다", Toast.LENGTH_SHORT).show()
+                
+                // 장소 정보 업데이트 후 일정 상세 정보 다시 로드
+                if (planId > 0) {
+                    Log.d("ScheduleDetail", "Refreshing plan details after updating place: planId=$planId")
+                    fetchPlanDetail(planId)
+                } else {
+                    Log.d("ScheduleDetail", "Cannot refresh plan details: Invalid planId=$planId")
+                }
+            }
+        }
     }
     
     // 드래그 앤 드롭 헬퍼 설정
     private fun setupItemTouchHelper(recyclerView: RecyclerView) {
         val itemTouchHelper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(
         ItemTouchHelper.UP or ItemTouchHelper.DOWN,  // 드래그 방향
-        0  // 스와이프 사용하지 않음
+        ItemTouchHelper.LEFT  // 왼쪽으로 스와이프하여 삭제
     ) {
         private var dragFrom = -1
         private var dragTo = -1
+        
+        // 짧은 스와이프로도 삭제 다이얼로그가 표시되도록 설정
+        override fun getSwipeThreshold(viewHolder: RecyclerView.ViewHolder): Float {
+            return 0.15F
+        }
+        
+        override fun getSwipeEscapeVelocity(defaultValue: Float): Float {
+            return defaultValue * 0.5f
+        }
+        
+        override fun getSwipeVelocityThreshold(defaultValue: Float): Float {
+            return defaultValue * 0.5f
+        }
 
         override fun onMove(
             recyclerView: RecyclerView,
@@ -254,7 +291,26 @@ class ScheduleDetailActivity : AppCompatActivity() {
         }
 
         override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
-            // 스와이프 기능 사용하지 않음
+            val position = viewHolder.adapterPosition
+            val adapter = recyclerView.adapter as PlaceAdapter
+            val place = adapter.places[position]
+            
+            // 삭제 확인 다이얼로그 표시
+            val alertDialog = androidx.appcompat.app.AlertDialog.Builder(this@ScheduleDetailActivity)
+                .setTitle("장소 삭제")
+                .setMessage("'${place.name}' 장소를 삭제하시겠습니까?")
+                .setPositiveButton("삭제") { _, _ ->
+                    // 실제 삭제 수행
+                    adapter.removeItem(position)
+                }
+                .setNegativeButton("취소") { _, _ ->
+                    // 스와이프 취소하고 아이템 복원
+                    adapter.notifyItemChanged(position)
+                }
+                .setCancelable(false)
+                .create()
+                
+            alertDialog.show()
         }
 
         override fun isLongPressDragEnabled(): Boolean {
@@ -273,6 +329,67 @@ class ScheduleDetailActivity : AppCompatActivity() {
                 dragFrom = -1
                 dragTo = -1
             }
+            
+        // 고정된 짧은 거리만 스와이프되도록 제한
+        override fun onChildDraw(
+            c: Canvas,
+            recyclerView: RecyclerView,
+            viewHolder: RecyclerView.ViewHolder,
+            dX: Float,
+            dY: Float,
+            actionState: Int,
+            isCurrentlyActive: Boolean
+        ) {
+            if (actionState == ItemTouchHelper.ACTION_STATE_SWIPE) {
+                val itemView = viewHolder.itemView
+                
+                // 스와이프 최대 거리 제한 (아이템 너비의 1/4로 제한)
+                val maxSwipeDistance = -(itemView.width / 4f)
+                val limitedDX = Math.max(dX, maxSwipeDistance)
+                
+                // 배경 색상 설정 (빨간색)
+                val background = Paint()
+                background.color = ContextCompat.getColor(this@ScheduleDetailActivity, R.color.delete_red)
+                
+                // 삭제 아이콘 설정
+                val deleteIcon = ContextCompat.getDrawable(
+                    this@ScheduleDetailActivity, 
+                    android.R.drawable.ic_menu_delete
+                )
+                
+                // 아이콘 위치와 크기 계산
+                val iconMargin = (itemView.height - deleteIcon!!.intrinsicHeight) / 2
+                val iconTop = itemView.top + (itemView.height - deleteIcon.intrinsicHeight) / 2
+                val iconBottom = iconTop + deleteIcon.intrinsicHeight
+                
+                // 왼쪽으로 스와이프할 때
+                if (limitedDX < 0) {
+                    // 아이콘 위치 재조정 - 스와이프 영역의 중앙에 배치
+                    val swipeAreaWidth = -maxSwipeDistance // 스와이프 영역 너비
+                    val iconWidth = deleteIcon.intrinsicWidth
+                    
+                    // 아이콘을 스와이프 영역 중앙에 배치
+                    val iconLeft = itemView.right - (swipeAreaWidth / 2) - (iconWidth / 2)
+                    val iconRight = iconLeft + iconWidth
+                    
+                    deleteIcon.setBounds(iconLeft.toInt(), iconTop, iconRight.toInt(), iconBottom)
+                    
+                    // 배경 그리기
+                    c.drawRect(
+                        itemView.right + limitedDX, itemView.top.toFloat(),
+                        itemView.right.toFloat(), itemView.bottom.toFloat(),
+                        background
+                    )
+                    
+                    // 아이콘 그리기
+                    deleteIcon.draw(c)
+                }
+                
+                super.onChildDraw(c, recyclerView, viewHolder, limitedDX, dY, actionState, isCurrentlyActive)
+            } else {
+                super.onChildDraw(c, recyclerView, viewHolder, dX, dY, actionState, isCurrentlyActive)
+            }
+        }
         })
         itemTouchHelper.attachToRecyclerView(recyclerView)
     }
@@ -290,6 +407,75 @@ class ScheduleDetailActivity : AppCompatActivity() {
             places.clear()
             places.addAll(newPlaces)
             notifyDataSetChanged()
+        }
+        
+        // 아이템 삭제 메서드 추가
+        fun removeItem(position: Int) {
+            if (position >= 0 && position < places.size) {
+                // 삭제할 장소
+                val removedPlace = places[position]
+                
+                // API를 통해 서버에서도 삭제 (planId가 유효한 경우)
+                if (planId > 0) {
+                    // 장소 ID가 필요한 경우, 모델에 ID 필드 추가 필요
+                    val placeId = removedPlace.id
+                    
+                    if (placeId > 0) {
+                        // 삭제중 로딩 표시
+                        val loadingToast = Toast.makeText(this@ScheduleDetailActivity, "삭제 중...", Toast.LENGTH_SHORT)
+                        loadingToast.show()
+                        
+                        // API 호출로 서버에서 장소 삭제 
+                        RetrofitClient.apiService.deletePlace(planId, placeId)
+                            .enqueue(object : Callback<com.example.travelonna.api.BasicResponse> {
+                                override fun onResponse(
+                                    call: Call<com.example.travelonna.api.BasicResponse>,
+                                    response: Response<com.example.travelonna.api.BasicResponse>
+                                ) {
+                                    loadingToast.cancel()
+                                    
+                                    if (response.isSuccessful) {
+                                        Log.d("PlaceAdapter", "Successfully deleted place from server: placeId=$placeId")
+                                        // 로컬 리스트에서도 제거
+                                        places.removeAt(position)
+                                        notifyItemRemoved(position)
+                                        
+                                        // 번호 재지정을 위해 이후 아이템들 갱신
+                                        notifyItemRangeChanged(position, places.size - position)
+                                        
+                                        Toast.makeText(this@ScheduleDetailActivity, "${removedPlace.name} 장소가 삭제되었습니다", Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        Log.e("PlaceAdapter", "Failed to delete place: ${response.code()}, ${response.message()}")
+                                        Toast.makeText(this@ScheduleDetailActivity, "장소 삭제에 실패했습니다. 다시 시도해주세요.", Toast.LENGTH_SHORT).show()
+                                        
+                                        // 삭제 실패 시 목록 갱신하여 항목 복원
+                                        notifyItemChanged(position)
+                                    }
+                                }
+                                
+                                override fun onFailure(call: Call<com.example.travelonna.api.BasicResponse>, t: Throwable) {
+                                    loadingToast.cancel()
+                                    Log.e("PlaceAdapter", "Network error when deleting place", t)
+                                    Toast.makeText(this@ScheduleDetailActivity, "네트워크 오류: 장소 삭제에 실패했습니다", Toast.LENGTH_SHORT).show()
+                                    
+                                    // 삭제 실패 시 목록 갱신하여 항목 복원
+                                    notifyItemChanged(position)
+                                }
+                            })
+                    } else {
+                        Log.w("PlaceAdapter", "Cannot delete place: invalid placeId")
+                        Toast.makeText(this@ScheduleDetailActivity, "유효하지 않은 장소입니다.", Toast.LENGTH_SHORT).show()
+                        notifyItemChanged(position)
+                    }
+                } else {
+                    // API 연동이 없는 경우 (로컬에서만 삭제)
+                    Log.d("PlaceAdapter", "Local deletion only: planId is not valid")
+                    places.removeAt(position)
+                    notifyItemRemoved(position)
+                    notifyItemRangeChanged(position, places.size - position)
+                    Toast.makeText(this@ScheduleDetailActivity, "${removedPlace.name} 장소가 삭제되었습니다", Toast.LENGTH_SHORT).show()
+                }
+            }
         }
         
         inner class PlaceViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -353,7 +539,28 @@ class ScheduleDetailActivity : AppCompatActivity() {
             )
             
             holder.editButton.setOnClickListener {
-                // 편집 기능 구현 (향후)
+                // 편집 기능 구현
+                val intent = Intent(this@ScheduleDetailActivity, PlaceInfoActivity::class.java)
+                
+                // 필요한 기본 데이터 전달
+                intent.putExtra("SELECTED_DAY", viewPager.currentItem)
+                intent.putExtra("START_DATE", startDateCalendar.timeInMillis)
+                intent.putExtra("END_DATE", endDateCalendar.timeInMillis)
+                intent.putExtra("SCHEDULE_NAME", findViewById<TextView>(R.id.titleText).text.toString())
+                intent.putExtra("PLAN_ID", planId)
+                
+                // 장소 정보 전달
+                intent.putExtra("IS_EDIT_MODE", true)  // 편집 모드 활성화
+                intent.putExtra("PLACE_ID", place.id)  // 장소 ID
+                intent.putExtra("PLACE_NAME", place.name)
+                intent.putExtra("PLACE_ADDRESS", place.address)
+                intent.putExtra("GOOGLE_PLACE_ID", place.googleId) // Google Place ID
+                intent.putExtra("ESTIMATED_COST", place.cost)
+                intent.putExtra("MEMO", place.memo)
+                intent.putExtra("IS_PUBLIC", place.isPublic)
+                
+                // PlaceInfoActivity 실행
+                startActivityForResult(intent, 200) // 수정용 요청코드 200 사용
             }
         }
         
@@ -450,7 +657,7 @@ class ScheduleDetailActivity : AppCompatActivity() {
                     
                     // PlaceItem으로 변환
                     val placeItems = places.map { place ->
-                        Log.d("DayPagerAdapter", "Creating PlaceItem - name: ${place.name}, googleId: ${place.googleId}")
+                        Log.d("DayPagerAdapter", "Creating PlaceItem - name: ${place.name}, id: ${place.id}, googleId: ${place.googleId}")
                         
                         PlaceItem(
                             name = place.name,
@@ -459,7 +666,8 @@ class ScheduleDetailActivity : AppCompatActivity() {
                             cost = place.cost.toString(),
                             memo = place.memo,
                             isPublic = place.isPublic,
-                            googleId = place.googleId  // googleId 저장
+                            googleId = place.googleId,  // googleId 저장
+                            id = place.id  // 서버 ID 저장
                         )
                     }
                     
@@ -510,7 +718,8 @@ class ScheduleDetailActivity : AppCompatActivity() {
         val cost: String, 
         val memo: String,
         val isPublic: Boolean = false,
-        val googleId: String = ""  // googleId 필드 추가
+        val googleId: String = "",  // googleId 필드 추가
+        val id: Int = 0  // 서버 ID 필드 추가
     )
     
     // 커스텀 탭 설정

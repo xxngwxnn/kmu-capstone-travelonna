@@ -37,6 +37,14 @@ class PlanActivity : AppCompatActivity() {
             finish()
         }
 
+        // 일정 생성 버튼 설정
+        val editButton = findViewById<ImageButton>(R.id.editButton)
+        editButton.setOnClickListener {
+            // 일정 생성 화면으로 이동
+            val intent = Intent(this, ScheduleCreateActivity::class.java)
+            startActivity(intent)
+        }
+
         // 추천 장소 데이터 설정
         val recommendPlaces = listOf(
             PlaceRecommendItem(R.drawable.dummy_place_1, "장소 이름"),

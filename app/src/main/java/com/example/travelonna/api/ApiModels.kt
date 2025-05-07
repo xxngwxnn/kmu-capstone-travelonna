@@ -14,4 +14,11 @@ data class GroupUrlResponse(
     val hostId: Int = 0
 )
 
+// 기본 응답 모델 - 성공/실패 메시지만 포함
+data class BasicResponse(
+    val success: Boolean = false,
+    val message: String = "",
+    val data: Any? = null
+)
+
 // 참고: 일정 관련 모델은 PlanResponse.kt 파일에 정의되어 있습니다. 
