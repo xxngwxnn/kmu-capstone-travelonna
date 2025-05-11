@@ -28,6 +28,7 @@ import androidx.recyclerview.widget.ItemTouchHelper
 import android.util.Log
 import com.example.travelonna.api.PlanDetailResponse
 import com.example.travelonna.api.RetrofitClient
+import com.example.travelonna.api.GroupInfoResponse
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -866,13 +867,11 @@ class ScheduleDetailActivity : AppCompatActivity() {
             
             // 그룹 일정인지 확인하고 공유 버튼 설정
             if (detail.isGroup) {
-                // groupId와 URL 생성
-                val groupId = detail.groupId
-                Log.d("ScheduleDetail", "This is a group plan with groupId: $groupId")
+                // 일정 ID를 사용하여 그룹 정보 가져오기
+                val planId = detail.planId
+                Log.d("ScheduleDetail", "This is a group plan with planId: $planId")
                 
-                // 그룹 URL이 있다면 바로 그룹 기능 설정
-                val groupUrl = "https://travelonna.shop/group/$groupId"
-                setupGroupFunctionality(groupUrl)
+                fetchGroupInfo(planId)
             } else {
                 // 그룹이 아닌 경우 공유 버튼 숨김
                 shareButton.visibility = View.GONE
@@ -887,20 +886,65 @@ class ScheduleDetailActivity : AppCompatActivity() {
     }
 
     // 그룹 기능 설정
-    private fun setupGroupFunctionality(groupUrl: String) {
+    private fun setupGroupFunctionality(urlCode: String) {
         // 그룹 여행일 경우에만 공유 버튼 표시
         shareButton.visibility = View.VISIBLE
         shareButton.setOnClickListener {
             // 공유 기능 구현
             val shareIntent = Intent().apply {
                 action = Intent.ACTION_SEND
-                putExtra(Intent.EXTRA_TEXT, "'여행온나'에서 여행 일정에 참여하세요! 공유 URL: $groupUrl")
+                putExtra(Intent.EXTRA_TEXT, "'여행온나'에서 여행 일정에 참여하세요! 공유 URL: $urlCode")
                 type = "text/plain"
             }
             startActivity(Intent.createChooser(shareIntent, "공유 방법 선택"))
         }
         
         // 웹소켓 연결 등 추가 처리는 여기에 구현
+    }
+
+    // 그룹 정보를 가져오는 함수 추가
+    private fun fetchGroupInfo(planId: Int) {
+        Log.d("ScheduleDetail", "Fetching group info for plan ID: $planId")
+        
+        RetrofitClient.apiService.getGroupInfo(planId)
+            .enqueue(object : Callback<GroupInfoResponse> {
+                override fun onResponse(call: Call<GroupInfoResponse>, response: Response<GroupInfoResponse>) {
+                    Log.d("ScheduleDetail", "Group Info API Response: status code ${response.code()}")
+                    
+                    if (response.isSuccessful) {
+                        val groupInfo = response.body()
+                        Log.d("ScheduleDetail", "Group info fetched successfully: $groupInfo")
+                        
+                        if (groupInfo != null) {
+                            // URL 값만 사용 (앞부분 제거)
+                            val urlCode = groupInfo.url
+                            Log.d("ScheduleDetail", "Group URL code: $urlCode")
+                            
+                            // 그룹 기능 설정
+                            setupGroupFunctionality(urlCode)
+                        } else {
+                            // 그룹 정보가 없는 경우 공유 버튼 숨김
+                            shareButton.visibility = View.GONE
+                            Log.w("ScheduleDetail", "No group info returned from API")
+                        }
+                    } else {
+                        // API 호출 실패
+                        Log.e("ScheduleDetail", "Failed to fetch group info: ${response.code()}")
+                        Log.e("ScheduleDetail", "Error body: ${response.errorBody()?.string()}")
+                        
+                        // 공유 버튼 숨김
+                        shareButton.visibility = View.GONE
+                    }
+                }
+                
+                override fun onFailure(call: Call<GroupInfoResponse>, t: Throwable) {
+                    Log.e("ScheduleDetail", "Network error when fetching group info: ${t.message}")
+                    Log.e("ScheduleDetail", "Exception details:", t)
+                    
+                    // 네트워크 오류 발생 시 공유 버튼 숨김
+                    shareButton.visibility = View.GONE
+                }
+            })
     }
 
     override fun onDestroy() {

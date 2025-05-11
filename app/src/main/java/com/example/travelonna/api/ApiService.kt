@@ -38,8 +38,14 @@ interface ApiService {
     @GET("api/v1/plans")
     fun getPlans(@Header("Authorization") authorization: String): Call<PlanListResponse>
     
+    @GET("api/v1/groups/my")
+    fun getMyGroups(): Call<List<GroupInfoResponse>>
+    
     @GET("api/v1/groups/plan/{planId}")
     fun getGroupInfo(@Path("planId") planId: Int): Call<GroupInfoResponse>
+    
+    @POST("api/v1/groups/join/{url}")
+    fun joinGroup(@Path("url") urlCode: String): Call<Void>
     
     @GET("api/v1/stations/search")
     fun searchStations(@Query("keyword") keyword: String): Call<StationSearchResponse>

@@ -13,4 +13,5 @@
     <color name="red">#FF4500</color>
     <color name="orange">#FF6B00</color>
     <color name="delete_red">#FF3B30</color>
+    <color name="blue_secondary">#7B92FA</color>
 </resources>
