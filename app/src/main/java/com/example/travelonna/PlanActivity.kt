@@ -15,7 +15,9 @@ import com.example.travelonna.adapter.PlaceRecommendAdapter
 import com.example.travelonna.adapter.PlaceRecommendItem
 import com.example.travelonna.api.PlanListResponse
 import com.example.travelonna.api.PlanData
+import com.example.travelonna.api.PlanDetailResponse
 import com.example.travelonna.api.RetrofitClient
+import com.example.travelonna.api.GroupInfoResponse
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -30,6 +32,7 @@ class PlanActivity : AppCompatActivity() {
     
     private lateinit var planAdapter: PlanAdapter
     private val TAG = "PlanActivity"
+    private val allPlans = mutableListOf<PlanData>() // 모든 일정을 저장할 리스트
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -98,11 +101,20 @@ class PlanActivity : AppCompatActivity() {
         }
         
         // API에서 일정 목록 가져오기
-        fetchPlans()
+        loadAllPlans()
     }
     
+    // 모든 일정 데이터 로드 (내 일정 + 그룹 일정)
+    private fun loadAllPlans() {
+        allPlans.clear() // 기존 데이터 초기화
+        
+        // 내 일정과 참여 중인 그룹 일정을 모두 가져옴
+        fetchPlans()
+        fetchMyGroups()
+    }
+    
+    // 내 일정 목록 가져오기
     private fun fetchPlans() {
-        // 하드코딩된 토큰을 사용 (실제로는 저장된 토큰을 사용해야 함)
         val token = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJiZW9kdWVsY2hpMDVAZ21haWwuY29tIiwidXNlcl9pZCI6MTIsImlhdCI6MTc0NDY5MzM3OSwiZXhwIjoxNzQ0Njk2OTc5fQ.RehACK7RKot0bx0ZcF1MUUfPZ4OwxQaXkjZhhyqnX30"
         
         val authorization = "Bearer $token"
@@ -112,8 +124,11 @@ class PlanActivity : AppCompatActivity() {
                     val planResponse = response.body()
                     if (planResponse != null && planResponse.success) {
                         val plans = planResponse.data
-                        Log.d(TAG, "Plans loaded: ${plans.size}")
-                        planAdapter.updateData(plans)
+                        Log.d(TAG, "My plans loaded: ${plans.size}")
+                        
+                        // 내 일정 데이터 추가
+                        allPlans.addAll(plans)
+                        updatePlanAdapter()
                     } else {
                         Log.e(TAG, "Response not successful: ${response.code()}")
                         Toast.makeText(this@PlanActivity, "일정을 불러오는데 실패했습니다", Toast.LENGTH_SHORT).show()
@@ -129,6 +144,49 @@ class PlanActivity : AppCompatActivity() {
                 Toast.makeText(this@PlanActivity, "네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
             }
         })
+    }
+    
+    // 참여 중인 그룹 일정 가져오기
+    private fun fetchMyGroups() {
+        RetrofitClient.apiService.getMyGroups().enqueue(object : Callback<List<GroupInfoResponse>> {
+            override fun onResponse(call: Call<List<GroupInfoResponse>>, response: Response<List<GroupInfoResponse>>) {
+                if (response.isSuccessful) {
+                    val groups = response.body()
+                    if (groups != null && groups.isNotEmpty()) {
+                        Log.d(TAG, "My group plans loaded: ${groups.size}")
+                        
+                        // 그룹 정보 로그에 출력
+                        groups.forEach { group ->
+                            Log.d(TAG, "Group: id=${group.id}, url=${group.url}, createdDate=${group.createdDate}")
+                        }
+                        
+                        // 향후 백엔드에서 planId가 포함된 응답을 주면 이 부분을 수정할 예정
+                        Toast.makeText(this@PlanActivity, "참여 중인 그룹: ${groups.size}개", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Log.d(TAG, "No group plans found")
+                    }
+                } else {
+                    Log.e(TAG, "Failed to fetch my groups: ${response.code()}")
+                    try {
+                        val errorBody = response.errorBody()?.string()
+                        Log.e(TAG, "Error body: $errorBody")
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error reading error body", e)
+                    }
+                }
+            }
+            
+            override fun onFailure(call: Call<List<GroupInfoResponse>>, t: Throwable) {
+                Log.e(TAG, "Failed to fetch my groups", t)
+            }
+        })
+    }
+    
+    // 어댑터 업데이트
+    private fun updatePlanAdapter() {
+        // 최신순으로 정렬
+        val sortedPlans = allPlans.sortedByDescending { it.createdAt }
+        planAdapter.updateData(sortedPlans)
     }
     
     /**
@@ -259,8 +317,8 @@ class PlanActivity : AppCompatActivity() {
                         
                         Toast.makeText(this@PlanActivity, "그룹 일정에 참여했습니다", Toast.LENGTH_SHORT).show()
                         
-                        // 일정 목록 새로고침
-                        fetchPlans()
+                        // 일정 목록 새로고침 (내 일정 + 참여 그룹 일정)
+                        loadAllPlans()
                     } else {
                         val errorMsg = try {
                             response.errorBody()?.string() ?: "일정 참여에 실패했습니다"
