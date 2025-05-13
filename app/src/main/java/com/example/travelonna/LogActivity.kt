@@ -17,6 +17,8 @@ import android.widget.LinearLayout
 import android.widget.Toast
 import com.example.travelonna.api.Plan
 import com.example.travelonna.api.RetrofitClient
+import com.example.travelonna.model.TravelLog
+import com.example.travelonna.model.TravelPlace
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -295,7 +297,7 @@ class LogActivity : AppCompatActivity() {
             1 -> updateAdapterWithLogs(filtered.sortedBy { getStartDateForSorting(it.date) })
             2 -> {
                 val year = yearSpinner.selectedItem.toString()
-                updateAdapterWithLogs(filtered.filter { it.date.contains(year) })
+                updateAdapterWithLogs(filtered.filter { log -> log.date.contains(year) })
             }
         }
     }

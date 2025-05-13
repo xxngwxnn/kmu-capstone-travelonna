@@ -6,21 +6,8 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
-
-// 여행 장소 데이터 클래스
-data class TravelPlace(
-    val name: String,
-    val address: String,
-    val visitTime: String
-)
-
-// 여행 로그 데이터 클래스
-data class TravelLog(
-    val title: String,
-    val date: String,
-    val type: String,
-    val places: List<TravelPlace> = listOf() // 장소 목록 추가
-)
+import com.example.travelonna.model.TravelLog
+import com.example.travelonna.model.TravelPlace
 
 // RecyclerView 어댑터
 class LogAdapter(private val logs: List<TravelLog>) : 
