@@ -39,13 +39,8 @@ class MainActivity : AppCompatActivity() {
             startActivity(intent)
         }
         
-        findViewById<Button>(R.id.planListButton)?.setOnClickListener {
+        findViewById<Button>(R.id.planButton)?.setOnClickListener {
             val intent = Intent(this, PlanActivity::class.java)
-            startActivity(intent)
-        }
-        
-        findViewById<Button>(R.id.profileButton)?.setOnClickListener {
-            val intent = Intent(this, ProfileActivity::class.java)
             startActivity(intent)
         }
         
