@@ -105,4 +105,8 @@ object RetrofitClient {
         sharedPref.edit().clear().apply()
         Log.d(TAG, "All user data cleared")
     }
+
+    val planApiService: PlanApiService by lazy {
+        retrofit.create(PlanApiService::class.java)
+    }
 } 

@@ -1,8 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
-<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:padding="10dp"
-    android:textSize="14sp"
-    android:textColor="@color/black"
-    android:background="#FFFFFF" />
+    android:orientation="vertical">
+    
+    <TextView
+        android:id="@+id/dropdownItemText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="12dp"
+        android:textSize="14sp"
+        android:textColor="@color/black"
+        android:background="@android:color/white"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:gravity="center_vertical|start" />
+    
+    <View
+        android:id="@+id/dropdownDivider"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginStart="12dp"
+        android:layout_marginEnd="12dp"
+        android:background="#EEEEEE" />
+</LinearLayout>
