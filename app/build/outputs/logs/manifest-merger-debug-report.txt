@@ -1,9 +1,9 @@
 -- Merging decision tree log ---
 manifest
-ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:2:1-106:12
-INJECTED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:2:1-106:12
-INJECTED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:2:1-106:12
-INJECTED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:2:1-106:12
+ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:2:1-110:12
+INJECTED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:2:1-110:12
+INJECTED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:2:1-110:12
+INJECTED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:2:1-110:12
 MERGED from [androidx.databinding:viewbinding:8.1.0] /Users/oubin/.gradle/caches/transforms-3/6b01d527d9f4c2cca46e9d9b19d7e8dd/transformed/viewbinding-8.1.0/AndroidManifest.xml:2:1-7:12
 MERGED from [com.google.android.material:material:1.11.0] /Users/oubin/.gradle/caches/transforms-3/063015173dfe85b7ffd3260626a46116/transformed/material-1.11.0/AndroidManifest.xml:17:1-24:12
 MERGED from [androidx.constraintlayout:constraintlayout:2.1.4] /Users/oubin/.gradle/caches/transforms-3/24888596994c39c74949fe0400b4a051/transformed/constraintlayout-2.1.4/AndroidManifest.xml:2:1-11:12
@@ -45,6 +45,7 @@ MERGED from [androidx.lifecycle:lifecycle-livedata:2.6.1] /Users/oubin/.gradle/c
 MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.6.1] /Users/oubin/.gradle/caches/transforms-3/121f149f549e3728546cd9e695a44952/transformed/lifecycle-viewmodel-2.6.1/AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.lifecycle:lifecycle-runtime:2.6.1] /Users/oubin/.gradle/caches/transforms-3/870182d44027bdc4a6c017ece7c2c967/transformed/lifecycle-runtime-2.6.1/AndroidManifest.xml:2:1-7:12
 MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate:2.6.1] /Users/oubin/.gradle/caches/transforms-3/240a06bb49e0b146e6992f3edd419560/transformed/lifecycle-viewmodel-savedstate-2.6.1/AndroidManifest.xml:17:1-22:12
+MERGED from [de.hdodenhof:circleimageview:3.1.0] /Users/oubin/.gradle/caches/transforms-3/5f879a2bc490793a04ad3425d8fc1354/transformed/circleimageview-3.1.0/AndroidManifest.xml:2:1-11:12
 MERGED from [androidx.cursoradapter:cursoradapter:1.0.0] /Users/oubin/.gradle/caches/transforms-3/263450fb0d6877db38a24f273d174313/transformed/cursoradapter-1.0.0/AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.cardview:cardview:1.0.0] /Users/oubin/.gradle/caches/transforms-3/5e4806f5a217d340a5ddfb46ecbd5433/transformed/cardview-1.0.0/AndroidManifest.xml:17:1-22:12
 MERGED from [com.google.android.datatransport:transport-backend-cct:2.3.0] /Users/oubin/.gradle/caches/transforms-3/184bef57d784264decf11fe939491baf/transformed/transport-backend-cct-2.3.0/AndroidManifest.xml:15:1-38:12
@@ -118,8 +119,8 @@ ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/Andr
 	android:name
 		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:11:22-73
 application
-ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:13:5-104:19
-INJECTED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:13:5-104:19
+ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:13:5-108:19
+INJECTED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:13:5-108:19
 MERGED from [com.google.android.material:material:1.11.0] /Users/oubin/.gradle/caches/transforms-3/063015173dfe85b7ffd3260626a46116/transformed/material-1.11.0/AndroidManifest.xml:22:5-20
 MERGED from [com.google.android.material:material:1.11.0] /Users/oubin/.gradle/caches/transforms-3/063015173dfe85b7ffd3260626a46116/transformed/material-1.11.0/AndroidManifest.xml:22:5-20
 MERGED from [androidx.constraintlayout:constraintlayout:2.1.4] /Users/oubin/.gradle/caches/transforms-3/24888596994c39c74949fe0400b4a051/transformed/constraintlayout-2.1.4/AndroidManifest.xml:9:5-20
@@ -146,6 +147,8 @@ MERGED from [androidx.core:core:1.12.0] /Users/oubin/.gradle/caches/transforms-3
 MERGED from [androidx.core:core:1.12.0] /Users/oubin/.gradle/caches/transforms-3/08502c4136a718ac5fa5aa3c1f5ae4b0/transformed/core-1.12.0/AndroidManifest.xml:28:5-89
 MERGED from [androidx.lifecycle:lifecycle-process:2.6.1] /Users/oubin/.gradle/caches/transforms-3/25c1b7d24e6569f2941c382f6368f338/transformed/lifecycle-process-2.6.1/AndroidManifest.xml:23:5-33:19
 MERGED from [androidx.lifecycle:lifecycle-process:2.6.1] /Users/oubin/.gradle/caches/transforms-3/25c1b7d24e6569f2941c382f6368f338/transformed/lifecycle-process-2.6.1/AndroidManifest.xml:23:5-33:19
+MERGED from [de.hdodenhof:circleimageview:3.1.0] /Users/oubin/.gradle/caches/transforms-3/5f879a2bc490793a04ad3425d8fc1354/transformed/circleimageview-3.1.0/AndroidManifest.xml:9:5-20
+MERGED from [de.hdodenhof:circleimageview:3.1.0] /Users/oubin/.gradle/caches/transforms-3/5f879a2bc490793a04ad3425d8fc1354/transformed/circleimageview-3.1.0/AndroidManifest.xml:9:5-20
 MERGED from [com.google.android.datatransport:transport-backend-cct:2.3.0] /Users/oubin/.gradle/caches/transforms-3/184bef57d784264decf11fe939491baf/transformed/transport-backend-cct-2.3.0/AndroidManifest.xml:28:5-36:19
 MERGED from [com.google.android.datatransport:transport-backend-cct:2.3.0] /Users/oubin/.gradle/caches/transforms-3/184bef57d784264decf11fe939491baf/transformed/transport-backend-cct-2.3.0/AndroidManifest.xml:28:5-36:19
 MERGED from [com.google.android.datatransport:transport-runtime:2.2.3] /Users/oubin/.gradle/caches/transforms-3/78b1a049532ce5000abcacf04c722a8d/transformed/transport-runtime-2.2.3/AndroidManifest.xml:25:5-39:19
@@ -298,12 +301,18 @@ ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/Andr
 		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:99:13-37
 	android:name
 		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:98:13-44
-meta-data#com.google.android.geo.API_KEY
-ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:101:9-103:71
-	android:value
-		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:103:13-68
+activity#com.example.travelonna.FollowListActivity
+ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:101:9-103:40
+	android:exported
+		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:103:13-37
 	android:name
-		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:102:13-58
+		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:102:13-47
+meta-data#com.google.android.geo.API_KEY
+ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:105:9-107:71
+	android:value
+		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:107:13-68
+	android:name
+		ADDED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml:106:13-58
 uses-sdk
 INJECTED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml reason: use-sdk injection requested
 INJECTED from /Users/oubin/Desktop/ALL/CLASS/4-2/CAPSTONE/PROJECT/app/src/main/AndroidManifest.xml
@@ -390,6 +399,8 @@ MERGED from [androidx.lifecycle:lifecycle-runtime:2.6.1] /Users/oubin/.gradle/ca
 MERGED from [androidx.lifecycle:lifecycle-runtime:2.6.1] /Users/oubin/.gradle/caches/transforms-3/870182d44027bdc4a6c017ece7c2c967/transformed/lifecycle-runtime-2.6.1/AndroidManifest.xml:5:5-44
 MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate:2.6.1] /Users/oubin/.gradle/caches/transforms-3/240a06bb49e0b146e6992f3edd419560/transformed/lifecycle-viewmodel-savedstate-2.6.1/AndroidManifest.xml:20:5-44
 MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate:2.6.1] /Users/oubin/.gradle/caches/transforms-3/240a06bb49e0b146e6992f3edd419560/transformed/lifecycle-viewmodel-savedstate-2.6.1/AndroidManifest.xml:20:5-44
+MERGED from [de.hdodenhof:circleimageview:3.1.0] /Users/oubin/.gradle/caches/transforms-3/5f879a2bc490793a04ad3425d8fc1354/transformed/circleimageview-3.1.0/AndroidManifest.xml:5:5-7:41
+MERGED from [de.hdodenhof:circleimageview:3.1.0] /Users/oubin/.gradle/caches/transforms-3/5f879a2bc490793a04ad3425d8fc1354/transformed/circleimageview-3.1.0/AndroidManifest.xml:5:5-7:41
 MERGED from [androidx.cursoradapter:cursoradapter:1.0.0] /Users/oubin/.gradle/caches/transforms-3/263450fb0d6877db38a24f273d174313/transformed/cursoradapter-1.0.0/AndroidManifest.xml:20:5-44
 MERGED from [androidx.cursoradapter:cursoradapter:1.0.0] /Users/oubin/.gradle/caches/transforms-3/263450fb0d6877db38a24f273d174313/transformed/cursoradapter-1.0.0/AndroidManifest.xml:20:5-44
 MERGED from [androidx.cardview:cardview:1.0.0] /Users/oubin/.gradle/caches/transforms-3/5e4806f5a217d340a5ddfb46ecbd5433/transformed/cardview-1.0.0/AndroidManifest.xml:20:5-44

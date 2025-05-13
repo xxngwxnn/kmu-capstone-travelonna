@@ -49,10 +49,10 @@ class PostAdapter(private val posts: List<Post>) : RecyclerView.Adapter<PostAdap
     private fun updateFollowTextState(textView: TextView, isFollowing: Boolean) {
         if (isFollowing) {
             textView.text = "팔로우 중"
-            textView.setTextColor(Color.parseColor("#527BF9"))
+            textView.setTextColor(Color.parseColor("#5E7BF9"))
         } else {
             textView.text = "팔로우"
-            textView.setTextColor(Color.parseColor("#B9B9B9")) // 토글 배경과 동일한 회색
+            textView.setTextColor(Color.parseColor("#888888"))
         }
     }
 

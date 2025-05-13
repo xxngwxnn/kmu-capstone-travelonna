@@ -1,5 +1,6 @@
 package com.example.travelonna
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.widget.Button
@@ -85,6 +86,19 @@ class ProfileActivity : AppCompatActivity() {
         
         mapTab.setOnClickListener {
             switchToMapTab()
+        }
+        
+        // 팔로워/팔로잉 텍스트 클릭 이벤트
+        distanceCount.setOnClickListener {
+            val intent = Intent(this, FollowListActivity::class.java)
+            intent.putExtra("type", "followers")
+            startActivity(intent)
+        }
+        
+        placesCount.setOnClickListener {
+            val intent = Intent(this, FollowListActivity::class.java)
+            intent.putExtra("type", "following")
+            startActivity(intent)
         }
     }
     
