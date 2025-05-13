@@ -66,6 +66,22 @@
             android:name=".ui.schedule.PlaceInfoActivity"
             android:exported="false" />
 
+        <activity
+            android:name=".LogActivity"
+            android:exported="false" />
+
+        <activity 
+            android:name=".TravelDetailActivity"
+            android:exported="false" />
+
+        <activity 
+            android:name=".PlaceMemoryActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".UploadCompleteActivity"
+            android:exported="false" />
+
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyDsi4wg1BwtoztstYV2Z7NRtklS-eRyGxk" />

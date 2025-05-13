@@ -1,0 +1,108 @@
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FFFFFF">
+
+    <!-- 뒤로가기 버튼 (파란색 박스 위에 위치) -->
+    <ImageView
+        android:id="@+id/backButton"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:layout_alignParentTop="true"
+        android:layout_marginStart="20dp"
+        android:layout_marginTop="75dp"
+        android:src="@drawable/ic_back_black" />
+
+    <TextView
+        android:id="@+id/titleSchedule"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_toEndOf="@id/backButton"
+        android:layout_marginStart="11dp"
+        android:layout_marginTop="73dp"
+        android:text="일정 목록"
+        android:textColor="@color/black"
+        android:textSize="20sp"
+        android:textStyle="bold" />
+
+    <LinearLayout
+        android:id="@+id/filterLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_marginTop="123dp"
+        android:layout_marginStart="20dp"
+        android:layout_marginEnd="20dp"
+        android:orientation="horizontal">
+
+        <!-- 스피너들을 가로로 배치 -->
+        <Spinner
+            android:id="@+id/dropdownSpinner"
+            android:layout_width="117dp"
+            android:layout_height="38dp"
+            android:background="@drawable/spinner_background2"
+            android:popupBackground="@drawable/spinner_dropdown_background2"/>
+
+        <Spinner
+            android:id="@+id/yearSpinner"
+            android:layout_width="117dp"
+            android:layout_height="38dp"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/spinner_background2"
+            android:popupBackground="@drawable/spinner_dropdown_background2"
+            android:visibility="gone"/>
+
+        <!-- 체크박스들을 오른쪽 정렬 -->
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1" />
+
+        <CheckBox
+            android:id="@+id/checkboxOption1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="10dp"
+            android:text="그룹"
+            android:textColor="@color/black"
+            android:textSize="13sp" />
+
+        <CheckBox
+            android:id="@+id/checkboxOption2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="개인"
+            android:textColor="@color/black"
+            android:textSize="13sp" />
+    </LinearLayout>
+
+    <ImageView
+        android:id="@+id/grayBar"
+        android:layout_width="500dp"
+        android:layout_height="3dp"
+        android:layout_alignParentTop="true"
+        android:layout_marginTop="190dp"
+        android:src="@drawable/ic_bar" />
+
+    <ImageView
+        android:id="@+id/whiteBox"
+        android:layout_width="match_parent"
+        android:layout_height="600dp"
+        android:layout_alignParentTop="true"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="192dp"
+        android:layout_marginEnd="16dp"
+        android:scaleType="fitXY"
+        android:src="@drawable/plan_whitebox" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/grayBar"
+        android:layout_marginStart="20dp"
+        android:layout_marginEnd="20dp"
+        android:layout_marginTop="8dp"
+        android:overScrollMode="never" />
+</RelativeLayout>

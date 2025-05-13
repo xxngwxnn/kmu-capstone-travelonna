@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FFFFFF">
+
+    <!-- 뒤로가기 버튼 -->
+    <ImageView
+        android:id="@+id/backButton"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:layout_alignParentTop="true"
+        android:layout_marginStart="20dp"
+        android:layout_marginTop="75dp"
+        android:src="@drawable/ic_back_black" />
+
+    <!-- 장소 이미지/사진 영역 - 크기 343x266으로 변경 -->
+    <RelativeLayout
+        android:id="@+id/imageContainer"
+        android:layout_width="380dp"
+        android:layout_height="266dp"
+        android:layout_below="@id/backButton"
+        android:layout_marginTop="10dp"
+        android:layout_centerHorizontal="true"
+        android:background="#EEEEEE">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <ImageView
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:src="@drawable/ic_place_holder" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="사진을 가져올 수 없습니다. 앱 권한"
+                android:textColor="#999999"
+                android:textSize="13sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="인내문구를 확인해 주세요. 최대 두줄"
+                android:textColor="#999999"
+                android:textSize="13sp" />
+        </LinearLayout>
+    </RelativeLayout>
+
+    <!-- 장소 정보 -->
+    <LinearLayout
+        android:id="@+id/placeInfoLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/imageContainer"
+        android:layout_marginStart="20dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="20dp"
+        android:orientation="vertical">
+
+        <!-- 장소 이름 -->
+        <TextView
+            android:id="@+id/placeNameTextView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="동대구역"
+            android:textColor="@color/black"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <!-- 장소 주소 -->
+        <TextView
+            android:id="@+id/placeAddressTextView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="대구광역시 동구 동대구로 550 (신암동 294)"
+            android:textColor="#666666"
+            android:textSize="14sp" />
+    </LinearLayout>
+
+    <!-- 구분선 -->
+    <View
+        android:id="@+id/divider"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_below="@id/placeInfoLayout"
+        android:layout_marginTop="16dp"
+        android:background="#E0E0E0" />
+
+    <!-- 기록 작성 영역 -->
+    <TextView
+        android:id="@+id/memoryHint"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/divider"
+        android:layout_marginStart="20dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="20dp"
+        android:text="여행에서의 경험을 이 곳에 적어주세요!"
+        android:textColor="#666666"
+        android:textSize="14sp" />
+
+    <EditText
+        android:id="@+id/memoryEditText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/memoryHint"
+        android:layout_above="@id/uploadButton"
+        android:layout_marginStart="20dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="20dp"
+        android:layout_marginBottom="16dp"
+        android:background="@null"
+        android:gravity="top"
+        android:hint="여행에서의 경험을 이 곳에 적어주세요!\n여행에서 어떤것을 보고 둘었나요?\n당신이 경험한 여행을 글로 표현해보세요."
+        android:inputType="textMultiLine"
+        android:minLines="5"
+        android:textColor="@color/black"
+        android:textColorHint="#CCCCCC"
+        android:textSize="14sp" />
+
+    <!-- 카운터 -->
+    <TextView
+        android:id="@+id/counterText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@id/uploadButton"
+        android:layout_alignParentEnd="true"
+        android:layout_marginEnd="20dp"
+        android:layout_marginBottom="8dp"
+        android:text="0/350 symbols"
+        android:textColor="#999999"
+        android:textSize="13sp" />
+
+    <!-- 업로드 버튼 -->
+    <Button
+        android:id="@+id/uploadButton"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_alignParentBottom="true"
+        android:layout_marginStart="0dp"
+        android:layout_marginEnd="0dp"
+        android:background="#000000"
+        android:text="업로드"
+        android:textColor="#FFFFFF"
+        android:textSize="16sp" />
+
+</RelativeLayout> 
