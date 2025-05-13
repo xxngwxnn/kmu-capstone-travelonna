@@ -338,7 +338,7 @@ class LoginActivity : AppCompatActivity() {
             override fun onResponse(call: Call<ProfileResponse>, response: Response<ProfileResponse>) {
                 Log.d(TAG, "Profile check response code: ${response.code()}")
                 
-                if (response.isSuccessful && response.body()?.success == true) {
+                if (response.isSuccessful && response.body() != null) {
                     // Profile exists, navigate to PlanActivity
                     Log.d(TAG, "User profile exists, navigating to PlanActivity")
                     navigateToPlanActivity()

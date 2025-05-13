@@ -3,9 +3,14 @@ package com.example.travelonna.api
 import com.google.gson.annotations.SerializedName
 
 data class ProfileResponse(
-    val success: Boolean,
-    val message: String,
-    val data: ProfileData?
+    @SerializedName("profileId") val profileId: Int,
+    @SerializedName("userId") val userId: Int,
+    @SerializedName("nickname") val nickname: String,
+    @SerializedName("profileImage") val profileImage: String?,
+    @SerializedName("introduction") val introduction: String?,
+    @SerializedName("createdAt") val createdAt: String,
+    @SerializedName("updatedAt") val updatedAt: String,
+    @SerializedName("errorMessage") val errorMessage: String?
 )
 
 data class ProfileData(

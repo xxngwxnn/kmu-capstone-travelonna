@@ -107,6 +107,9 @@ class ScheduleCreateActivity : AppCompatActivity() {
             updateToggleTextColors(isChecked)
         }
         
+        // 초기 상태에서도 토글 배경을 파란색으로 설정
+        updateToggleTextColors(typeToggle.isChecked())
+        
         // 일정 이름 입력 감지 리스너 추가
         scheduleNameInput.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
@@ -400,6 +403,31 @@ class ScheduleCreateActivity : AppCompatActivity() {
             // 개인 모드 활성화: 개인 텍스트 파란색, 그룹 텍스트 회색
             personalText.setTextColor(ContextCompat.getColor(this, R.color.blue_primary))
             groupText.setTextColor(ContextCompat.getColor(this, R.color.gray_text))
+        }
+        
+        // 항상 토글 배경을 파란색으로 설정 (CustomToggleButton 내부 메서드 호출)
+        (typeToggle as? CustomToggleButton)?.let { toggleButton ->
+            // toggle 내부의 View들을 직접 조작
+            val track = toggleButton.findViewById<View>(R.id.toggleTrack)
+            val thumb = toggleButton.findViewById<View>(R.id.toggleThumb)
+            
+            // GradientDrawable로 파란색 배경 생성
+            val primaryColor = ContextCompat.getColor(this, R.color.blue_primary)
+            val trackDrawable = GradientDrawable().apply {
+                setColor(primaryColor)
+                cornerRadius = 15f * resources.displayMetrics.density
+            }
+            
+            // 흰색 동그라미 + 파란색 테두리
+            val thumbDrawable = GradientDrawable().apply {
+                setColor(ContextCompat.getColor(this@ScheduleCreateActivity, android.R.color.white))
+                cornerRadius = 14f * resources.displayMetrics.density
+                setStroke(1, primaryColor)
+            }
+            
+            // 배경 설정
+            track.background = trackDrawable
+            thumb.background = thumbDrawable
         }
     }
 

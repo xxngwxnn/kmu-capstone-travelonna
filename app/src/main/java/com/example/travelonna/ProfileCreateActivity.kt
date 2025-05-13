@@ -49,6 +49,7 @@ class ProfileCreateActivity : AppCompatActivity() {
                 profileAddIcon.layoutParams.width = ViewGroup.LayoutParams.MATCH_PARENT
                 profileAddIcon.layoutParams.height = ViewGroup.LayoutParams.MATCH_PARENT
                 profileAddIcon.scaleType = ImageView.ScaleType.CENTER_CROP
+                profileAddIcon.setPadding(0, 0, 0, 0)
                 profileAddIcon.setImageURI(it)
                 
                 // 이미지가 로드되었음을 로그로 확인
@@ -67,6 +68,7 @@ class ProfileCreateActivity : AppCompatActivity() {
         profileAddIcon.layoutParams.width = dpToPx(48)
         profileAddIcon.layoutParams.height = dpToPx(48)
         profileAddIcon.scaleType = ImageView.ScaleType.FIT_CENTER
+        profileAddIcon.setPadding(0, 0, 0, 0)
         profileAddIcon.setImageResource(R.drawable.ic_profile_add)
         profileAddIcon.requestLayout()
     }
@@ -285,7 +287,7 @@ class ProfileCreateActivity : AppCompatActivity() {
             Log.e(TAG, "프로필 생성 에러 본문: $errorBody")
         }
         
-        if (response.isSuccessful && response.body()?.success == true) {
+        if (response.isSuccessful && response.body() != null) {
             // Profile created successfully
             Toast.makeText(this@ProfileCreateActivity, "프로필이 생성되었습니다", Toast.LENGTH_SHORT).show()
             

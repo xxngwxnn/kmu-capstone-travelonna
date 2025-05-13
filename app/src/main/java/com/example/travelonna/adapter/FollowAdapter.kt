@@ -7,10 +7,10 @@ import android.view.ViewGroup
 import android.widget.CompoundButton
 import android.widget.ImageView
 import android.widget.TextView
-import androidx.appcompat.widget.SwitchCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.example.travelonna.R
 import com.example.travelonna.model.User
+import com.example.travelonna.view.CustomToggleButton
 
 class FollowAdapter(
     private val users: List<User>,
@@ -21,7 +21,7 @@ class FollowAdapter(
         val profileImage: ImageView = view.findViewById(R.id.ivProfileImage)
         val username: TextView = view.findViewById(R.id.tvUsername)
         val followStatus: TextView = view.findViewById(R.id.tvFollowStatus)
-        val followToggle: SwitchCompat = view.findViewById(R.id.followToggle)
+        val followToggle: CustomToggleButton = view.findViewById(R.id.followToggle)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): FollowViewHolder {
@@ -42,14 +42,11 @@ class FollowAdapter(
         // 팔로우 상태에 따라 텍스트와 색상 변경
         updateFollowStatus(holder, user.isFollowing)
         
-        // 리스너 설정 전에 이벤트 발생 방지를 위해 일시적으로 리스너 제거
-        holder.followToggle.setOnCheckedChangeListener(null)
-        
         // 팔로우 상태에 따라 토글 상태 설정
-        holder.followToggle.isChecked = user.isFollowing
+        holder.followToggle.setChecked(user.isFollowing)
         
         // 팔로우 토글 변경 이벤트
-        holder.followToggle.setOnCheckedChangeListener { _, isChecked ->
+        holder.followToggle.setOnCheckedChangeListener { isChecked ->
             user.isFollowing = isChecked
             updateFollowStatus(holder, isChecked)
             onFollowClick(user, position)

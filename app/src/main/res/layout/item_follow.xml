@@ -44,17 +44,10 @@
         app:layout_constraintEnd_toStartOf="@+id/followToggle"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <androidx.appcompat.widget.SwitchCompat
+    <com.example.travelonna.view.CustomToggleButton
         android:id="@+id/followToggle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:checked="true"
-        app:thumbTint="@android:color/white"
-        app:trackTint="@color/blue_primary"
-        android:thumb="@drawable/toggle_thumb"
-        android:track="@drawable/toggle_track_background"
-        android:switchMinWidth="52dp"
-        android:switchPadding="4dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
