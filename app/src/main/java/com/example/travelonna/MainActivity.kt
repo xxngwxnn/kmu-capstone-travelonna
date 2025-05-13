@@ -22,11 +22,6 @@ class MainActivity : AppCompatActivity() {
             insets
         }
 
-        val loginButton = findViewById<Button>(R.id.loginButton)
-        loginButton.setOnClickListener {
-            val intent = Intent(this, StartActivity::class.java)
-            startActivity(intent)
-        }
 
         val homeButton = findViewById<Button>(R.id.homeButton)
         homeButton.setOnClickListener {
@@ -34,15 +29,6 @@ class MainActivity : AppCompatActivity() {
             startActivity(intent)
         }
 
-        findViewById<Button>(R.id.createScheduleButton)?.setOnClickListener {
-            val intent = Intent(this, ScheduleCreateActivity::class.java)
-            startActivity(intent)
-        }
-
-        findViewById<Button>(R.id.planButton)?.setOnClickListener {
-            val intent = Intent(this, PlanActivity::class.java)
-            startActivity(intent)
-        }
 
         findViewById<Button>(R.id.logButton)?.setOnClickListener {
             val intent = Intent(this, LogActivity::class.java)
