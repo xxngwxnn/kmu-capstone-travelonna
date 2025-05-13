@@ -3,10 +3,10 @@ package com.example.travelonna.api
 data class PlanCreateResponse(
     val success: Boolean,
     val message: String,
-    val data: PlanData
+    val data: PlanCreateData
 )
 
-data class PlanData(
+data class PlanCreateData(
     val planId: Int,           // 일정 ID (서버에서는 planId로 반환)
     val title: String,         // 일정 제목
     val startDate: String,     // 시작 날짜

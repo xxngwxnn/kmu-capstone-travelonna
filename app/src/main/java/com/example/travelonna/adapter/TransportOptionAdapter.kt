@@ -8,6 +8,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.travelonna.R
 import com.example.travelonna.api.TransportOption
 import java.text.NumberFormat
+import java.util.Calendar
 import java.util.Locale
 
 class TransportOptionAdapter(
@@ -32,7 +33,15 @@ class TransportOptionAdapter(
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val option = options[position]
         
-        holder.optionTypeText.text = option.type
+        // 교통수단 유형 한글로 변환
+        val typeKorean = when (option.type.lowercase()) {
+            "car" -> "자가용"
+            "train" -> "기차"
+            "bus" -> "버스"
+            "airplane" -> "비행기"
+            else -> option.type
+        }
+        holder.optionTypeText.text = typeKorean
         
         // 가격 표시 (통화 형식)
         val priceFormat = NumberFormat.getCurrencyInstance(Locale.KOREA)
@@ -58,8 +67,31 @@ class TransportOptionAdapter(
         
         holder.totalTimeText.text = timeText.trim()
         
-        // 경로 정보
-        holder.routeInfoText.text = option.routeInfo
+        // 경로 정보 - 요일 제한 확인 및 처리
+        val routeInfo = option.routeInfo
+        
+        // 가격이 0원인데 요일 제한이 있는 경우 (ex: [금토일], [매일] 등)
+        if (option.price == 0 && (routeInfo.contains("[금토일]") || routeInfo.contains("[매일]"))) {
+            // 현재 요일 확인
+            val currentDay = Calendar.getInstance().get(Calendar.DAY_OF_WEEK)
+            
+            // 주말인지 여부 확인 (금=6, 토=7, 일=1)
+            val isWeekend = (currentDay == Calendar.FRIDAY || 
+                             currentDay == Calendar.SATURDAY || 
+                             currentDay == Calendar.SUNDAY)
+            
+            // 주말이 아닌데 [금토일] 표시가 있는 경우 아이템 숨기기
+            if (routeInfo.contains("[금토일]") && !isWeekend) {
+                // 아이템 전체를 숨기는 대신, 해당 요일에 운행하지 않음을 표시
+                holder.itemView.alpha = 0.5f  // 흐리게 표시
+                holder.routeInfoText.text = "$routeInfo (현재 운행일이 아님)"
+            } else {
+                holder.itemView.alpha = 1.0f
+                holder.routeInfoText.text = routeInfo
+            }
+        } else {
+            holder.routeInfoText.text = routeInfo
+        }
     }
 
     override fun getItemCount(): Int = options.size

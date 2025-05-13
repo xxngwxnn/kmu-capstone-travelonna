@@ -6,14 +6,32 @@
     android:padding="16dp"
     android:background="@drawable/rounded_dialog_background">
 
-    <TextView
-        android:id="@+id/resultsTitle"
+    <!-- 제목 줄: 타이틀과 X 닫기 버튼 -->
+    <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="교통수단 검색 결과"
-        android:textSize="18sp"
-        android:textStyle="bold"
-        android:layout_marginBottom="16dp"/>
+        android:layout_marginBottom="16dp">
+
+        <TextView
+            android:id="@+id/resultsTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="교통수단 검색 결과"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"/>
+
+        <ImageButton
+            android:id="@+id/closeDialogButton"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@android:drawable/ic_menu_close_clear_cancel"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:contentDescription="닫기"/>
+    </RelativeLayout>
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -58,6 +76,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="닫기"
+        android:backgroundTint="#5E7BF9"
+        android:textColor="#FFFFFF"
         android:layout_marginTop="8dp"/>
 
 </LinearLayout> 

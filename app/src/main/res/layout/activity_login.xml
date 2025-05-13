@@ -4,27 +4,35 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <TextView
-        android:id="@+id/welcomeText"
+    <!-- Background image using login_display -->
+    <ImageView
+        android:id="@+id/loginDisplayImage"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:src="@drawable/login_display" />
+
+    <!-- Custom login button using login_button image -->
+    <ImageButton
+        android:id="@+id/customLoginButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="환영합니다!"
-        android:textSize="24sp"
-        android:textStyle="bold"
-        app:layout_constraintBottom_toTopOf="@id/googleSignInButton"
+        android:background="@android:color/transparent"
+        android:src="@drawable/login_button"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_chainStyle="packed" />
+        app:layout_constraintVertical_bias="0.75" /> <!-- Positioned at 3/4 of the screen -->
 
+    <!-- Google SignIn button - initially invisible, will be triggered programmatically -->
     <com.google.android.gms.common.SignInButton
         android:id="@+id/googleSignInButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="32dp"
-        app:layout_constraintHorizontal_bias="0.497"
+        android:visibility="gone"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/welcomeText" />
+        app:layout_constraintTop_toTopOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout> 

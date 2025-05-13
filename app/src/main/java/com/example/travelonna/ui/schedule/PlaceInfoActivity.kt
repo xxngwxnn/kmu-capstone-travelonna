@@ -67,6 +67,10 @@ class PlaceInfoActivity : AppCompatActivity() {
     
     private var planId: Int = 0
     
+    // 편집 모드 관련 변수
+    private var isEditMode: Boolean = false
+    private var existingPlaceId: Int = 0  // 서버에서의 장소 ID (편집 시 사용)
+    
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_place_info)
@@ -84,6 +88,9 @@ class PlaceInfoActivity : AppCompatActivity() {
         scheduleName = intent.getStringExtra("SCHEDULE_NAME") ?: "일정"
         planId = intent.getIntExtra("PLAN_ID", 0)
         
+        // 편집 모드 확인
+        isEditMode = intent.getBooleanExtra("IS_EDIT_MODE", false)
+        
         // 뷰 초기화
         initViews()
         
@@ -92,6 +99,11 @@ class PlaceInfoActivity : AppCompatActivity() {
         
         // 탭 설정
         setupTabs()
+        
+        // 편집 모드인 경우 기존 데이터 로드
+        if (isEditMode) {
+            loadExistingPlaceData()
+        }
         
         // 버튼 리스너 설정
         setupListeners()
@@ -136,6 +148,11 @@ class PlaceInfoActivity : AppCompatActivity() {
             privacyToggle.setChecked(true)
             isPublic = true
             updatePrivacyTextColors(true)
+        }
+        
+        // 편집 모드에 따라 UI 조정
+        if (isEditMode) {
+            confirmButton.text = "수정하기"  // 버튼 텍스트 변경
         }
     }
     
@@ -248,8 +265,13 @@ class PlaceInfoActivity : AppCompatActivity() {
     
     private fun saveAndReturn() {
         if (planId > 0) {
-            // API로 새 장소 생성
-            createPlace()
+            if (isEditMode) {
+                // 기존 장소 수정 API 호출
+                updatePlace()
+            } else {
+                // 새 장소 생성 API 호출
+                createPlace()
+            }
         } else {
             // 로컬 데이터만 반환 (이전 동작 유지)
             returnLocalData()
@@ -478,5 +500,121 @@ class PlaceInfoActivity : AppCompatActivity() {
             privacyPublicText.setTextColor(ContextCompat.getColor(this, R.color.gray_text))
             privacyPrivateText.setTextColor(ContextCompat.getColor(this, R.color.blue))
         }
+    }
+    
+    // 기존 장소 데이터 로드 (편집 모드)
+    private fun loadExistingPlaceData() {
+        try {
+            existingPlaceId = intent.getIntExtra("PLACE_ID", 0)
+            val placeName = intent.getStringExtra("PLACE_NAME") ?: ""
+            val placeAddress = intent.getStringExtra("PLACE_ADDRESS") ?: ""
+            val googlePlaceId = intent.getStringExtra("GOOGLE_PLACE_ID") ?: ""
+            val estimatedCost = intent.getStringExtra("ESTIMATED_COST") ?: "0"
+            val memo = intent.getStringExtra("MEMO") ?: ""
+            isPublic = intent.getBooleanExtra("IS_PUBLIC", true)
+            
+            // UI에 데이터 표시
+            placeNameInput.setText(placeName)
+            placeAddressText.text = placeAddress
+            estimatedCostInput.setText(estimatedCost)
+            memoInput.setText(memo)
+            
+            // 공개 여부 설정
+            privacyToggle.setChecked(isPublic)
+            updatePrivacyTextColors(isPublic)
+            
+            // Google Place ID가 있으면 저장하고 이미지 로드
+            this.placeId = googlePlaceId
+            this.placeName = placeName
+            this.placeAddress = placeAddress
+            
+            if (googlePlaceId.isNotEmpty()) {
+                loadPlaceImage()
+            }
+            
+            Log.d(TAG, "Loaded existing place: ID=$existingPlaceId, name=$placeName, googleId=$googlePlaceId")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error loading existing place data", e)
+            Toast.makeText(this, "장소 정보를 불러오는데 실패했습니다", Toast.LENGTH_SHORT).show()
+        }
+    }
+    
+    // 장소 수정 API 호출
+    private fun updatePlace() {
+        // 로딩 다이얼로그 표시
+        val loadingDialog = android.app.AlertDialog.Builder(this)
+            .setView(R.layout.dialog_loading)
+            .setCancelable(false)
+            .create()
+        loadingDialog.show()
+        
+        // 날짜 형식 변환
+        val calendar = Calendar.getInstance()
+        calendar.timeInMillis = startDate
+        calendar.add(Calendar.DAY_OF_MONTH, selectedDay)
+        
+        val visitDateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+        val visitDate = visitDateFormat.format(calendar.time)
+        
+        // 비용 파싱 (예외 처리)
+        val costStr = estimatedCostInput.text.toString()
+        val cost = if (costStr.isEmpty()) 0 else try {
+            costStr.toInt()
+        } catch (e: Exception) {
+            0
+        }
+        
+        // 사용자가 입력한 장소명 가져오기
+        val placeName = placeNameInput.text.toString().trim()
+        
+        // 요청 모델 생성 (createPlace와 동일한 모델 사용)
+        val placeRequest = PlaceCreateRequest(
+            place = placeAddress,  // address 필드에는 주소를 보냄
+            isPublic = isPublic,
+            visitDate = visitDate,
+            placeCost = cost,
+            memo = memoInput.text.toString(),
+            lat = placeLat.toString(),
+            lon = placeLng.toString(),
+            name = placeName,  // name 필드에는 사용자가 입력한 장소명을 보냄
+            order = 1, // 서버에서 자동 할당하도록 1로 설정
+            googleId = placeId
+        )
+        
+        // API 요청 로그
+        Log.d(TAG, "Updating place with ID: $existingPlaceId")
+        Log.d(TAG, "API Request: $placeRequest")
+        
+        // API 호출 (업데이트용 API 엔드포인트 사용)
+        RetrofitClient.apiService.updatePlace(planId, existingPlaceId, placeRequest)
+            .enqueue(object: Callback<com.example.travelonna.api.BasicResponse> {
+                override fun onResponse(call: Call<com.example.travelonna.api.BasicResponse>, response: Response<com.example.travelonna.api.BasicResponse>) {
+                    loadingDialog.dismiss()
+                    
+                    if (response.isSuccessful && response.body()?.success == true) {
+                        Log.d(TAG, "Place updated successfully: ${response.body()}")
+                        Toast.makeText(this@PlaceInfoActivity, "장소가 수정되었습니다", Toast.LENGTH_SHORT).show()
+                        
+                        // 결과 전달 및 액티비티 종료
+                        val resultIntent = Intent()
+                        resultIntent.putExtra("PLACE_UPDATED", true)
+                        resultIntent.putExtra("SELECTED_DAY", selectedDay)
+                        setResult(RESULT_OK, resultIntent)
+                        finish()
+                    } else {
+                        // 에러 처리
+                        val errorMsg = response.errorBody()?.string() ?: "장소 수정 중 오류가 발생했습니다"
+                        Toast.makeText(this@PlaceInfoActivity, errorMsg, Toast.LENGTH_SHORT).show()
+                        Log.e(TAG, "API Error: $errorMsg")
+                        Log.e(TAG, "Response code: ${response.code()}")
+                    }
+                }
+                
+                override fun onFailure(call: Call<com.example.travelonna.api.BasicResponse>, t: Throwable) {
+                    loadingDialog.dismiss()
+                    Toast.makeText(this@PlaceInfoActivity, "네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
+                    Log.e(TAG, "Network Error: ${t.message}")
+                }
+            })
     }
 } 
