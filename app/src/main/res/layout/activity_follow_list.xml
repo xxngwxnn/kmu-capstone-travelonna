@@ -2,12 +2,15 @@
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/follow_container"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@android:color/white"
     tools:context=".FollowListActivity">
 
+    <!-- Back button and username -->
     <LinearLayout
-        android:id="@+id/topBar"
+        android:id="@+id/header_layout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
@@ -16,11 +19,12 @@
 
         <ImageButton
             android:id="@+id/btnBack"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="뒤로가기"
-            android:src="@drawable/ic_back_black" />
+            android:src="@drawable/ic_back"
+            app:tint="@android:color/black" />
 
         <TextView
             android:id="@+id/tvTitle"
@@ -29,23 +33,32 @@
             android:layout_weight="1"
             android:gravity="center"
             android:text="travel_on_me"
+            android:textColor="@android:color/black"
             android:textSize="18sp"
             android:textStyle="bold" />
 
         <ImageButton
             android:id="@+id/btnNotification"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="알림"
             android:src="@drawable/alarm_on_icon" />
     </LinearLayout>
 
+    <!-- Divider line between header and content -->
+    <View
+        android:id="@+id/header_divider"
+        android:layout_width="match_parent"
+        android:layout_height="6dp"
+        android:background="#F2F5FC"
+        app:layout_constraintTop_toBottomOf="@id/header_layout" />
+
     <com.google.android.material.tabs.TabLayout
         android:id="@+id/tabLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        app:layout_constraintTop_toBottomOf="@+id/topBar"
+        app:layout_constraintTop_toBottomOf="@+id/header_divider"
         app:tabIndicatorColor="@android:color/black"
         app:tabSelectedTextColor="@android:color/black"
         app:tabTextColor="@android:color/darker_gray">
@@ -53,12 +66,12 @@
         <com.google.android.material.tabs.TabItem
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="220M 팔로워" />
+            android:text="" />
 
         <com.google.android.material.tabs.TabItem
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="77 팔로잉" />
+            android:text="" />
     </com.google.android.material.tabs.TabLayout>
 
     <SearchView

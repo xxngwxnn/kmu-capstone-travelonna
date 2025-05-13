@@ -16,6 +16,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.bumptech.glide.Glide
+import com.example.travelonna.api.FollowCountResponse
 import com.example.travelonna.api.ProfileResponse
 import com.example.travelonna.api.RetrofitClient
 import retrofit2.Call
@@ -29,8 +30,8 @@ class ProfileActivity : AppCompatActivity() {
     private lateinit var profileImage: ImageView
     private lateinit var usernameText: TextView
     private lateinit var postsCount: TextView
-    private lateinit var distanceCount: TextView
-    private lateinit var placesCount: TextView
+    private lateinit var followersCount: TextView
+    private lateinit var followingCount: TextView
     private lateinit var bioText: TextView
     private lateinit var airplaneProgress: ProgressBar
     private lateinit var profileEditButton: Button
@@ -39,6 +40,7 @@ class ProfileActivity : AppCompatActivity() {
     private lateinit var divider: View
     
     private val TAG = "ProfileActivity"
+    private var profileId: Int = 0
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -65,8 +67,8 @@ class ProfileActivity : AppCompatActivity() {
         profileImage = findViewById(R.id.profile_image)
         usernameText = findViewById(R.id.username_text)
         postsCount = findViewById(R.id.posts_count)
-        distanceCount = findViewById(R.id.distance_count)
-        placesCount = findViewById(R.id.places_count)
+        followersCount = findViewById(R.id.followers_count)
+        followingCount = findViewById(R.id.following_count)
         bioText = findViewById(R.id.bio_text)
         airplaneProgress = findViewById(R.id.airplane_progress)
         profileEditButton = findViewById(R.id.profile_edit_button)
@@ -101,15 +103,17 @@ class ProfileActivity : AppCompatActivity() {
         }
         
         // 팔로워/팔로잉 텍스트 클릭 이벤트
-        distanceCount.setOnClickListener {
+        followersCount.setOnClickListener {
             val intent = Intent(this, FollowListActivity::class.java)
             intent.putExtra("type", "followers")
+            intent.putExtra("nickname", usernameText.text.toString())
             startActivity(intent)
         }
         
-        placesCount.setOnClickListener {
+        followingCount.setOnClickListener {
             val intent = Intent(this, FollowListActivity::class.java)
             intent.putExtra("type", "following")
+            intent.putExtra("nickname", usernameText.text.toString())
             startActivity(intent)
         }
     }
@@ -130,7 +134,11 @@ class ProfileActivity : AppCompatActivity() {
                     val profileData = response.body()
                     if (profileData != null) {
                         // 프로필 데이터를 UI에 설정
+                        profileId = profileData.profileId
                         updateProfileUI(profileData)
+                        
+                        // 팔로워 및 팔로잉 수 조회
+                        fetchFollowCounts(profileId)
                     } else {
                         // 응답은 성공했지만 데이터가 null인 경우
                         Toast.makeText(this@ProfileActivity, "프로필 정보가 없습니다.", Toast.LENGTH_SHORT).show()
@@ -157,6 +165,71 @@ class ProfileActivity : AppCompatActivity() {
         })
     }
     
+    private fun fetchFollowCounts(profileId: Int) {
+        // 팔로워 수 조회
+        fetchFollowersCount(profileId)
+        
+        // 팔로잉 수 조회
+        fetchFollowingsCount(profileId)
+    }
+    
+    private fun fetchFollowersCount(profileId: Int) {
+        RetrofitClient.apiService.getFollowersCount(profileId).enqueue(object : Callback<FollowCountResponse> {
+            override fun onResponse(call: Call<FollowCountResponse>, response: Response<FollowCountResponse>) {
+                if (response.isSuccessful && response.body() != null) {
+                    val count = response.body()!!.data.count
+                    // Display formatted count (e.g., 1000 -> 1K)
+                    followersCount.text = formatCount(count)
+                    Log.d(TAG, "팔로워 수: $count")
+                } else {
+                    Log.e(TAG, "팔로워 수 조회 실패: ${response.errorBody()?.string()}")
+                    // Set default value on error
+                    followersCount.text = "0"
+                }
+            }
+            
+            override fun onFailure(call: Call<FollowCountResponse>, t: Throwable) {
+                Log.e(TAG, "팔로워 수 조회 네트워크 오류", t)
+                // Set default value on network error
+                followersCount.text = "0"
+            }
+        })
+    }
+    
+    private fun fetchFollowingsCount(profileId: Int) {
+        RetrofitClient.apiService.getFollowingsCount(profileId).enqueue(object : Callback<FollowCountResponse> {
+            override fun onResponse(call: Call<FollowCountResponse>, response: Response<FollowCountResponse>) {
+                if (response.isSuccessful && response.body() != null) {
+                    val count = response.body()!!.data.count
+                    // Display formatted count (e.g., 1000 -> 1K)
+                    followingCount.text = formatCount(count)
+                    Log.d(TAG, "팔로잉 수: $count")
+                } else {
+                    Log.e(TAG, "팔로잉 수 조회 실패: ${response.errorBody()?.string()}")
+                    // Set default value on error
+                    followingCount.text = "0"
+                }
+            }
+            
+            override fun onFailure(call: Call<FollowCountResponse>, t: Throwable) {
+                Log.e(TAG, "팔로잉 수 조회 네트워크 오류", t)
+                // Set default value on network error
+                followingCount.text = "0"
+            }
+        })
+    }
+    
+    /**
+     * Format large numbers for display (e.g., 1000 -> 1K, 1000000 -> 1M)
+     */
+    private fun formatCount(count: Int): String {
+        return when {
+            count >= 1_000_000 -> String.format("%.1fM", count / 1_000_000.0)
+            count >= 1_000 -> String.format("%.1fK", count / 1_000.0)
+            else -> count.toString()
+        }
+    }
+    
     private fun updateProfileUI(profileData: ProfileResponse) {
         // 닉네임 설정
         usernameText.text = profileData.nickname
@@ -178,8 +251,6 @@ class ProfileActivity : AppCompatActivity() {
         
         // 임시 통계 데이터 (API에서 제공하지 않는 값)
         postsCount.text = "25"
-        distanceCount.text = "220M"
-        placesCount.text = "77"
         
         // 진행 상태 설정 (임시)
         airplaneProgress.progress = 75
@@ -189,8 +260,8 @@ class ProfileActivity : AppCompatActivity() {
         // 임시 데이터로 UI 업데이트
         usernameText.text = "travel_on_me"
         postsCount.text = "25"
-        distanceCount.text = "220M"
-        placesCount.text = "77"
+        followersCount.text = "0"
+        followingCount.text = "0"
         bioText.text = "여행을 하기 위해 살아가는 사나이"
         
         // 프로필 이미지 설정 - Glide 사용하여 더 나은 로딩 처리

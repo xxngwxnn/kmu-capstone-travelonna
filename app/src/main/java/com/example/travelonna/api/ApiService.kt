@@ -72,4 +72,11 @@ interface ApiService {
         @Part("introduction") introduction: RequestBody,
         @Part profileImage: MultipartBody.Part?
     ): Call<ProfileResponse>
+    
+    // Follow count endpoints
+    @GET("api/v1/follows/count/followers/{profileId}")
+    fun getFollowersCount(@Path("profileId") profileId: Int): Call<FollowCountResponse>
+    
+    @GET("api/v1/follows/count/followings/{profileId}")
+    fun getFollowingsCount(@Path("profileId") profileId: Int): Call<FollowCountResponse>
 } 
