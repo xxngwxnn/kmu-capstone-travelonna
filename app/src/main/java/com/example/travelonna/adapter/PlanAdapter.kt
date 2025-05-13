@@ -15,6 +15,7 @@ import java.time.temporal.ChronoUnit
 class PlanAdapter(private var plans: List<PlanData>) : RecyclerView.Adapter<PlanAdapter.PlanViewHolder>() {
     
     private var onItemClickListener: ((PlanData) -> Unit)? = null
+    private var onItemDeleteListener: ((PlanData, Int) -> Unit)? = null
     
     class PlanViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val scheduleTitle: TextView = view.findViewById(R.id.scheduleTitle)
@@ -68,6 +69,30 @@ class PlanAdapter(private var plans: List<PlanData>) : RecyclerView.Adapter<Plan
     
     fun setOnItemClickListener(listener: (PlanData) -> Unit) {
         onItemClickListener = listener
+    }
+    
+    fun setOnItemDeleteListener(listener: (PlanData, Int) -> Unit) {
+        onItemDeleteListener = listener
+    }
+    
+    // 아이템 삭제 메서드
+    fun removeItem(position: Int) {
+        if (position >= 0 && position < plans.size) {
+            val plansList = plans.toMutableList()
+            val removedPlan = plansList[position]
+            plansList.removeAt(position)
+            plans = plansList
+            notifyItemRemoved(position)
+            notifyItemRangeChanged(position, plans.size - position)
+        }
+    }
+    
+    // 삭제한 스케줄 서버에 전달
+    fun deleteSchedule(position: Int) {
+        if (position >= 0 && position < plans.size) {
+            val plan = plans[position]
+            onItemDeleteListener?.invoke(plan, position)
+        }
     }
     
     // D-day 계산 함수

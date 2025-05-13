@@ -18,6 +18,7 @@ import com.example.travelonna.api.PlanData
 import com.example.travelonna.api.PlanDetailResponse
 import com.example.travelonna.api.RetrofitClient
 import com.example.travelonna.api.GroupInfoResponse
+import com.example.travelonna.api.BasicResponse
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -26,13 +27,18 @@ import java.util.*
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
+import androidx.recyclerview.widget.ItemTouchHelper
 import com.google.android.material.textfield.TextInputEditText
+import android.graphics.Canvas
+import android.graphics.Paint
+import androidx.core.content.ContextCompat
 
 class PlanActivity : AppCompatActivity() {
     
     private lateinit var planAdapter: PlanAdapter
     private val TAG = "PlanActivity"
     private val allPlans = mutableListOf<PlanData>() // 모든 일정을 저장할 리스트
+    private lateinit var scheduleRecyclerView: RecyclerView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -64,7 +70,7 @@ class PlanActivity : AppCompatActivity() {
         placeRecommendRecyclerView.adapter = PlaceRecommendAdapter(recommendPlaces)
 
         // 일정 목록 RecyclerView 설정
-        val scheduleRecyclerView = findViewById<RecyclerView>(R.id.scheduleRecyclerView)
+        scheduleRecyclerView = findViewById<RecyclerView>(R.id.scheduleRecyclerView)
         scheduleRecyclerView.layoutManager = LinearLayoutManager(this)
         
         // 아이템 간 간격 없애기
@@ -100,8 +106,172 @@ class PlanActivity : AppCompatActivity() {
             startActivity(intent)
         }
         
+        // 아이템 삭제 리스너 설정
+        planAdapter.setOnItemDeleteListener { plan, position ->
+            deletePlan(plan.planId.toInt(), position)
+        }
+        
+        // 스와이프-투-딜리트 설정
+        setupSwipeToDelete()
+        
         // API에서 일정 목록 가져오기
         loadAllPlans()
+    }
+    
+    // 스와이프-투-딜리트 설정
+    private fun setupSwipeToDelete() {
+        val itemTouchHelper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(
+            0, // 드래그 방향 (비활성화)
+            ItemTouchHelper.LEFT // 왼쪽으로 스와이프하여 삭제
+        ) {
+            override fun onMove(
+                recyclerView: RecyclerView,
+                viewHolder: RecyclerView.ViewHolder,
+                target: RecyclerView.ViewHolder
+            ): Boolean {
+                return false
+            }
+            
+            // 짧은 스와이프로도 삭제 다이얼로그가 표시되도록 설정
+            override fun getSwipeThreshold(viewHolder: RecyclerView.ViewHolder): Float {
+                return 0.15F
+            }
+            
+            override fun getSwipeEscapeVelocity(defaultValue: Float): Float {
+                return defaultValue * 0.5f
+            }
+            
+            override fun getSwipeVelocityThreshold(defaultValue: Float): Float {
+                return defaultValue * 0.5f
+            }
+
+            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+                val position = viewHolder.adapterPosition
+                val plan = allPlans[position]
+                
+                // 삭제 확인 다이얼로그 표시
+                val alertDialog = androidx.appcompat.app.AlertDialog.Builder(this@PlanActivity)
+                    .setTitle("일정 삭제")
+                    .setMessage("'${plan.title}' 일정을 삭제하시겠습니까?")
+                    .setPositiveButton("삭제") { _, _ ->
+                        // 삭제 요청
+                        planAdapter.deleteSchedule(position)
+                    }
+                    .setNegativeButton("취소") { _, _ ->
+                        // 스와이프 취소하고 아이템 복원
+                        planAdapter.notifyItemChanged(position)
+                    }
+                    .setCancelable(false)
+                    .create()
+                    
+                alertDialog.show()
+            }
+            
+            // 고정된 짧은 거리만 스와이프되도록 제한
+            override fun onChildDraw(
+                c: Canvas,
+                recyclerView: RecyclerView,
+                viewHolder: RecyclerView.ViewHolder,
+                dX: Float,
+                dY: Float,
+                actionState: Int,
+                isCurrentlyActive: Boolean
+            ) {
+                if (actionState == ItemTouchHelper.ACTION_STATE_SWIPE) {
+                    val itemView = viewHolder.itemView
+                    
+                    // 스와이프 최대 거리 제한 (아이템 너비의 1/4로 제한)
+                    val maxSwipeDistance = -(itemView.width / 4f)
+                    val limitedDX = Math.max(dX, maxSwipeDistance)
+                    
+                    // 배경 색상 설정 (빨간색)
+                    val background = Paint()
+                    background.color = ContextCompat.getColor(this@PlanActivity, R.color.delete_red)
+                    
+                    // 삭제 아이콘 설정
+                    val deleteIcon = ContextCompat.getDrawable(
+                        this@PlanActivity, 
+                        android.R.drawable.ic_menu_delete
+                    )
+                    
+                    // 아이콘 위치와 크기 계산
+                    val iconMargin = (itemView.height - deleteIcon!!.intrinsicHeight) / 2
+                    val iconTop = itemView.top + (itemView.height - deleteIcon.intrinsicHeight) / 2
+                    val iconBottom = iconTop + deleteIcon.intrinsicHeight
+                    
+                    // 왼쪽으로 스와이프할 때
+                    if (limitedDX < 0) {
+                        // 아이콘 위치 재조정 - 스와이프 영역의 중앙에 배치
+                        val swipeAreaWidth = -maxSwipeDistance // 스와이프 영역 너비
+                        val iconWidth = deleteIcon.intrinsicWidth
+                        
+                        // 아이콘을 스와이프 영역 중앙에 배치
+                        val iconLeft = itemView.right - (swipeAreaWidth / 2) - (iconWidth / 2)
+                        val iconRight = iconLeft + iconWidth
+                        
+                        deleteIcon.setBounds(iconLeft.toInt(), iconTop, iconRight.toInt(), iconBottom)
+                        
+                        // 배경 그리기
+                        c.drawRect(
+                            itemView.right + limitedDX, itemView.top.toFloat(),
+                            itemView.right.toFloat(), itemView.bottom.toFloat(),
+                            background
+                        )
+                        
+                        // 아이콘 그리기
+                        deleteIcon.draw(c)
+                    }
+                    
+                    super.onChildDraw(c, recyclerView, viewHolder, limitedDX, dY, actionState, isCurrentlyActive)
+                } else {
+                    super.onChildDraw(c, recyclerView, viewHolder, dX, dY, actionState, isCurrentlyActive)
+                }
+            }
+        })
+        
+        itemTouchHelper.attachToRecyclerView(scheduleRecyclerView)
+    }
+    
+    // 일정 삭제 API 호출
+    private fun deletePlan(planId: Int, position: Int) {
+        val loadingToast = Toast.makeText(this, "삭제 중...", Toast.LENGTH_SHORT)
+        loadingToast.show()
+        
+        RetrofitClient.apiService.deletePlan(planId)
+            .enqueue(object : Callback<BasicResponse> {
+                override fun onResponse(
+                    call: Call<BasicResponse>,
+                    response: Response<BasicResponse>
+                ) {
+                    loadingToast.cancel()
+                    
+                    if (response.isSuccessful) {
+                        Log.d(TAG, "Successfully deleted plan: planId=$planId")
+                        // 어댑터에서 아이템 삭제
+                        planAdapter.removeItem(position)
+                        // 로컬 리스트에서도 제거
+                        if (position < allPlans.size) {
+                            allPlans.removeAt(position)
+                        }
+                        Toast.makeText(this@PlanActivity, "일정이 삭제되었습니다", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Log.e(TAG, "Failed to delete plan: ${response.code()}, ${response.message()}")
+                        Toast.makeText(this@PlanActivity, "일정 삭제에 실패했습니다. 다시 시도해주세요.", Toast.LENGTH_SHORT).show()
+                        
+                        // 삭제 실패 시 목록 갱신하여 항목 복원
+                        planAdapter.notifyItemChanged(position)
+                    }
+                }
+                
+                override fun onFailure(call: Call<BasicResponse>, t: Throwable) {
+                    loadingToast.cancel()
+                    Log.e(TAG, "Network error when deleting plan", t)
+                    Toast.makeText(this@PlanActivity, "네트워크 오류: 일정 삭제에 실패했습니다", Toast.LENGTH_SHORT).show()
+                    
+                    // 삭제 실패 시 목록 갱신하여 항목 복원
+                    planAdapter.notifyItemChanged(position)
+                }
+            })
     }
     
     // 모든 일정 데이터 로드 (내 일정 + 그룹 일정)
@@ -248,93 +418,28 @@ class PlanActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
             
+            // API 호출로 그룹 참여 처리
+            joinGroup(groupUrl)
             dialog.dismiss()
-            
-            // URL 코드 추출 - URL 전체 또는 코드만 입력 가능
-            val urlCode = extractUrlCode(groupUrl)
-            
-            if (urlCode.isNotEmpty()) {
-                joinGroupSchedule(urlCode)
-            } else {
-                Toast.makeText(this, "유효하지 않은 그룹 URL입니다", Toast.LENGTH_SHORT).show()
-            }
         }
         
         dialog.show()
     }
     
-    /**
-     * URL에서 코드 부분만 추출합니다
-     */
-    private fun extractUrlCode(input: String): String {
-        return try {
-            // URL 전체가 입력된 경우 (https://travelonna.shop/group/9586836d)
-            if (input.contains("/group/")) {
-                val parts = input.split("/group/")
-                parts.last()
-            } 
-            // "공유 URL: 9586836d" 형식으로 입력된 경우
-            else if (input.contains("공유 URL:")) {
-                val parts = input.split("공유 URL:")
-                parts.last().trim()
-            }
-            // 코드만 입력된 경우
-            else {
-                input
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error extracting URL code", e)
-            ""
-        }
-    }
-    
-    /**
-     * 그룹 일정에 참여합니다
-     */
-    private fun joinGroupSchedule(urlCode: String) {
-        // 로딩 표시
-        val loadingDialog = androidx.appcompat.app.AlertDialog.Builder(this)
-            .setView(R.layout.dialog_loading)
-            .setCancelable(false)
-            .create()
-            
-        // 원형 테두리 적용
-        loadingDialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
-        loadingDialog.show()
-        
-        // API 호출로 그룹 참여
-        Log.d(TAG, "Joining group with URL code: $urlCode")
-        
+    private fun joinGroup(urlCode: String) {
         RetrofitClient.apiService.joinGroup(urlCode)
             .enqueue(object : Callback<Void> {
                 override fun onResponse(call: Call<Void>, response: Response<Void>) {
-                    loadingDialog.dismiss()
-                    
-                    Log.d(TAG, "Join group API response: ${response.code()}")
-                    
                     if (response.isSuccessful) {
-                        Log.d(TAG, "Successfully joined group with code: $urlCode")
-                        
-                        Toast.makeText(this@PlanActivity, "그룹 일정에 참여했습니다", Toast.LENGTH_SHORT).show()
-                        
-                        // 일정 목록 새로고침 (내 일정 + 참여 그룹 일정)
-                        loadAllPlans()
+                        Toast.makeText(this@PlanActivity, "그룹에 참여했습니다", Toast.LENGTH_SHORT).show()
+                        loadAllPlans() // 일정 목록 새로고침
                     } else {
-                        val errorMsg = try {
-                            response.errorBody()?.string() ?: "일정 참여에 실패했습니다"
-                        } catch (e: Exception) {
-                            "일정 참여에 실패했습니다"
-                        }
-                        
-                        Log.e(TAG, "Failed to join group: $errorMsg")
-                        Toast.makeText(this@PlanActivity, errorMsg, Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@PlanActivity, "그룹 참여에 실패했습니다. 코드를 확인해주세요.", Toast.LENGTH_SHORT).show()
                     }
                 }
                 
                 override fun onFailure(call: Call<Void>, t: Throwable) {
-                    loadingDialog.dismiss()
-                    Log.e(TAG, "Network error when joining group", t)
-                    Toast.makeText(this@PlanActivity, "네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@PlanActivity, "네트워크 오류: 그룹 참여에 실패했습니다", Toast.LENGTH_SHORT).show()
                 }
             })
     }
