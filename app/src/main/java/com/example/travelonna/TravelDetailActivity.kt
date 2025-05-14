@@ -90,14 +90,11 @@ class TravelDetailActivity : AppCompatActivity() {
             // 테스트용 기본 데이터 표시
             val title = intent.getStringExtra("TRAVEL_TITLE") ?: "미미미누"
             val startDate = intent.getLongExtra("START_DATE", System.currentTimeMillis())
-            val endDate = intent.getLongExtra("END_DATE", System.currentTimeMillis() + (2 * 24 * 60 * 60 * 1000))
+            val endDate = intent.getLongExtra("END_DATE", System.currentTimeMillis() + (3 * 24 * 60 * 60 * 1000)) // 기본값: 오늘부터 4일
             
             // 기본 정보 표시
             titleTextView.text = title
             setupDateTexts(startDate, endDate)
-            
-            // 테스트용 더미 데이터
-            updateTabSelection(0)
         }
         
         // RecyclerView 설정
@@ -176,26 +173,78 @@ class TravelDetailActivity : AppCompatActivity() {
             // 일수 계산
             val dayCount = ChronoUnit.DAYS.between(startDate, endDate).toInt() + 1
             
-            // 필요한 만큼의 탭만 보이게 설정
-            for (i in dayTabs.indices) {
-                if (i < dayCount) {
-                    dayTabs[i].visibility = View.VISIBLE
-                    
-                    // 날짜 표시 업데이트
-                    val currentDate = startDate.plusDays(i.toLong())
-                    val dayStr = "${currentDate.format(DateTimeFormatter.ofPattern("E", Locale.KOREA))}.${currentDate.format(DateTimeFormatter.ofPattern("dd"))}"
-                    val dateTextView = dayTabs[i].findViewById<TextView>(getDayDateTextId(i))
-                    dateTextView.text = dayStr
-                } else {
-                    dayTabs[i].visibility = View.GONE
-                }
-            }
+            // 기존 탭 초기화
+            createDynamicTabs(dayCount, startDate)
             
             // 첫 번째 탭 선택
             updateTabSelection(0)
         } catch (e: Exception) {
             Log.e(TAG, "날짜 파싱 오류", e)
             Toast.makeText(this, "날짜 처리 중 오류가 발생했습니다", Toast.LENGTH_SHORT).show()
+        }
+    }
+    
+    // 여행 일수에 맞게 동적으로 탭 생성
+    private fun createDynamicTabs(dayCount: Int, startDate: LocalDate) {
+        // 기존 탭 컨테이너 초기화
+        tabContainer.removeAllViews()
+        dayTabs.clear()
+        dayIndicators.clear()
+        dayTexts.clear()
+        
+        // 날짜 포맷 설정
+        val dayFormat = DateTimeFormatter.ofPattern("E", Locale.KOREA) // 요일
+        val dayNumberFormat = DateTimeFormatter.ofPattern("dd") // 일
+        
+        // 각 일자별 탭 생성
+        for (i in 0 until dayCount) {
+            val currentDate = startDate.plusDays(i.toLong())
+            val dayStr = "${currentDate.format(dayFormat)}.${currentDate.format(dayNumberFormat)}"
+            
+            // 탭 레이아웃 생성
+            val tabLayout = layoutInflater.inflate(R.layout.item_day_tab, tabContainer, false) as LinearLayout
+            tabLayout.id = View.generateViewId()
+            
+            // 탭 내부 뷰 가져오기
+            val dayTextView = tabLayout.findViewById<TextView>(R.id.dayText)
+            val dayIndicator = tabLayout.findViewById<View>(R.id.dayIndicator)
+            val dateTextView = tabLayout.findViewById<TextView>(R.id.dayDateText)
+            
+            // 텍스트 설정
+            dayTextView.text = String.format("DAY %02d", i + 1)
+            dateTextView.text = dayStr
+            
+            // 첫 번째 탭이 아니면 기본 스타일 설정
+            if (i > 0) {
+                dayTextView.typeface = Typeface.DEFAULT
+                dayTextView.setTextColor(ContextCompat.getColor(this, android.R.color.darker_gray))
+                dayIndicator.visibility = View.INVISIBLE
+            }
+            
+            // 마진 설정 (마지막 탭이 아니면 오른쪽 마진 추가)
+            val layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            if (i < dayCount - 1) {
+                layoutParams.marginEnd = resources.getDimensionPixelSize(R.dimen.tab_margin_end)
+            }
+            tabLayout.layoutParams = layoutParams
+            
+            // 클릭 리스너 설정
+            val finalIndex = i
+            tabLayout.setOnClickListener {
+                val goingRight = finalIndex > currentTabIndex
+                updateTabSelection(finalIndex, goingRight)
+            }
+            
+            // 리스트에 추가
+            dayTabs.add(tabLayout)
+            dayTexts.add(dayTextView)
+            dayIndicators.add(dayIndicator)
+            
+            // 컨테이너에 추가
+            tabContainer.addView(tabLayout)
         }
     }
     
@@ -299,67 +348,97 @@ class TravelDetailActivity : AppCompatActivity() {
     }
     
     private fun initializeTabs() {
-        // 기존에 정의된 탭들을 가져옴
-        dayTabs.add(findViewById(R.id.tab1))
-        dayTabs.add(findViewById(R.id.tab2))
-        dayTabs.add(findViewById(R.id.tab3))
-        
-        // 인디케이터 뷰 가져오기
-        dayIndicators.add(findViewById(R.id.day1Indicator))
-        dayIndicators.add(findViewById(R.id.day2Indicator))
-        dayIndicators.add(findViewById(R.id.day3Indicator))
-        
-        // 탭 텍스트뷰 가져오기
-        dayTexts.add(findViewById(R.id.day1Text))
-        dayTexts.add(findViewById(R.id.day2Text))
-        dayTexts.add(findViewById(R.id.day3Text))
-        
-        // 탭 클릭 이벤트 설정
-        for (i in dayTabs.indices) {
-            dayTabs[i].setOnClickListener {
-                val goingRight = i > currentTabIndex
-                updateTabSelection(i, goingRight)
-            }
-        }
+        // 탭 컨테이너 초기화. 
+        // 동적으로 탭을 생성할 것이므로 여기서는 최소한의 초기화만 수행
+        tabContainer.removeAllViews()
+        dayTabs.clear()
+        dayIndicators.clear()
+        dayTexts.clear()
     }
     
     private fun setupDateTexts(startDateMillis: Long, endDateMillis: Long) {
         val dateFormat = SimpleDateFormat("yyyy.MM.dd", Locale.getDefault())
-        val dayFormat = SimpleDateFormat("E", Locale.KOREA) // 요일
-        val dayNumberFormat = SimpleDateFormat("dd", Locale.getDefault()) // 일
         
         // 날짜 범위 텍스트 설정
         val startDateStr = dateFormat.format(startDateMillis)
         val endDateStr = dateFormat.format(endDateMillis)
         dateRangeTextView.text = "$startDateStr - $endDateStr"
         
-        // 각 날짜 탭 텍스트 설정
-        val cal = Calendar.getInstance().apply {
-            timeInMillis = startDateMillis
+        // 캘린더 객체로 변환하여 일수 계산
+        val startCal = Calendar.getInstance().apply { timeInMillis = startDateMillis }
+        val endCal = Calendar.getInstance().apply { timeInMillis = endDateMillis }
+        
+        val dayCount = ((endDateMillis - startDateMillis) / (24 * 60 * 60 * 1000)).toInt() + 1
+        
+        // 날짜 형식으로 변환하여 동적 탭 생성
+        try {
+            val localStartDate = LocalDate.of(
+                startCal.get(Calendar.YEAR),
+                startCal.get(Calendar.MONTH) + 1,
+                startCal.get(Calendar.DAY_OF_MONTH)
+            )
+            createDynamicTabs(dayCount, localStartDate)
+        } catch (e: Exception) {
+            Log.e(TAG, "날짜 변환 오류", e)
+            // 오류 발생 시 일단 탭만 생성 (날짜 정보 없이)
+            createSimpleTabs(dayCount)
         }
         
-        // 각 날짜 탭에 날짜 표시
-        for (i in 0 until dayTabs.size) {
-            if (i > 0) {
-                cal.add(Calendar.DAY_OF_MONTH, 1)
-            }
-            
-            val dayStr = "${dayFormat.format(cal.time)}.${dayNumberFormat.format(cal.time)}"
-            val dateTextView = dayTabs[i].findViewById<TextView>(getDayDateTextId(i))
-            dateTextView.text = dayStr
-        }
+        // 첫 번째 탭 선택
+        updateTabSelection(0)
     }
     
-    private fun getDayDateTextId(tabIndex: Int): Int {
-        return when (tabIndex) {
-            0 -> R.id.day1Date
-            1 -> R.id.day2Date
-            2 -> R.id.day3Date
-            else -> throw IllegalArgumentException("Invalid tab index: $tabIndex")
+    // 간단한 탭 생성 (날짜 정보 없이)
+    private fun createSimpleTabs(dayCount: Int) {
+        tabContainer.removeAllViews()
+        dayTabs.clear()
+        dayIndicators.clear()
+        dayTexts.clear()
+        
+        for (i in 0 until dayCount) {
+            val tabLayout = layoutInflater.inflate(R.layout.item_day_tab, tabContainer, false) as LinearLayout
+            tabLayout.id = View.generateViewId()
+            
+            val dayTextView = tabLayout.findViewById<TextView>(R.id.dayText)
+            val dayIndicator = tabLayout.findViewById<View>(R.id.dayIndicator)
+            val dateTextView = tabLayout.findViewById<TextView>(R.id.dayDateText)
+            
+            dayTextView.text = String.format("DAY %02d", i + 1)
+            dateTextView.text = "-.-"
+            
+            if (i > 0) {
+                dayTextView.typeface = Typeface.DEFAULT
+                dayTextView.setTextColor(ContextCompat.getColor(this, android.R.color.darker_gray))
+                dayIndicator.visibility = View.INVISIBLE
+            }
+            
+            val layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            if (i < dayCount - 1) {
+                layoutParams.marginEnd = resources.getDimensionPixelSize(R.dimen.tab_margin_end)
+            }
+            tabLayout.layoutParams = layoutParams
+            
+            val finalIndex = i
+            tabLayout.setOnClickListener {
+                val goingRight = finalIndex > currentTabIndex
+                updateTabSelection(finalIndex, goingRight)
+            }
+            
+            dayTabs.add(tabLayout)
+            dayTexts.add(dayTextView)
+            dayIndicators.add(dayIndicator)
+            
+            tabContainer.addView(tabLayout)
         }
     }
     
     private fun updateTabSelection(selectedTabIndex: Int, goingRight: Boolean = true) {
+        // 선택 범위 확인
+        if (selectedTabIndex < 0 || selectedTabIndex >= dayTabs.size) return
+        
         // 모든 탭 초기화
         for (i in dayTabs.indices) {
             dayTexts[i].setTextColor(ContextCompat.getColor(this, android.R.color.darker_gray))
@@ -375,7 +454,8 @@ class TravelDetailActivity : AppCompatActivity() {
         // 선택된 탭이 보이도록 스크롤
         val scrollView = findViewById<android.widget.HorizontalScrollView>(R.id.tabScrollView)
         scrollView.post {
-            scrollView.smoothScrollTo(dayTabs[selectedTabIndex].left - 50, 0)
+            val tabLeft = dayTabs[selectedTabIndex].left
+            scrollView.smoothScrollTo(tabLeft - 40, 0) // 왼쪽 여백 고려하여 스크롤
         }
         
         // 현재 날짜에 해당하는 장소 목록 가져오기
