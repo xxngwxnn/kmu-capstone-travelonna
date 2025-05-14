@@ -18,6 +18,10 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.Calendar
 import androidx.core.content.ContextCompat
+import android.view.GestureDetector
+import android.view.MotionEvent
+import android.view.animation.AnimationUtils
+import kotlin.math.abs
 
 class TravelDetailActivity : AppCompatActivity() {
 
@@ -30,6 +34,8 @@ class TravelDetailActivity : AppCompatActivity() {
     private val dayTabs = mutableListOf<LinearLayout>()
     private val dayIndicators = mutableListOf<View>()
     private val dayTexts = mutableListOf<TextView>()
+    
+    private var currentTabIndex = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -63,6 +69,9 @@ class TravelDetailActivity : AppCompatActivity() {
         recyclerViewPlaces.layoutManager = LinearLayoutManager(this)
         recyclerViewPlaces.adapter = PlaceAdapter(places)
         
+        // 전체 화면에 스와이프 감지를 위한 터치 리스너 설정
+        setupSwipeListener()
+        
         // 뒤로가기 버튼 설정
         backButton.setOnClickListener {
             finish()
@@ -70,6 +79,76 @@ class TravelDetailActivity : AppCompatActivity() {
         
         // 첫 번째 탭 선택하여 표시
         updateTabSelection(0)
+    }
+    
+    private fun setupSwipeListener() {
+        // 스와이프 감지를 위한 간단한 터치 리스너 구현
+        val gestureDetector = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
+            private val SWIPE_THRESHOLD = 50  // 더 낮게 설정하여 민감도 향상
+            private val SWIPE_VELOCITY_THRESHOLD = 50  // 더 낮게 설정하여 민감도 향상
+            
+            override fun onDown(e: MotionEvent): Boolean {
+                return true
+            }
+            
+            override fun onFling(e1: MotionEvent?, e2: MotionEvent, velocityX: Float, velocityY: Float): Boolean {
+                var result = false
+                try {
+                    if (e1 == null) return false
+                    
+                    val diffX = e2.x - e1.x
+                    val diffY = e2.y - e1.y
+                    
+                    if (abs(diffX) > abs(diffY) &&
+                        abs(diffX) > SWIPE_THRESHOLD &&
+                        abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
+                        
+                        if (diffX > 0) {
+                            // 오른쪽으로 스와이프: 이전 날짜로 이동
+                            onSwipeRight()
+                        } else {
+                            // 왼쪽으로 스와이프: 다음 날짜로 이동
+                            onSwipeLeft()
+                        }
+                        result = true
+                    }
+                } catch (exception: Exception) {
+                    exception.printStackTrace()
+                }
+                
+                return result
+            }
+        })
+        
+        // 루트 레이아웃에 터치 리스너 적용 (전체 화면에서 스와이프 감지)
+        val rootLayout = findViewById<View>(android.R.id.content)
+        rootLayout.setOnTouchListener { _, event ->
+            gestureDetector.onTouchEvent(event)
+            false
+        }
+        
+        // RecyclerView에도 터치 리스너 적용 (RecyclerView 내에서 스와이프 감지)
+        recyclerViewPlaces.setOnTouchListener { v, event ->
+            // 스크롤 중이 아닐 때만 스와이프 제스처 처리
+            if (!recyclerViewPlaces.canScrollVertically(-1) || !recyclerViewPlaces.canScrollVertically(1)) {
+                gestureDetector.onTouchEvent(event)
+            }
+            false // RecyclerView의 원래 터치 이벤트도 처리되도록 함
+        }
+    }
+    
+    private fun onSwipeLeft() {
+        // 다음 탭으로 이동 (오른쪽으로)
+        if (currentTabIndex < dayTabs.size - 1) {
+            updateTabSelection(currentTabIndex + 1, true)
+        }
+    }
+    
+    private fun onSwipeRight() {
+        // 이전 탭으로 이동 (왼쪽으로)
+        if (currentTabIndex > 0) {
+            updateTabSelection(currentTabIndex - 1, false)
+        }
     }
     
     private fun initializeTabs() {
@@ -91,7 +170,8 @@ class TravelDetailActivity : AppCompatActivity() {
         // 탭 클릭 이벤트 설정
         for (i in dayTabs.indices) {
             dayTabs[i].setOnClickListener {
-                updateTabSelection(i)
+                val goingRight = i > currentTabIndex
+                updateTabSelection(i, goingRight)
             }
         }
     }
@@ -132,7 +212,7 @@ class TravelDetailActivity : AppCompatActivity() {
         }
     }
     
-    private fun updateTabSelection(selectedTabIndex: Int) {
+    private fun updateTabSelection(selectedTabIndex: Int, goingRight: Boolean = true) {
         // 모든 탭 초기화
         for (i in dayTabs.indices) {
             dayTexts[i].setTextColor(ContextCompat.getColor(this, android.R.color.darker_gray))
@@ -159,8 +239,46 @@ class TravelDetailActivity : AppCompatActivity() {
             else -> getDummyPlaces()
         }
         
-        // 어댑터 업데이트
-        recyclerViewPlaces.adapter = PlaceAdapter(places)
+        // 애니메이션과 함께 콘텐츠 전환
+        animateContentChange(places, goingRight)
+        
+        // 현재 선택된 탭 인덱스 업데이트
+        currentTabIndex = selectedTabIndex
+    }
+    
+    private fun animateContentChange(newPlaces: List<TravelPlace>, goingRight: Boolean) {
+        // 슬라이드 애니메이션 로드
+        val slideOut = if (goingRight) 
+            AnimationUtils.loadAnimation(this, R.anim.slide_out_left)
+        else 
+            AnimationUtils.loadAnimation(this, R.anim.slide_out_right)
+            
+        val slideIn = if (goingRight) 
+            AnimationUtils.loadAnimation(this, R.anim.slide_in_right)
+        else 
+            AnimationUtils.loadAnimation(this, R.anim.slide_in_left)
+        
+        // 애니메이션 속도 조정 (더 빠르게)
+        slideOut.duration = 200
+        slideIn.duration = 200
+        
+        // 기존 콘텐츠 슬라이드 아웃
+        recyclerViewPlaces.startAnimation(slideOut)
+        
+        // 애니메이션이 끝나면 새 어댑터 설정 및 새 콘텐츠 슬라이드 인
+        slideOut.setAnimationListener(object : android.view.animation.Animation.AnimationListener {
+            override fun onAnimationStart(animation: android.view.animation.Animation?) {}
+            
+            override fun onAnimationEnd(animation: android.view.animation.Animation?) {
+                // 애니메이션이 끝나면 새 어댑터 설정
+                recyclerViewPlaces.adapter = PlaceAdapter(newPlaces)
+                
+                // 새 콘텐츠 슬라이드 인
+                recyclerViewPlaces.startAnimation(slideIn)
+            }
+            
+            override fun onAnimationRepeat(animation: android.view.animation.Animation?) {}
+        })
     }
     
     // 임시 데이터 생성 메서드 - DAY 1
