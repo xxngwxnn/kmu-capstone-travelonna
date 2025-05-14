@@ -127,14 +127,43 @@ class TravelDetailActivity : AppCompatActivity() {
             false
         }
         
-        // RecyclerView에도 터치 리스너 적용 (RecyclerView 내에서 스와이프 감지)
-        recyclerViewPlaces.setOnTouchListener { v, event ->
-            // 스크롤 중이 아닐 때만 스와이프 제스처 처리
-            if (!recyclerViewPlaces.canScrollVertically(-1) || !recyclerViewPlaces.canScrollVertically(1)) {
-                gestureDetector.onTouchEvent(event)
+        // RecyclerView를 위한 별도의 터치 리스너 구현
+        val recyclerViewTouchListener = object : RecyclerView.OnItemTouchListener {
+            private var startX = 0f
+            private var startY = 0f
+            private val SWIPE_THRESHOLD = 50
+            
+            override fun onInterceptTouchEvent(rv: RecyclerView, e: MotionEvent): Boolean {
+                when (e.action) {
+                    MotionEvent.ACTION_DOWN -> {
+                        startX = e.x
+                        startY = e.y
+                    }
+                    MotionEvent.ACTION_MOVE -> {
+                        val diffX = e.x - startX
+                        val diffY = e.y - startY
+                        
+                        // 수평 스와이프가 수직 스와이프보다 크면 인터셉트
+                        if (abs(diffX) > abs(diffY) && abs(diffX) > SWIPE_THRESHOLD) {
+                            if (diffX > 0) {
+                                onSwipeRight()
+                            } else {
+                                onSwipeLeft()
+                            }
+                            return true
+                        }
+                    }
+                }
+                return false
             }
-            false // RecyclerView의 원래 터치 이벤트도 처리되도록 함
+            
+            override fun onTouchEvent(rv: RecyclerView, e: MotionEvent) {}
+            
+            override fun onRequestDisallowInterceptTouchEvent(disallowIntercept: Boolean) {}
         }
+        
+        // RecyclerView에 새로운 터치 리스너 적용
+        recyclerViewPlaces.addOnItemTouchListener(recyclerViewTouchListener)
     }
     
     private fun onSwipeLeft() {
