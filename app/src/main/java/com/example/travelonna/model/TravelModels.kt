@@ -13,5 +13,6 @@ data class TravelLog(
     val title: String,
     val date: String,
     val type: String,
-    val places: List<TravelPlace> = listOf() // 장소 목록 추가
+    val places: List<TravelPlace> = listOf(), // 장소 목록 추가
+    val planId: Int = 0 // 계획 ID 추가
 ) 

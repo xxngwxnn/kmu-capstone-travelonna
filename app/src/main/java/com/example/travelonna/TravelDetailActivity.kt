@@ -13,7 +13,10 @@ import android.content.Intent
 import android.graphics.Typeface
 import android.widget.Toast
 import android.widget.LinearLayout
-import com.example.travelonna.model.TravelPlace
+import com.example.travelonna.api.PlaceDetail
+import com.example.travelonna.api.PlanDetail
+import com.example.travelonna.api.PlanDetailResponse
+import com.example.travelonna.api.RetrofitClient
 import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.Calendar
@@ -22,6 +25,21 @@ import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.animation.AnimationUtils
 import kotlin.math.abs
+import android.util.Log
+import com.google.android.libraries.places.api.Places
+import com.google.android.libraries.places.api.model.PhotoMetadata
+import com.google.android.libraries.places.api.model.Place
+import com.google.android.libraries.places.api.net.FetchPhotoRequest
+import com.google.android.libraries.places.api.net.FetchPlaceRequest
+import com.google.android.libraries.places.api.net.PlacesClient
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
+import com.bumptech.glide.Glide
+import com.bumptech.glide.request.RequestOptions
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 
 class TravelDetailActivity : AppCompatActivity() {
 
@@ -30,12 +48,17 @@ class TravelDetailActivity : AppCompatActivity() {
     private lateinit var dateRangeTextView: TextView
     private lateinit var backButton: ImageView
     private lateinit var tabContainer: LinearLayout
+    private lateinit var placesClient: PlacesClient
     
     private val dayTabs = mutableListOf<LinearLayout>()
     private val dayIndicators = mutableListOf<View>()
     private val dayTexts = mutableListOf<TextView>()
     
     private var currentTabIndex = 0
+    private var planId: Int = 0
+    private var planDetail: PlanDetail? = null
+    
+    private val TAG = "TravelDetailActivity"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -48,26 +71,37 @@ class TravelDetailActivity : AppCompatActivity() {
         recyclerViewPlaces = findViewById(R.id.recyclerViewPlaces)
         tabContainer = findViewById(R.id.tabContainer)
         
+        // Google Places API 초기화
+        if (!Places.isInitialized()) {
+            Places.initialize(applicationContext, getString(R.string.google_maps_key))
+        }
+        placesClient = Places.createClient(this)
+        
         // 탭 요소 초기화
         initializeTabs()
 
         // Intent에서 데이터 가져오기
-        val title = intent.getStringExtra("TRAVEL_TITLE") ?: "미미미누"
-        val startDate = intent.getLongExtra("START_DATE", System.currentTimeMillis())
-        val endDate = intent.getLongExtra("END_DATE", System.currentTimeMillis() + (2 * 24 * 60 * 60 * 1000)) // 기본값: 오늘부터 3일
+        planId = intent.getIntExtra("PLAN_ID", 0)
         
-        // 날짜 포맷 설정
-        setupDateTexts(startDate, endDate)
+        if (planId > 0) {
+            // API를 통해 계획 상세 정보 가져오기
+            fetchPlanDetail(planId)
+        } else {
+            // 테스트용 기본 데이터 표시
+            val title = intent.getStringExtra("TRAVEL_TITLE") ?: "미미미누"
+            val startDate = intent.getLongExtra("START_DATE", System.currentTimeMillis())
+            val endDate = intent.getLongExtra("END_DATE", System.currentTimeMillis() + (2 * 24 * 60 * 60 * 1000))
+            
+            // 기본 정보 표시
+            titleTextView.text = title
+            setupDateTexts(startDate, endDate)
+            
+            // 테스트용 더미 데이터
+            updateTabSelection(0)
+        }
         
-        // 기본 정보 표시
-        titleTextView.text = title
-
-        // 장소 목록 가져오기
-        val places = getDummyPlaces() // 임시 데이터 생성 메서드 호출
-
         // RecyclerView 설정
         recyclerViewPlaces.layoutManager = LinearLayoutManager(this)
-        recyclerViewPlaces.adapter = PlaceAdapter(places)
         
         // 아이템 간격 설정
         if (recyclerViewPlaces.itemDecorationCount == 0) {
@@ -95,9 +129,74 @@ class TravelDetailActivity : AppCompatActivity() {
         backButton.setOnClickListener {
             finish()
         }
+    }
+    
+    private fun fetchPlanDetail(planId: Int) {
+        Log.d(TAG, "Fetching plan details for planId: $planId")
         
-        // 첫 번째 탭 선택하여 표시
-        updateTabSelection(0)
+        RetrofitClient.apiService.getPlanDetail(planId).enqueue(object : Callback<PlanDetailResponse> {
+            override fun onResponse(call: Call<PlanDetailResponse>, response: Response<PlanDetailResponse>) {
+                if (response.isSuccessful && response.body() != null) {
+                    val detailResponse = response.body()!!
+                    if (detailResponse.success) {
+                        planDetail = detailResponse.data
+                        updateUIWithPlanData(planDetail!!)
+                    } else {
+                        Toast.makeText(this@TravelDetailActivity, "데이터를 가져오는데 실패했습니다: ${detailResponse.message}", Toast.LENGTH_SHORT).show()
+                    }
+                } else {
+                    val errorMessage = "API 호출 실패: ${response.code()}"
+                    Log.e(TAG, errorMessage)
+                    Toast.makeText(this@TravelDetailActivity, errorMessage, Toast.LENGTH_SHORT).show()
+                }
+            }
+            
+            override fun onFailure(call: Call<PlanDetailResponse>, t: Throwable) {
+                val errorMessage = "네트워크 오류: ${t.message}"
+                Log.e(TAG, errorMessage, t)
+                Toast.makeText(this@TravelDetailActivity, errorMessage, Toast.LENGTH_SHORT).show()
+            }
+        })
+    }
+    
+    private fun updateUIWithPlanData(planDetail: PlanDetail) {
+        // 기본 정보 업데이트
+        titleTextView.text = planDetail.title
+        
+        // 날짜 설정
+        try {
+            val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+            val startDate = LocalDate.parse(planDetail.startDate, formatter)
+            val endDate = LocalDate.parse(planDetail.endDate, formatter)
+            
+            // 날짜 텍스트 업데이트
+            val displayFormat = DateTimeFormatter.ofPattern("yyyy.MM.dd")
+            dateRangeTextView.text = "${startDate.format(displayFormat)} - ${endDate.format(displayFormat)}"
+            
+            // 일수 계산
+            val dayCount = ChronoUnit.DAYS.between(startDate, endDate).toInt() + 1
+            
+            // 필요한 만큼의 탭만 보이게 설정
+            for (i in dayTabs.indices) {
+                if (i < dayCount) {
+                    dayTabs[i].visibility = View.VISIBLE
+                    
+                    // 날짜 표시 업데이트
+                    val currentDate = startDate.plusDays(i.toLong())
+                    val dayStr = "${currentDate.format(DateTimeFormatter.ofPattern("E", Locale.KOREA))}.${currentDate.format(DateTimeFormatter.ofPattern("dd"))}"
+                    val dateTextView = dayTabs[i].findViewById<TextView>(getDayDateTextId(i))
+                    dateTextView.text = dayStr
+                } else {
+                    dayTabs[i].visibility = View.GONE
+                }
+            }
+            
+            // 첫 번째 탭 선택
+            updateTabSelection(0)
+        } catch (e: Exception) {
+            Log.e(TAG, "날짜 파싱 오류", e)
+            Toast.makeText(this, "날짜 처리 중 오류가 발생했습니다", Toast.LENGTH_SHORT).show()
+        }
     }
     
     private fun setupSwipeListener() {
@@ -187,7 +286,7 @@ class TravelDetailActivity : AppCompatActivity() {
     
     private fun onSwipeLeft() {
         // 다음 탭으로 이동 (오른쪽으로)
-        if (currentTabIndex < dayTabs.size - 1) {
+        if (currentTabIndex < dayTabs.size - 1 && dayTabs[currentTabIndex + 1].visibility == View.VISIBLE) {
             updateTabSelection(currentTabIndex + 1, true)
         }
     }
@@ -279,12 +378,35 @@ class TravelDetailActivity : AppCompatActivity() {
             scrollView.smoothScrollTo(dayTabs[selectedTabIndex].left - 50, 0)
         }
         
-        // 장소 데이터 로드 (여기서는 더미 데이터)
-        val places = when (selectedTabIndex) {
-            0 -> getDummyPlaces()
-            1 -> getDummyPlacesForDay2()
-            2 -> getDummyPlacesForDay3()
-            else -> getDummyPlaces()
+        // 현재 날짜에 해당하는 장소 목록 가져오기
+        val dayToShow = selectedTabIndex + 1 // API의 day는 1부터 시작함
+        
+        // API 데이터가 있으면 실제 데이터 사용, 없으면 더미 데이터
+        val places = if (planDetail != null) {
+            planDetail!!.places.filter { it.day == dayToShow }
+        } else {
+            // 더미 데이터
+            when (selectedTabIndex) {
+                0 -> getDummyPlaces()
+                1 -> getDummyPlacesForDay2()
+                2 -> getDummyPlacesForDay3()
+                else -> getDummyPlaces()
+            }.map { 
+                PlaceDetail(
+                    id = 0,
+                    name = it.name,
+                    address = it.address,
+                    order = 0,
+                    isPublic = !it.isLocked,
+                    visitDate = "",
+                    day = selectedTabIndex + 1,
+                    cost = 0,
+                    memo = "",
+                    lat = "0",
+                    lon = "0",
+                    googleId = ""
+                )
+            }
         }
         
         // 애니메이션과 함께 콘텐츠 전환
@@ -294,7 +416,7 @@ class TravelDetailActivity : AppCompatActivity() {
         currentTabIndex = selectedTabIndex
     }
     
-    private fun animateContentChange(newPlaces: List<TravelPlace>, goingRight: Boolean) {
+    private fun animateContentChange(newPlaces: List<PlaceDetail>, goingRight: Boolean) {
         // 슬라이드 애니메이션 로드
         val slideOut = if (goingRight) 
             AnimationUtils.loadAnimation(this, R.anim.slide_out_left)
@@ -319,7 +441,7 @@ class TravelDetailActivity : AppCompatActivity() {
             
             override fun onAnimationEnd(animation: android.view.animation.Animation?) {
                 // 애니메이션이 끝나면 새 어댑터 설정
-                recyclerViewPlaces.adapter = PlaceAdapter(newPlaces)
+                recyclerViewPlaces.adapter = PlaceAdapter(newPlaces, placesClient)
                 
                 // 새 콘텐츠 슬라이드 인
                 recyclerViewPlaces.startAnimation(slideIn)
@@ -330,34 +452,34 @@ class TravelDetailActivity : AppCompatActivity() {
     }
     
     // 임시 데이터 생성 메서드 - DAY 1
-    private fun getDummyPlaces(): List<TravelPlace> {
+    private fun getDummyPlaces(): List<com.example.travelonna.model.TravelPlace> {
         return listOf(
-            TravelPlace("동대구역", "대구광역시 동구 동대구로 550", "10:00"),
-            TravelPlace("반월당", "대구광역시 중구 동성로", "12:30"),
-            TravelPlace("대구 수목원", "대구광역시 달서구 화암로 342", "15:00")
+            com.example.travelonna.model.TravelPlace("동대구역", "대구광역시 동구 동대구로 550", "10:00"),
+            com.example.travelonna.model.TravelPlace("반월당", "대구광역시 중구 동성로", "12:30"),
+            com.example.travelonna.model.TravelPlace("대구 수목원", "대구광역시 달서구 화암로 342", "15:00")
         )
     }
     
     // 임시 데이터 생성 메서드 - DAY 2
-    private fun getDummyPlacesForDay2(): List<TravelPlace> {
+    private fun getDummyPlacesForDay2(): List<com.example.travelonna.model.TravelPlace> {
         return listOf(
-            TravelPlace("경주 불국사", "경상북도 경주시 불국로 385", "09:00"),
-            TravelPlace("첨성대", "경상북도 경주시 인왕동", "13:00"),
-            TravelPlace("안압지", "경상북도 경주시 원화로 102", "16:30")
+            com.example.travelonna.model.TravelPlace("경주 불국사", "경상북도 경주시 불국로 385", "09:00"),
+            com.example.travelonna.model.TravelPlace("첨성대", "경상북도 경주시 인왕동", "13:00"),
+            com.example.travelonna.model.TravelPlace("안압지", "경상북도 경주시 원화로 102", "16:30")
         )
     }
     
     // 임시 데이터 생성 메서드 - DAY 3
-    private fun getDummyPlacesForDay3(): List<TravelPlace> {
+    private fun getDummyPlacesForDay3(): List<com.example.travelonna.model.TravelPlace> {
         return listOf(
-            TravelPlace("해운대", "부산광역시 해운대구", "10:00"),
-            TravelPlace("광안리", "부산광역시 수영구", "15:00")
+            com.example.travelonna.model.TravelPlace("해운대", "부산광역시 해운대구", "10:00"),
+            com.example.travelonna.model.TravelPlace("광안리", "부산광역시 수영구", "15:00")
         )
     }
 }
 
 // 장소 어댑터
-class PlaceAdapter(private val places: List<TravelPlace>) : 
+class PlaceAdapter(private val places: List<PlaceDetail>, private val placesClient: PlacesClient) : 
     RecyclerView.Adapter<PlaceAdapter.PlaceViewHolder>() {
 
     class PlaceViewHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -380,7 +502,7 @@ class PlaceAdapter(private val places: List<TravelPlace>) :
         
         // 잠금/열림 아이콘 설정
         holder.lockIcon.setImageResource(
-            if (place.isLocked) R.drawable.ic_circle_lock else R.drawable.ic_circle_open
+            if (!place.isPublic) R.drawable.ic_circle_lock else R.drawable.ic_circle_open
         )
         
         // 아이콘 클릭 이벤트
@@ -398,6 +520,14 @@ class PlaceAdapter(private val places: List<TravelPlace>) :
                 Toast.LENGTH_SHORT).show()
         }
         
+        // Google Places API로 이미지 로드
+        if (place.googleId.isNotEmpty()) {
+            loadPlaceImage(place.googleId, holder.placeImage)
+        } else {
+            // 기본 이미지 표시
+            holder.placeImage.setImageResource(R.drawable.ic_place_holder)
+        }
+        
         // 아이템 클릭 이벤트
         holder.itemView.setOnClickListener {
             val intent = Intent(holder.itemView.context, PlaceMemoryActivity::class.java).apply {
@@ -405,6 +535,48 @@ class PlaceAdapter(private val places: List<TravelPlace>) :
                 putExtra("PLACE_ADDRESS", place.address)
             }
             holder.itemView.context.startActivity(intent)
+        }
+    }
+    
+    private fun loadPlaceImage(placeId: String, imageView: ImageView) {
+        try {
+            // 먼저 장소 자체의 정보를 가져옴
+            val placeFields = listOf(Place.Field.PHOTO_METADATAS)
+            val request = FetchPlaceRequest.newInstance(placeId, placeFields)
+            
+            placesClient.fetchPlace(request).addOnSuccessListener { response ->
+                val place = response.place
+                val photoMetadata = place.photoMetadatas
+                
+                if (photoMetadata != null && photoMetadata.isNotEmpty()) {
+                    // 첫 번째 사진 메타데이터 사용
+                    val firstPhoto = photoMetadata.first()
+                    
+                    // 사진 요청 생성
+                    val photoRequest = FetchPhotoRequest.builder(firstPhoto)
+                        .setMaxWidth(500) // 적당한 크기로 설정
+                        .setMaxHeight(500)
+                        .build()
+                    
+                    // 사진 가져오기
+                    placesClient.fetchPhoto(photoRequest).addOnSuccessListener { fetchPhotoResponse ->
+                        val bitmap = fetchPhotoResponse.bitmap
+                        imageView.setImageBitmap(bitmap)
+                    }.addOnFailureListener { exception ->
+                        Log.e("PlaceAdapter", "Photo fetch failed: ${exception.message}")
+                        imageView.setImageResource(R.drawable.ic_place_holder)
+                    }
+                } else {
+                    // 사진이 없는 경우 기본 이미지 표시
+                    imageView.setImageResource(R.drawable.ic_place_holder)
+                }
+            }.addOnFailureListener { exception ->
+                Log.e("PlaceAdapter", "Place fetch failed: ${exception.message}")
+                imageView.setImageResource(R.drawable.ic_place_holder)
+            }
+        } catch (e: Exception) {
+            Log.e("PlaceAdapter", "Error loading place image", e)
+            imageView.setImageResource(R.drawable.ic_place_holder)
         }
     }
 

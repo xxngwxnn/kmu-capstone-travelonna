@@ -40,6 +40,9 @@ class LogAdapter(private val logs: List<TravelLog>) :
                 putExtra("TRAVEL_TYPE", log.type)
                 putExtra("TRAVEL_PLACES_COUNT", log.places.size)
                 
+                // 실제 planId 전달 (각 로그에 planId 필드가 있다고 가정)
+                putExtra("PLAN_ID", log.planId) 
+                
                 // 장소 정보 전달 (간단하게 하기 위해 인덱스로 전달)
                 log.places.forEachIndexed { index, place ->
                     putExtra("PLACE_NAME_$index", place.name)

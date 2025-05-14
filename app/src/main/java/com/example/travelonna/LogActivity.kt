@@ -221,7 +221,8 @@ class LogActivity : AppCompatActivity() {
                 title = plan.title,
                 date = "$startDate - $endDate",
                 type = type,
-                places = listOf() // 장소 데이터는 아직 API에 없음
+                places = listOf(), // 장소 데이터는 아직 API에 없음
+                planId = plan.planId.toInt() // planId 추가
             )
         }
     }
@@ -313,7 +314,8 @@ class LogActivity : AppCompatActivity() {
                     TravelPlace("성산일출봉", "제주특별자치도 서귀포시 성산읍", "09:00 - 11:00"),
                     TravelPlace("우도", "제주특별자치도 제주시 우도면", "12:00 - 15:00"),
                     TravelPlace("만장굴", "제주특별자치도 제주시 구좌읍", "16:00 - 18:00")
-                )
+                ),
+                planId = 1
             ),
             TravelLog(
                 "부산 여행", 
@@ -322,7 +324,8 @@ class LogActivity : AppCompatActivity() {
                 listOf(
                     TravelPlace("해운대", "부산광역시 해운대구", "10:00 - 13:00"),
                     TravelPlace("감천문화마을", "부산광역시 사하구", "14:00 - 16:00")
-                )
+                ),
+                planId = 2
             ),
             TravelLog(
                 "강원도 여행", 
@@ -332,7 +335,8 @@ class LogActivity : AppCompatActivity() {
                     TravelPlace("양양 서핑", "강원도 양양군", "09:00 - 12:00"),
                     TravelPlace("속초 해변", "강원도 속초시", "13:00 - 15:00"),
                     TravelPlace("설악산", "강원도 속초시", "16:00 - 18:00")
-                )
+                ),
+                planId = 3
             ),
             TravelLog(
                 "서울 여행", 
@@ -341,7 +345,8 @@ class LogActivity : AppCompatActivity() {
                 listOf(
                     TravelPlace("경복궁", "서울특별시 종로구", "09:00 - 12:00"),
                     TravelPlace("남산타워", "서울특별시 용산구", "14:00 - 16:00")
-                )
+                ),
+                planId = 4
             )
         )
     }
