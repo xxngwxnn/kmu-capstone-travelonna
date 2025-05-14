@@ -69,6 +69,25 @@ class TravelDetailActivity : AppCompatActivity() {
         recyclerViewPlaces.layoutManager = LinearLayoutManager(this)
         recyclerViewPlaces.adapter = PlaceAdapter(places)
         
+        // 아이템 간격 설정
+        if (recyclerViewPlaces.itemDecorationCount == 0) {
+            recyclerViewPlaces.addItemDecoration(object : RecyclerView.ItemDecoration() {
+                override fun getItemOffsets(
+                    outRect: android.graphics.Rect,
+                    view: View,
+                    parent: RecyclerView,
+                    state: RecyclerView.State
+                ) {
+                    // 첫 번째 아이템 상단 여백 추가
+                    if (parent.getChildAdapterPosition(view) == 0) {
+                        outRect.top = resources.getDimensionPixelSize(R.dimen.card_margin_vertical)
+                    }
+                    // 각 아이템의 하단 여백 설정
+                    outRect.bottom = resources.getDimensionPixelSize(R.dimen.card_margin_vertical)
+                }
+            })
+        }
+        
         // 전체 화면에 스와이프 감지를 위한 터치 리스너 설정
         setupSwipeListener()
         

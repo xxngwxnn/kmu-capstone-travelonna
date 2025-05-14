@@ -1,44 +1,43 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:paddingBottom="16dp">
+    android:layout_marginHorizontal="2dp"
+    android:layout_marginVertical="8dp"
+    app:cardCornerRadius="10dp"
+    app:cardElevation="3dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal">
 
-        <!-- 장소 이미지 (정사각형) -->
-        <androidx.cardview.widget.CardView
-            android:layout_width="100dp"
-            android:layout_height="100dp"
-            app:cardCornerRadius="8dp"
-            app:cardElevation="0dp">
-
+        <!-- 장소 이미지 (왼쪽에 위치) -->
+        <FrameLayout
+            android:layout_width="120dp"
+            android:layout_height="120dp">
+            
             <ImageView
                 android:id="@+id/placeImage"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:scaleType="centerCrop"
                 android:src="@drawable/ic_place_holder" />
-        </androidx.cardview.widget.CardView>
+        </FrameLayout>
 
-        <!-- 장소 정보 -->
+        <!-- 장소 정보 (오른쪽에 위치) -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:layout_marginStart="12dp"
             android:orientation="vertical"
-            android:gravity="center_vertical">
+            android:padding="16dp">
 
             <RelativeLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content">
-
+                
                 <!-- 장소 이름 -->
                 <TextView
                     android:id="@+id/placeName"
@@ -47,17 +46,17 @@
                     android:layout_alignParentStart="true"
                     android:layout_toStartOf="@+id/lockIconView"
                     android:textColor="@color/black"
-                    android:textSize="15sp"
+                    android:textSize="16sp"
                     android:textStyle="bold"
                     android:ellipsize="end"
                     android:maxLines="1"
                     android:text="동대구역"/>
-
-                <!-- 잠금/열림 아이콘 -->
+                
+                <!-- 잠금/열림 아이콘 (오른쪽에 위치) -->
                 <ImageView
                     android:id="@+id/lockIconView"
-                    android:layout_width="38dp"
-                    android:layout_height="38dp"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
                     android:layout_alignParentEnd="true"
                     android:src="@drawable/ic_circle_open"/>
             </RelativeLayout>
@@ -69,18 +68,11 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
                 android:textColor="#666666"
-                android:textSize="13sp"
+                android:textSize="14sp"
                 android:ellipsize="end"
-                android:maxLines="1"
+                android:maxLines="2"
                 android:text="대구광역시 동구 동대구로 550 (신암동 294)"/>
 
         </LinearLayout>
     </LinearLayout>
-
-    <!-- 구분선 -->
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:layout_marginTop="16dp"
-        android:background="#E0E0E0" />
-</LinearLayout> 
+</androidx.cardview.widget.CardView> 
