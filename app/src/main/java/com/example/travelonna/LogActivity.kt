@@ -42,6 +42,9 @@ class LogActivity : AppCompatActivity() {
     private var isPersonalSelected = true
     private var allTravelLogs = listOf<TravelLog>()
     
+    // 로그 태그 상수 추가
+    private val TAG = "LogActivity"
+    
     // 날짜 포맷
     private val apiDateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
     private val displayDateFormat = SimpleDateFormat("yyyy.MM.dd", Locale.getDefault())
@@ -198,37 +201,55 @@ class LogActivity : AppCompatActivity() {
     
     // Plan 객체를 TravelLog 객체로 변환
     private fun convertPlansToTravelLogs(plans: List<Plan>): List<TravelLog> {
-        return plans.map { plan ->
-            // 날짜 형식 변환 (yyyy-MM-dd -> yyyy.MM.dd)
-            val startDate = try {
-                val date = apiDateFormat.parse(plan.startDate)
-                displayDateFormat.format(date!!)
-            } catch (e: Exception) {
-                plan.startDate.replace("-", ".")
+        val currentDate = Calendar.getInstance().time
+        
+        return plans
+            .filter { plan ->
+                // 종료일이 현재 날짜보다 이전인 여행만 필터링 (완료된 여행)
+                try {
+                    val endDate = apiDateFormat.parse(plan.endDate)
+                    endDate != null && endDate.before(currentDate)
+                } catch (e: Exception) {
+                    Log.e(TAG, "날짜 파싱 오류: ${e.message}")
+                    false
+                }
             }
-            
-            val endDate = try {
-                val date = apiDateFormat.parse(plan.endDate)
-                displayDateFormat.format(date!!)
-            } catch (e: Exception) {
-                plan.endDate.replace("-", ".")
+            .map { plan ->
+                // 날짜 형식 변환 (yyyy-MM-dd -> yyyy.MM.dd)
+                val startDate = try {
+                    val date = apiDateFormat.parse(plan.startDate)
+                    displayDateFormat.format(date!!)
+                } catch (e: Exception) {
+                    plan.startDate.replace("-", ".")
+                }
+                
+                val endDate = try {
+                    val date = apiDateFormat.parse(plan.endDate)
+                    displayDateFormat.format(date!!)
+                } catch (e: Exception) {
+                    plan.endDate.replace("-", ".")
+                }
+                
+                // 그룹 여부 결정
+                val type = if (plan.groupId != null) "그룹" else "개인"
+                
+                TravelLog(
+                    title = plan.title,
+                    date = "$startDate - $endDate",
+                    type = type,
+                    places = listOf(), // 장소 데이터는 아직 API에 없음
+                    planId = plan.planId.toInt() // planId 추가
+                )
             }
-            
-            // 그룹 여부 결정
-            val type = if (plan.groupId != null) "그룹" else "개인"
-            
-            TravelLog(
-                title = plan.title,
-                date = "$startDate - $endDate",
-                type = type,
-                places = listOf(), // 장소 데이터는 아직 API에 없음
-                planId = plan.planId.toInt() // planId 추가
-            )
-        }
     }
     
     // 어댑터 업데이트
     private fun updateAdapterWithLogs(logs: List<TravelLog>) {
+        if (logs.isEmpty()) {
+            // 완료된 여행이 없을 경우 안내 메시지 표시
+            Toast.makeText(this, "완료된 여행이 없습니다", Toast.LENGTH_SHORT).show()
+        }
+        
         logAdapter = LogAdapter(logs)
         recyclerView.adapter = logAdapter
     }
@@ -305,10 +326,40 @@ class LogActivity : AppCompatActivity() {
     
     // 샘플 데이터 (API 호출 실패 시 사용)
     private fun getSampleTravelLogs(): List<TravelLog> {
+        // 과거 날짜로 샘플 데이터 생성 (현재 기준 -1개월, -2개월, -3개월, -4개월)
+        val cal = Calendar.getInstance()
+        
+        // 첫 번째 여행: 1개월 전
+        cal.add(Calendar.MONTH, -1)
+        val date1End = displayDateFormat.format(cal.time)
+        cal.add(Calendar.DAY_OF_MONTH, -3) // 3일간의 여행
+        val date1Start = displayDateFormat.format(cal.time)
+        
+        // 두 번째 여행: 2개월 전
+        cal.add(Calendar.DAY_OF_MONTH, 3) // 첫 번째 여행 종료일로 되돌리기
+        cal.add(Calendar.MONTH, -1) // 추가로 1개월 전 (총 2개월 전)
+        val date2End = displayDateFormat.format(cal.time)
+        cal.add(Calendar.DAY_OF_MONTH, -2) // 2일간의 여행
+        val date2Start = displayDateFormat.format(cal.time)
+        
+        // 세 번째 여행: 3개월 전
+        cal.add(Calendar.DAY_OF_MONTH, 2) // 두 번째 여행 종료일로 되돌리기
+        cal.add(Calendar.MONTH, -1) // 추가로 1개월 전 (총 3개월 전)
+        val date3End = displayDateFormat.format(cal.time)
+        cal.add(Calendar.DAY_OF_MONTH, -3) // 3일간의 여행
+        val date3Start = displayDateFormat.format(cal.time)
+        
+        // 네 번째 여행: 4개월 전
+        cal.add(Calendar.DAY_OF_MONTH, 3) // 세 번째 여행 종료일로 되돌리기
+        cal.add(Calendar.MONTH, -1) // 추가로 1개월 전 (총 4개월 전)
+        val date4End = displayDateFormat.format(cal.time)
+        cal.add(Calendar.DAY_OF_MONTH, -2) // 2일간의 여행
+        val date4Start = displayDateFormat.format(cal.time)
+        
         return listOf(
             TravelLog(
                 "제주도 여행", 
-                "2024.03.15 - 2024.03.18", 
+                "$date1Start - $date1End", 
                 "그룹",
                 listOf(
                     TravelPlace("성산일출봉", "제주특별자치도 서귀포시 성산읍", "09:00 - 11:00"),
@@ -319,7 +370,7 @@ class LogActivity : AppCompatActivity() {
             ),
             TravelLog(
                 "부산 여행", 
-                "2024.02.20 - 2024.02.22", 
+                "$date2Start - $date2End", 
                 "개인",
                 listOf(
                     TravelPlace("해운대", "부산광역시 해운대구", "10:00 - 13:00"),
@@ -329,7 +380,7 @@ class LogActivity : AppCompatActivity() {
             ),
             TravelLog(
                 "강원도 여행", 
-                "2023.01.10 - 2023.01.12", 
+                "$date3Start - $date3End", 
                 "그룹",
                 listOf(
                     TravelPlace("양양 서핑", "강원도 양양군", "09:00 - 12:00"),
@@ -340,7 +391,7 @@ class LogActivity : AppCompatActivity() {
             ),
             TravelLog(
                 "서울 여행", 
-                "2022.08.10 - 2022.08.12", 
+                "$date4Start - $date4End", 
                 "개인",
                 listOf(
                     TravelPlace("경복궁", "서울특별시 종로구", "09:00 - 12:00"),

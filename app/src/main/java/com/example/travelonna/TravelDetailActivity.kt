@@ -40,6 +40,8 @@ import com.bumptech.glide.request.RequestOptions
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
+import com.example.travelonna.api.PlaceCreateRequest
+import com.example.travelonna.api.BasicResponse
 
 class TravelDetailActivity : AppCompatActivity() {
 
@@ -556,6 +558,66 @@ class TravelDetailActivity : AppCompatActivity() {
             com.example.travelonna.model.TravelPlace("광안리", "부산광역시 수영구", "15:00")
         )
     }
+
+    fun getPlanId(): Int {
+        return planId
+    }
+
+    fun refreshPlaceData(placeId: Int, newIsPublic: Boolean) {
+        // planDetail이 null이 아닌 경우에만 처리
+        planDetail?.let { detail ->
+            // 해당 ID를 가진 장소 찾기
+            val placeIndex = detail.places.indexOfFirst { it.id == placeId }
+            
+            if (placeIndex != -1) {
+                // 새로운 장소 객체 생성 (불변 객체이므로 새로 생성해야 함)
+                val updatedPlace = detail.places[placeIndex].copy(isPublic = newIsPublic)
+                
+                // 새로운 places 리스트 생성
+                val updatedPlaces = detail.places.toMutableList().apply {
+                    set(placeIndex, updatedPlace)
+                }
+                
+                // 새로운 planDetail 객체 생성 (copy 메서드 대신 직접 필드 업데이트)
+                // createdAt 필드가 null인 경우 NPE가 발생하므로 이 방식으로 변경
+                val currentPlanDetail = detail
+                val newPlanDetail = PlanDetail(
+                    planId = currentPlanDetail.planId,
+                    userId = currentPlanDetail.userId,
+                    title = currentPlanDetail.title,
+                    location = currentPlanDetail.location,
+                    startDate = currentPlanDetail.startDate,
+                    endDate = currentPlanDetail.endDate,
+                    transportInfo = currentPlanDetail.transportInfo,
+                    isPublic = currentPlanDetail.isPublic,
+                    totalCost = currentPlanDetail.totalCost,
+                    memo = currentPlanDetail.memo,
+                    createdAt = currentPlanDetail.createdAt,
+                    updatedAt = currentPlanDetail.updatedAt,
+                    places = updatedPlaces,
+                    isGroup = currentPlanDetail.isGroup,
+                    isGroup2 = currentPlanDetail.isGroup2,
+                    groupId = currentPlanDetail.groupId,
+                    groupId2 = currentPlanDetail.groupId2
+                )
+                planDetail = newPlanDetail
+                
+                // 현재 표시 중인 탭이 업데이트된 장소의 날짜와 일치하면 UI 업데이트
+                val dayToShow = currentTabIndex + 1
+                if (updatedPlace.day == dayToShow) {
+                    // 현재 탭에 해당하는 장소 목록 다시 가져와서 어댑터 업데이트
+                    val places = planDetail!!.places.filter { it.day == dayToShow }
+                    recyclerViewPlaces.adapter = PlaceAdapter(places, placesClient)
+                }
+                
+                Log.d(TAG, "장소 ID: $placeId 공개 상태가 $newIsPublic 로 업데이트되었습니다.")
+            } else {
+                Log.e(TAG, "장소 ID: $placeId 를 찾을 수 없습니다.")
+            }
+        } ?: run {
+            Log.e(TAG, "planDetail이 null입니다. 장소 상태를 업데이트할 수 없습니다.")
+        }
+    }
 }
 
 // 장소 어댑터
@@ -587,17 +649,64 @@ class PlaceAdapter(private val places: List<PlaceDetail>, private val placesClie
         
         // 아이콘 클릭 이벤트
         holder.lockIcon.setOnClickListener {
-            // 잠금/열림 상태 토글 로직 (실제 구현에서는 데이터 업데이트 필요)
-            val newStatus = if ((it as ImageView).tag == "locked") "opened" else "locked"
-            it.tag = newStatus
+            // 현재 상태의 반대로 변경
+            val newIsPublic = !place.isPublic
             
-            it.setImageResource(
-                if (newStatus == "locked") R.drawable.ic_circle_lock else R.drawable.ic_circle_open
+            // API 요청 생성
+            val request = PlaceCreateRequest(
+                place = place.address,
+                isPublic = newIsPublic,
+                visitDate = place.visitDate,
+                placeCost = place.cost,
+                memo = place.memo,
+                lat = place.lat,
+                lon = place.lon,
+                name = place.name,
+                googleId = place.googleId,
+                order = place.order
             )
             
-            Toast.makeText(holder.itemView.context, 
-                "${place.name} 장소가 ${if (newStatus == "locked") "비공개" else "공개"}로 설정되었습니다", 
-                Toast.LENGTH_SHORT).show()
+            // 현재 Activity에서 planId 가져오기
+            val activity = holder.itemView.context as TravelDetailActivity
+            val planId = activity.getPlanId()
+            
+            // API 호출
+            RetrofitClient.apiService.updatePlace(
+                planId = planId, 
+                placeId = place.id, 
+                request = request
+            ).enqueue(object : Callback<BasicResponse> {
+                override fun onResponse(call: Call<BasicResponse>, response: Response<BasicResponse>) {
+                    if (response.isSuccessful) {
+                        // UI 업데이트
+                        holder.lockIcon.setImageResource(
+                            if (!newIsPublic) R.drawable.ic_circle_lock else R.drawable.ic_circle_open
+                        )
+                        
+                        // 데이터 모델 업데이트 - 변경 불가능한 데이터 클래스이므로 직접 수정 불가
+                        // 대신 Activity에 알려서 필요시 데이터를 새로고침하도록 함
+                        activity.refreshPlaceData(place.id, newIsPublic)
+                        
+                        Toast.makeText(holder.itemView.context, 
+                            "${place.name} 장소가 ${if (!newIsPublic) "비공개" else "공개"}로 설정되었습니다", 
+                            Toast.LENGTH_SHORT).show()
+                    } else {
+                        // 오류 처리
+                        Log.e("PlaceAdapter", "API 오류: ${response.code()}, ${response.message()}")
+                        Toast.makeText(holder.itemView.context, 
+                            "설정 변경에 실패했습니다: ${response.message()}", 
+                            Toast.LENGTH_SHORT).show()
+                    }
+                }
+                
+                override fun onFailure(call: Call<BasicResponse>, t: Throwable) {
+                    // 네트워크 오류 처리
+                    Log.e("PlaceAdapter", "네트워크 오류", t)
+                    Toast.makeText(holder.itemView.context, 
+                        "네트워크 오류: ${t.message}", 
+                        Toast.LENGTH_SHORT).show()
+                }
+            })
         }
         
         // Google Places API로 이미지 로드
@@ -608,14 +717,14 @@ class PlaceAdapter(private val places: List<PlaceDetail>, private val placesClie
             holder.placeImage.setImageResource(R.drawable.ic_place_holder)
         }
         
-        // 아이템 클릭 이벤트
-        holder.itemView.setOnClickListener {
-            val intent = Intent(holder.itemView.context, PlaceMemoryActivity::class.java).apply {
-                putExtra("PLACE_NAME", place.name)
-                putExtra("PLACE_ADDRESS", place.address)
-            }
-            holder.itemView.context.startActivity(intent)
-        }
+        // 아이템 클릭 이벤트 - 클릭해도 아무 동작 안하도록 제거
+        // holder.itemView.setOnClickListener {
+        //     val intent = Intent(holder.itemView.context, PlaceMemoryActivity::class.java).apply {
+        //         putExtra("PLACE_NAME", place.name)
+        //         putExtra("PLACE_ADDRESS", place.address)
+        //     }
+        //     holder.itemView.context.startActivity(intent)
+        // }
     }
     
     private fun loadPlaceImage(placeId: String, imageView: ImageView) {
