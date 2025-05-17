@@ -719,9 +719,13 @@ class PlaceAdapter(private val places: List<PlaceDetail>, private val placesClie
         
         // 아이템 클릭 이벤트 다시 활성화
         holder.itemView.setOnClickListener {
+            val activity = holder.itemView.context as TravelDetailActivity
             val intent = Intent(holder.itemView.context, PlaceMemoryActivity::class.java).apply {
                 putExtra("PLACE_NAME", place.name)
                 putExtra("PLACE_ADDRESS", place.address)
+                putExtra("PLACE_ID", place.id)
+                putExtra("PLAN_ID", activity.getPlanId())
+                putExtra("IS_PUBLIC", place.isPublic)
             }
             holder.itemView.context.startActivity(intent)
         }
