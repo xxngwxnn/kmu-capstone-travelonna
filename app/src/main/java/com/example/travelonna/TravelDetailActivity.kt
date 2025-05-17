@@ -717,14 +717,14 @@ class PlaceAdapter(private val places: List<PlaceDetail>, private val placesClie
             holder.placeImage.setImageResource(R.drawable.ic_place_holder)
         }
         
-        // 아이템 클릭 이벤트 - 클릭해도 아무 동작 안하도록 제거
-        // holder.itemView.setOnClickListener {
-        //     val intent = Intent(holder.itemView.context, PlaceMemoryActivity::class.java).apply {
-        //         putExtra("PLACE_NAME", place.name)
-        //         putExtra("PLACE_ADDRESS", place.address)
-        //     }
-        //     holder.itemView.context.startActivity(intent)
-        // }
+        // 아이템 클릭 이벤트 다시 활성화
+        holder.itemView.setOnClickListener {
+            val intent = Intent(holder.itemView.context, PlaceMemoryActivity::class.java).apply {
+                putExtra("PLACE_NAME", place.name)
+                putExtra("PLACE_ADDRESS", place.address)
+            }
+            holder.itemView.context.startActivity(intent)
+        }
     }
     
     private fun loadPlaceImage(placeId: String, imageView: ImageView) {
