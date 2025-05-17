@@ -16,10 +16,17 @@ import androidx.appcompat.app.AppCompatActivity
 import android.util.Log
 import com.example.travelonna.api.BasicResponse
 import com.example.travelonna.api.PlaceCreateRequest
+import com.example.travelonna.api.PlaceDetail
+import com.example.travelonna.api.PlanDetailResponse
 import com.example.travelonna.api.RetrofitClient
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import com.google.android.libraries.places.api.Places
+import com.google.android.libraries.places.api.model.Place
+import com.google.android.libraries.places.api.net.FetchPhotoRequest
+import com.google.android.libraries.places.api.net.FetchPlaceRequest
+import com.google.android.libraries.places.api.net.PlacesClient
 
 class PlaceMemoryActivity : AppCompatActivity() {
 
@@ -31,12 +38,20 @@ class PlaceMemoryActivity : AppCompatActivity() {
     private lateinit var uploadButton: Button
     private lateinit var imageContainer: RelativeLayout
     private lateinit var lockIconView: ImageView
+    private lateinit var placesClient: PlacesClient
     
     private var selectedImageUri: Uri? = null
     private val MAX_SYMBOLS = 350
     private var isPublic = true  // 기본값은 공개 상태
     private var placeId = 0      // 장소 ID
     private var planId = 0       // 계획 ID
+    private var googleId = ""    // Google Place ID 저장
+    private var visitDate = ""   // 방문 날짜
+    private var cost = 0         // 비용
+    private var lat = ""         // 위도
+    private var lon = ""         // 경도
+    private var order = 1        // 순서
+    private var memo = ""        // 메모
     private val TAG = "PlaceMemoryActivity"
     
     // 이미지 선택을 위한 ActivityResultLauncher 선언
@@ -70,6 +85,12 @@ class PlaceMemoryActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_place_memory)
+        
+        // Google Places API 초기화
+        if (!Places.isInitialized()) {
+            Places.initialize(applicationContext, getString(R.string.google_maps_key))
+        }
+        placesClient = Places.createClient(this)
 
         // UI 요소 초기화
         backButton = findViewById(R.id.backButton)
@@ -89,13 +110,37 @@ class PlaceMemoryActivity : AppCompatActivity() {
         placeId = intent.getIntExtra("PLACE_ID", 0)
         planId = intent.getIntExtra("PLAN_ID", 0)
         isPublic = intent.getBooleanExtra("IS_PUBLIC", true)
+        googleId = intent.getStringExtra("GOOGLE_ID") ?: ""
+        visitDate = intent.getStringExtra("VISIT_DATE") ?: ""
+        cost = intent.getIntExtra("COST", 0)
+        memo = intent.getStringExtra("MEMO") ?: ""
+        lat = intent.getStringExtra("LAT") ?: ""
+        lon = intent.getStringExtra("LON") ?: ""
+        order = intent.getIntExtra("ORDER", 1)
+        
+        Log.d(TAG, "받은 데이터 - placeId: $placeId, planId: $planId, googleId: $googleId, isPublic: $isPublic")
 
         // 장소 정보 표시
         placeNameTextView.text = placeName
         placeAddressTextView.text = placeAddress
         
+        // 메모가 있으면 설정
+        if (memo.isNotEmpty()) {
+            memoryEditText.setText(memo)
+        }
+        
         // 자물쇠 아이콘 초기 상태 설정
         updateLockIcon()
+        
+        // 서버에서 장소 상세 정보 가져오기 (placeId와 planId가 있는 경우)
+        if (placeId > 0 && planId > 0) {
+            fetchPlaceDetail()
+        }
+        
+        // Google 이미지 로드 (googleId가 있는 경우)
+        if (googleId.isNotEmpty()) {
+            loadPlaceImage(googleId)
+        }
         
         // 자물쇠 아이콘 클릭 리스너 설정
         lockIconView.setOnClickListener {
@@ -153,6 +198,109 @@ class PlaceMemoryActivity : AppCompatActivity() {
         }
     }
     
+    // 장소 이미지 로드 메서드
+    private fun loadPlaceImage(googlePlaceId: String) {
+        if (googlePlaceId.isEmpty()) return
+        
+        Log.d(TAG, "Loading image for Google Place ID: $googlePlaceId")
+        
+        try {
+            // Places Photo API 사용하여 이미지 로드
+            val placeFields = listOf(Place.Field.PHOTO_METADATAS)
+            val request = FetchPlaceRequest.newInstance(googlePlaceId, placeFields)
+            
+            placesClient.fetchPlace(request).addOnSuccessListener { response ->
+                val place = response.place
+                val photoMetadata = place.photoMetadatas
+                
+                if (photoMetadata != null && photoMetadata.isNotEmpty()) {
+                    // 첫 번째 사진 메타데이터 사용
+                    val firstPhoto = photoMetadata.first()
+                    
+                    // 사진 요청 생성
+                    val photoRequest = FetchPhotoRequest.builder(firstPhoto)
+                        .setMaxWidth(500) // 적당한 크기로 설정
+                        .setMaxHeight(500)
+                        .build()
+                    
+                    // 사진 가져오기
+                    placesClient.fetchPhoto(photoRequest).addOnSuccessListener { fetchPhotoResponse ->
+                        // 이미지 컨테이너의 배경을 투명하게 설정
+                        imageContainer.setBackgroundResource(android.R.color.transparent)
+                        
+                        // 이미지 컨테이너 내부의 안내 텍스트들을 숨김
+                        val childViews = imageContainer.getChildAt(0) as? android.view.ViewGroup
+                        childViews?.visibility = android.view.View.GONE
+                        
+                        // 비트맵 설정
+                        val bitmap = fetchPhotoResponse.bitmap
+                        imageContainer.background = android.graphics.drawable.BitmapDrawable(resources, bitmap)
+                        
+                        Log.d(TAG, "Image loaded successfully for place ID: $googlePlaceId")
+                    }.addOnFailureListener { exception ->
+                        Log.e(TAG, "Failed to fetch photo: ${exception.message}")
+                    }
+                } else {
+                    Log.d(TAG, "No photos found for place ID: $googlePlaceId")
+                }
+            }.addOnFailureListener { exception ->
+                Log.e(TAG, "Failed to fetch place details: ${exception.message}")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error loading place image", e)
+        }
+    }
+    
+    // 서버에서 장소 상세 정보 가져오기
+    private fun fetchPlaceDetail() {
+        Log.d(TAG, "Fetching place detail for planId: $planId, placeId: $placeId")
+        
+        // 일정 정보 가져오기 API 호출
+        RetrofitClient.apiService.getPlanDetail(planId).enqueue(object : Callback<PlanDetailResponse> {
+            override fun onResponse(call: Call<PlanDetailResponse>, response: Response<PlanDetailResponse>) {
+                if (response.isSuccessful && response.body()?.success == true) {
+                    val planDetail = response.body()?.data
+                    val places = planDetail?.places
+                    
+                    // 현재 장소 정보 찾기
+                    val placeDetail = places?.find { it.id == placeId }
+                    
+                    placeDetail?.let { place ->
+                        // 장소 정보 저장
+                        googleId = place.googleId
+                        visitDate = place.visitDate
+                        cost = place.cost
+                        lat = place.lat
+                        lon = place.lon
+                        order = place.order
+                        isPublic = place.isPublic
+                        
+                        Log.d(TAG, "Place detail fetched: name=${place.name}, googleId=${place.googleId}, isPublic=${place.isPublic}")
+                        
+                        // UI 업데이트
+                        updateLockIcon()
+                        
+                        // 메모가 있는 경우 텍스트 설정
+                        if (place.memo.isNotEmpty()) {
+                            memoryEditText.setText(place.memo)
+                        }
+                        
+                        // Google 이미지 로드 (id가 있는 경우)
+                        if (place.googleId.isNotEmpty()) {
+                            loadPlaceImage(place.googleId)
+                        }
+                    } ?: Log.w(TAG, "Place not found in plan detail")
+                } else {
+                    Log.e(TAG, "Failed to fetch plan detail: ${response.code()}")
+                }
+            }
+            
+            override fun onFailure(call: Call<PlanDetailResponse>, t: Throwable) {
+                Log.e(TAG, "Network error when fetching plan detail", t)
+            }
+        })
+    }
+    
     private fun updateLockIcon() {
         // 공개/비공개 상태에 따라 아이콘 변경
         lockIconView.setImageResource(
@@ -176,15 +324,17 @@ class PlaceMemoryActivity : AppCompatActivity() {
         val request = PlaceCreateRequest(
             place = placeAddressTextView.text.toString(),
             isPublic = newIsPublic,
-            visitDate = "",  // 현재 날짜 정보가 없으므로 빈 문자열
-            placeCost = 0,   // 비용 정보 없음
+            visitDate = visitDate,  // 기존 방문 날짜 유지
+            placeCost = cost,       // 기존 비용 유지
             memo = memoryEditText.text.toString(),
-            lat = "",        // 위도 정보 없음
-            lon = "",        // 경도 정보 없음
+            lat = lat,              // 기존 위도 유지
+            lon = lon,              // 기존 경도 유지
             name = placeNameTextView.text.toString(),
-            order = 1,       // 임시 순서
-            googleId = ""    // 구글 장소 ID 정보 없음
+            order = order,          // 기존 순서 유지
+            googleId = googleId     // 중요: Google Place ID 유지
         )
+        
+        Log.d(TAG, "Toggling public status - Request: place=${request.place}, isPublic=${request.isPublic}, googleId=${request.googleId}")
         
         // API 호출
         RetrofitClient.apiService.updatePlace(
@@ -228,5 +378,23 @@ class PlaceMemoryActivity : AppCompatActivity() {
                 ).show()
             }
         })
+    }
+    
+    override fun onDestroy() {
+        super.onDestroy()
+        // Places API 클라이언트 명시적 종료 (메모리 누수 방지)
+        try {
+            val field = Places::class.java.getDeclaredField("zza")
+            field.isAccessible = true
+            val instance = field.get(null)
+            
+            val shutdownMethod = instance.javaClass.getDeclaredMethod("shutdown")
+            shutdownMethod.isAccessible = true
+            shutdownMethod.invoke(instance)
+            
+            Log.d(TAG, "Successfully shut down Places API client")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to shut down Places API client", e)
+        }
     }
 } 

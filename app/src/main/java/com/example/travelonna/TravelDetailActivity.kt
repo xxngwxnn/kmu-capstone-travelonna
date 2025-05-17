@@ -726,6 +726,13 @@ class PlaceAdapter(private val places: List<PlaceDetail>, private val placesClie
                 putExtra("PLACE_ID", place.id)
                 putExtra("PLAN_ID", activity.getPlanId())
                 putExtra("IS_PUBLIC", place.isPublic)
+                putExtra("GOOGLE_ID", place.googleId)
+                putExtra("VISIT_DATE", place.visitDate)
+                putExtra("COST", place.cost)
+                putExtra("MEMO", place.memo)
+                putExtra("LAT", place.lat)
+                putExtra("LON", place.lon)
+                putExtra("ORDER", place.order)
             }
             holder.itemView.context.startActivity(intent)
         }
