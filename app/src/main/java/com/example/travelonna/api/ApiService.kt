@@ -15,6 +15,8 @@ import retrofit2.http.PartMap
 import retrofit2.http.HeaderMap
 import okhttp3.RequestBody
 import okhttp3.MultipartBody
+import okhttp3.ResponseBody
+import java.util.HashMap
 
 interface ApiService {
     @GET("api/v1/plans/{planId}/detail")
@@ -82,4 +84,13 @@ interface ApiService {
     
     @GET("api/v1/follows/count/followings/{profileId}")
     fun getFollowingsCount(@Path("profileId") profileId: Int): Call<FollowCountResponse>
+    
+    // S3에 파일 업로드하는 API
+    @Multipart
+    @POST("api/v1/files/upload")
+    fun uploadFileToS3(@Part file: MultipartBody.Part): Call<ResponseBody>
+    
+    // 여행 로그 생성 API
+    @POST("api/v1/travel-logs")
+    fun createTravelLog(@Body requestBody: HashMap<String, Any>): Call<BasicResponse>
 } 
