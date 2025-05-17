@@ -311,13 +311,23 @@ class ScheduleDetailActivity : AppCompatActivity() {
             
             if (dragFrom != -1 && dragTo != -1 && dragFrom != dragTo) {
                 // 드래그가 끝났을 때 전체 리스트 갱신
-                recyclerView.adapter?.notifyDataSetChanged()
+                val adapter = recyclerView.adapter as PlaceAdapter
+                
+                // 순서가 변경된 경우 서버에 업데이트 요청
+                if (planId > 0) {
+                    adapter.updatePlaceOrdersOnServer()
+                    Log.d("ItemTouchHelper", "Drag completed from $dragFrom to $dragTo, updating orders on server")
+                } else {
+                    Log.d("ItemTouchHelper", "Drag completed locally, plan ID not valid: $planId")
                 }
                 
-                // 드래그 위치 초기화
-                dragFrom = -1
-                dragTo = -1
+                recyclerView.adapter?.notifyDataSetChanged()
             }
+                
+            // 드래그 위치 초기화
+            dragFrom = -1
+            dragTo = -1
+        }
             
         // 고정된 짧은 거리만 스와이프되도록 제한
         override fun onChildDraw(
@@ -398,6 +408,108 @@ class ScheduleDetailActivity : AppCompatActivity() {
             notifyDataSetChanged()
         }
         
+        // 서버에 모든 장소의 순서를 업데이트하는 메서드
+        fun updatePlaceOrdersOnServer() {
+            if (planId <= 0) return  // 유효한 planId가 없으면 실행 안함
+            
+            val selectedDay = viewPager.currentItem + 1  // 현재 선택된 날짜 (1부터 시작)
+            
+            // 로딩 표시
+            val loadingToast = Toast.makeText(this@ScheduleDetailActivity, "순서 업데이트 중...", Toast.LENGTH_SHORT)
+            loadingToast.show()
+            
+            var successCount = 0
+            var failCount = 0
+            val totalItems = places.size
+            
+            // 각 장소마다 순서 업데이트
+            places.forEachIndexed { index, place ->
+                // ID가 유효한 경우만 업데이트
+                if (place.id <= 0) {
+                    Log.w("PlaceAdapter", "Skip updating order for place without valid ID: ${place.name}")
+                    if (++failCount + successCount >= totalItems) {
+                        loadingToast.cancel()
+                        showUpdateResult(successCount, failCount)
+                    }
+                    return@forEachIndexed
+                }
+                
+                // 새 순서는 인덱스+1로 설정 (1부터 시작)
+                val newOrder = index + 1
+                
+                // 업데이트 API 호출을 위한 요청 객체 생성
+                val request = com.example.travelonna.api.PlaceCreateRequest(
+                    place = place.address,
+                    isPublic = place.isPublic,
+                    visitDate = "",  // 기존 방문 날짜 유지
+                    placeCost = if (place.cost.isEmpty()) 0 else place.cost.toIntOrNull() ?: 0,
+                    memo = place.memo,
+                    lat = "",  // 기존 위도 유지
+                    lon = "",  // 기존 경도 유지
+                    name = place.name,
+                    googleId = place.googleId,
+                    order = newOrder  // 새로운 순서
+                )
+                
+                Log.d("PlaceAdapter", "Updating place order - id: ${place.id}, name: ${place.name}, newOrder: $newOrder")
+                
+                // API 호출
+                RetrofitClient.apiService.updatePlace(planId, place.id, request)
+                    .enqueue(object : Callback<com.example.travelonna.api.BasicResponse> {
+                        override fun onResponse(
+                            call: Call<com.example.travelonna.api.BasicResponse>,
+                            response: Response<com.example.travelonna.api.BasicResponse>
+                        ) {
+                            if (response.isSuccessful) {
+                                Log.d("PlaceAdapter", "Successfully updated order for place ${place.id} to $newOrder")
+                                successCount++
+                            } else {
+                                Log.e("PlaceAdapter", "Failed to update order for place ${place.id}: ${response.code()}, ${response.message()}")
+                                failCount++
+                            }
+                            
+                            // 모든 업데이트가 완료되면 결과 표시
+                            if (successCount + failCount >= totalItems) {
+                                loadingToast.cancel()
+                                showUpdateResult(successCount, failCount)
+                            }
+                        }
+                        
+                        override fun onFailure(call: Call<com.example.travelonna.api.BasicResponse>, t: Throwable) {
+                            Log.e("PlaceAdapter", "Network error when updating order for place ${place.id}", t)
+                            failCount++
+                            
+                            // 모든 업데이트가 완료되면 결과 표시
+                            if (successCount + failCount >= totalItems) {
+                                loadingToast.cancel()
+                                showUpdateResult(successCount, failCount)
+                            }
+                        }
+                    })
+            }
+            
+            // 장소가 없는 경우
+            if (places.isEmpty()) {
+                loadingToast.cancel()
+            }
+        }
+        
+        // 업데이트 결과를 표시하는 메서드
+        private fun showUpdateResult(successCount: Int, failCount: Int) {
+            if (failCount == 0) {
+                Toast.makeText(this@ScheduleDetailActivity, "모든 장소의 순서가 업데이트되었습니다", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(this@ScheduleDetailActivity, 
+                    "장소 순서 업데이트: $successCount 성공, $failCount 실패", 
+                    Toast.LENGTH_SHORT).show()
+            }
+            
+            // UI 다시 로드 (선택적)
+            if (successCount > 0) {
+                fetchPlanDetail(planId)
+            }
+        }
+        
         // 아이템 삭제 메서드 추가
         fun removeItem(position: Int) {
             if (position >= 0 && position < places.size) {
@@ -431,6 +543,9 @@ class ScheduleDetailActivity : AppCompatActivity() {
                                         
                                         // 번호 재지정을 위해 이후 아이템들 갱신
                                         notifyItemRangeChanged(position, places.size - position)
+                                        
+                                        // 순서 업데이트 (삭제 후 남은 항목들의 순서를 조정)
+                                        updatePlaceOrdersOnServer()
                                         
                                         Toast.makeText(this@ScheduleDetailActivity, "${removedPlace.name} 장소가 삭제되었습니다", Toast.LENGTH_SHORT).show()
                                     } else {
