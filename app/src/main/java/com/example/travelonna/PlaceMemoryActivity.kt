@@ -66,6 +66,12 @@ class PlaceMemoryActivity : AppCompatActivity() {
     private var travelLogIsPublic = true // 여행 기록(travel log)의 공개 여부, 기본값은 공개
     private val TAG = "PlaceMemoryActivity"
     
+    // 기존 기록 관련 변수들
+    private var existingLogId: Int? = null
+    private var isEditMode = false
+    private var existingComment = ""
+    private var existingImageUrls: List<String> = emptyList()
+    
     // 이미지 선택을 위한 ActivityResultLauncher 선언
     private val pickImage = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri?.let {
@@ -158,6 +164,11 @@ class PlaceMemoryActivity : AppCompatActivity() {
             loadPlaceImage(googleId)
         }
         
+        // 기존 기록 조회 (planId가 있는 경우)
+        if (planId > 0) {
+            checkExistingTravelLog()
+        }
+        
         // 자물쇠 아이콘 클릭 리스너 설정
         lockIconView.setOnClickListener {
             toggleTravelLogPublicStatus()
@@ -199,7 +210,8 @@ class PlaceMemoryActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
             
-            if (selectedImageUri == null) {
+            // 수정 모드가 아닌 경우에만 이미지 필수 체크
+            if (!isEditMode && selectedImageUri == null) {
                 Toast.makeText(this, "이미지를 선택해주세요", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
@@ -212,12 +224,14 @@ class PlaceMemoryActivity : AppCompatActivity() {
             
             loadingDialog.show()
             
-            // 로그 출력
-            Log.d(TAG, "여행 기록 업로드 시작 - planId: $planId, 텍스트 길이: ${memoryText.length}, 이미지: $selectedImageUri")
-            Log.d(TAG, "여행 기록 공개 상태: $travelLogIsPublic")
-            
-            // 이미지와 텍스트가 모두 있는 경우 업로드 진행
-            uploadTravelLog(memoryText, selectedImageUri!!, loadingDialog)
+            // 수정 모드인지 확인하여 적절한 API 호출
+            if (isEditMode && existingLogId != null) {
+                Log.d(TAG, "여행 기록 수정 시작 - logId: $existingLogId, planId: $planId")
+                updateTravelLog(memoryText, selectedImageUri, loadingDialog)
+            } else {
+                Log.d(TAG, "여행 기록 업로드 시작 - planId: $planId, 텍스트 길이: ${memoryText.length}")
+                uploadTravelLog(memoryText, selectedImageUri, loadingDialog)
+            }
         }
     }
     
@@ -410,13 +424,17 @@ class PlaceMemoryActivity : AppCompatActivity() {
     }
     
     // 여행 기록 업로드 메서드
-    private fun uploadTravelLog(comment: String, imageUri: Uri, loadingDialog: android.app.AlertDialog) {
+    private fun uploadTravelLog(comment: String, imageUri: Uri?, loadingDialog: android.app.AlertDialog) {
         try {
-            // 임시 이미지 URL (실제 URL 대신 임시로 사용)
-            val dummyImageUrl = "https://example.com/placeholder_image.jpg"
+            // 이미지 URL 처리 (이미지가 있으면 새 URL, 없으면 기본 URL)
+            val imageUrl = if (imageUri != null) {
+                "https://example.com/placeholder_image.jpg"
+            } else {
+                "https://example.com/default_image.jpg"
+            }
             
             // 바로 여행 로그 생성 API 호출
-            createTravelLog(comment, dummyImageUrl, loadingDialog)
+            createTravelLog(comment, imageUrl, loadingDialog)
         } catch (e: Exception) {
             loadingDialog.dismiss()
             Log.e(TAG, "업로드 처리 중 오류 발생", e)
@@ -515,6 +533,158 @@ class PlaceMemoryActivity : AppCompatActivity() {
                 Toast.makeText(
                     this@PlaceMemoryActivity, 
                     "네트워크 오류: 여행 기록 저장에 실패했습니다", 
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        })
+    }
+
+    // 기존 여행 기록 조회
+    private fun checkExistingTravelLog() {
+        Log.d(TAG, "기존 여행 기록 조회 시작 - planId: $planId")
+        
+        RetrofitClient.apiService.getTravelLogsByPlan(planId).enqueue(object : Callback<com.example.travelonna.api.TravelLogResponse> {
+            override fun onResponse(call: Call<com.example.travelonna.api.TravelLogResponse>, response: Response<com.example.travelonna.api.TravelLogResponse>) {
+                if (response.isSuccessful && response.body()?.success == true) {
+                    val logs = response.body()?.data
+                    if (!logs.isNullOrEmpty()) {
+                        // 첫 번째 기록을 기존 기록으로 설정
+                        val existingLog = logs.first()
+                        existingLogId = existingLog.logId
+                        existingComment = existingLog.comment
+                        existingImageUrls = existingLog.imageUrls
+                        travelLogIsPublic = existingLog.isPublic
+                        isEditMode = true
+                        
+                        Log.d(TAG, "기존 기록 발견 - logId: ${existingLog.logId}, comment: ${existingLog.comment}")
+                        
+                        // UI 업데이트
+                        memoryEditText.setText(existingComment)
+                        updateLockIcon()
+                        uploadButton.text = "수정"
+                        
+                        Toast.makeText(this@PlaceMemoryActivity, "기존 기록을 불러왔습니다", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Log.d(TAG, "기존 기록이 없습니다")
+                        isEditMode = false
+                        uploadButton.text = "업로드"
+                    }
+                } else {
+                    Log.e(TAG, "기존 기록 조회 실패: ${response.code()}")
+                    isEditMode = false
+                    uploadButton.text = "업로드"
+                }
+            }
+            
+            override fun onFailure(call: Call<com.example.travelonna.api.TravelLogResponse>, t: Throwable) {
+                Log.e(TAG, "기존 기록 조회 네트워크 오류", t)
+                isEditMode = false
+                uploadButton.text = "업로드"
+            }
+        })
+    }
+
+    // 여행 기록 수정 메서드
+    private fun updateTravelLog(comment: String, imageUri: Uri?, loadingDialog: android.app.AlertDialog) {
+        try {
+            // 기존 이미지 URL 사용 또는 새 이미지 URL
+            val imageUrl = if (imageUri != null) {
+                "https://example.com/new_image.jpg" // 새 이미지가 있으면 새 URL
+            } else {
+                existingImageUrls.firstOrNull() ?: "https://example.com/placeholder_image.jpg" // 기존 이미지 사용
+            }
+            
+            // 여행 로그 수정 API 호출
+            updateTravelLogApi(comment, imageUrl, loadingDialog)
+        } catch (e: Exception) {
+            loadingDialog.dismiss()
+            Log.e(TAG, "수정 처리 중 오류 발생", e)
+            Toast.makeText(this, "처리 중 오류가 발생했습니다: ${e.message}", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    // 여행 로그 수정 API 호출
+    private fun updateTravelLogApi(comment: String, imageUrl: String, loadingDialog: android.app.AlertDialog) {
+        // API 문서 형식에 맞게 요청 객체 생성
+        val requestBody = HashMap<String, Any>()
+        requestBody["planId"] = planId
+        requestBody["comment"] = comment
+        requestBody["isPublic"] = travelLogIsPublic
+        
+        // 이미지 URL 리스트 추가
+        val imageUrls = ArrayList<String>()
+        imageUrls.add(imageUrl)
+        requestBody["imageUrls"] = imageUrls
+        
+        // 인증 정보 확인
+        val userId = RetrofitClient.getUserId()
+        Log.d(TAG, "사용자 ID: $userId, 수정할 로그 ID: $existingLogId")
+        
+        // API 요청 로깅
+        val gson = GsonBuilder().setPrettyPrinting().create()
+        val jsonRequest = gson.toJson(requestBody)
+        Log.d(TAG, "여행 기록 수정 요청 URL: ${RetrofitClient.BASE_URL}api/v1/logs/$existingLogId")
+        Log.d(TAG, "여행 기록 수정 요청 본문:\n$jsonRequest")
+        
+        // API 호출
+        RetrofitClient.apiService.updateTravelLog(existingLogId!!, requestBody).enqueue(object : Callback<BasicResponse> {
+            override fun onResponse(call: Call<BasicResponse>, response: Response<BasicResponse>) {
+                loadingDialog.dismiss()
+                
+                // 응답 상세 로깅
+                val responseCode = response.code()
+                val responseBody = response.body()
+                val errorBody = response.errorBody()?.string()
+                
+                Log.d(TAG, "여행 기록 수정 응답 코드: $responseCode")
+                if (responseBody != null) {
+                    Log.d(TAG, "여행 기록 수정 응답 본문: ${gson.toJson(responseBody)}")
+                }
+                if (errorBody != null) {
+                    Log.e(TAG, "여행 기록 수정 에러 본문: $errorBody")
+                    
+                    // JSON 에러 메시지 파싱 시도
+                    try {
+                        val errorJson = JSONObject(errorBody)
+                        val message = errorJson.optString("message", "알 수 없는 오류")
+                        Log.e(TAG, "파싱된 에러 메시지: $message")
+                        
+                        Toast.makeText(
+                            this@PlaceMemoryActivity,
+                            "오류: $message",
+                            Toast.LENGTH_LONG
+                        ).show()
+                        return
+                    } catch (e: Exception) {
+                        Log.e(TAG, "JSON 파싱 오류", e)
+                    }
+                }
+                
+                if (response.isSuccessful) {
+                    Log.d(TAG, "여행 로그 수정 성공")
+                    Toast.makeText(this@PlaceMemoryActivity, "여행 기록이 수정되었습니다", Toast.LENGTH_SHORT).show()
+                
+                    // 업로드 완료 화면으로 이동
+                    val intent = Intent(this@PlaceMemoryActivity, UploadCompleteActivity::class.java)
+                    startActivity(intent)
+                    finish()
+                } else {
+                    Log.e(TAG, "여행 로그 수정 실패: ${response.code()}, ${response.message()}")
+                    Toast.makeText(
+                        this@PlaceMemoryActivity, 
+                        "여행 기록 수정에 실패했습니다: ${response.message()}", 
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+            
+            override fun onFailure(call: Call<BasicResponse>, t: Throwable) {
+                loadingDialog.dismiss()
+                Log.e(TAG, "여행 로그 수정 네트워크 오류", t)
+                Log.e(TAG, "요청 URL: ${call.request().url}")
+                Toast.makeText(
+                    this@PlaceMemoryActivity, 
+                    "네트워크 오류: 여행 기록 수정에 실패했습니다", 
                     Toast.LENGTH_SHORT
                 ).show()
             }

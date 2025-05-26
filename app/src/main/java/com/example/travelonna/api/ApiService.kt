@@ -88,4 +88,12 @@ interface ApiService {
     // 여행 로그 생성 API
     @POST("api/v1/logs")
     fun createTravelLog(@Body requestBody: HashMap<String, Any>): Call<BasicResponse>
+    
+    // 여행 로그 조회 API (특정 계획의 기록들)
+    @GET("api/v1/logs/plans/{planId}")
+    fun getTravelLogsByPlan(@Path("planId") planId: Int): Call<TravelLogResponse>
+    
+    // 여행 로그 수정 API
+    @PUT("api/v1/logs/{logId}")
+    fun updateTravelLog(@Path("logId") logId: Int, @Body requestBody: HashMap<String, Any>): Call<BasicResponse>
 } 
