@@ -681,8 +681,8 @@ class PlaceAdapter(private val places: List<PlaceDetail>, private val placesClie
                         // UI 업데이트
                         holder.lockIcon.setImageResource(
                             if (!newIsPublic) R.drawable.ic_circle_lock else R.drawable.ic_circle_open
-                        )
-                        
+            )
+            
                         // 데이터 모델 업데이트 - 변경 불가능한 데이터 클래스이므로 직접 수정 불가
                         // 대신 Activity에 알려서 필요시 데이터를 새로고침하도록 함
                         activity.refreshPlaceData(place.id, newIsPublic)
@@ -702,9 +702,9 @@ class PlaceAdapter(private val places: List<PlaceDetail>, private val placesClie
                 override fun onFailure(call: Call<BasicResponse>, t: Throwable) {
                     // 네트워크 오류 처리
                     Log.e("PlaceAdapter", "네트워크 오류", t)
-                    Toast.makeText(holder.itemView.context, 
+            Toast.makeText(holder.itemView.context, 
                         "네트워크 오류: ${t.message}", 
-                        Toast.LENGTH_SHORT).show()
+                Toast.LENGTH_SHORT).show()
                 }
             })
         }

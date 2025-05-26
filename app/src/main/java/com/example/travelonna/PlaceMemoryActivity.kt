@@ -32,8 +32,12 @@ import java.io.FileOutputStream
 import java.util.UUID
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
+import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.asRequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
+import okhttp3.ResponseBody
+import com.google.gson.GsonBuilder
 
 class PlaceMemoryActivity : AppCompatActivity() {
 
@@ -93,6 +97,10 @@ class PlaceMemoryActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_place_memory)
+        
+        // 토큰과 사용자 ID 확인
+        val userId = RetrofitClient.getUserId()
+        Log.d(TAG, "현재 사용자 ID: $userId, 계획 ID: $planId")
         
         // Google Places API 초기화
         if (!Places.isInitialized()) {
@@ -196,12 +204,17 @@ class PlaceMemoryActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
             
-            // 로딩 표시
+            // 로딩 다이얼로그 표시
             val loadingDialog = android.app.AlertDialog.Builder(this)
                 .setView(R.layout.dialog_loading)
                 .setCancelable(false)
                 .create()
+            
             loadingDialog.show()
+            
+            // 로그 출력
+            Log.d(TAG, "여행 기록 업로드 시작 - planId: $planId, 텍스트 길이: ${memoryText.length}, 이미지: $selectedImageUri")
+            Log.d(TAG, "여행 기록 공개 상태: $travelLogIsPublic")
             
             // 이미지와 텍스트가 모두 있는 경우 업로드 진행
             uploadTravelLog(memoryText, selectedImageUri!!, loadingDialog)
@@ -399,142 +412,115 @@ class PlaceMemoryActivity : AppCompatActivity() {
     // 여행 기록 업로드 메서드
     private fun uploadTravelLog(comment: String, imageUri: Uri, loadingDialog: android.app.AlertDialog) {
         try {
-            // 1. 선택한 이미지를 임시 파일로 변환
-            val imageFile = uriToFile(imageUri)
+            // 임시 이미지 URL (실제 URL 대신 임시로 사용)
+            val dummyImageUrl = "https://example.com/placeholder_image.jpg"
             
-            // 2. S3에 이미지 업로드
-            uploadImageToS3(imageFile, comment, loadingDialog)
+            // 바로 여행 로그 생성 API 호출
+            createTravelLog(comment, dummyImageUrl, loadingDialog)
         } catch (e: Exception) {
             loadingDialog.dismiss()
-            Log.e(TAG, "이미지 업로드 중 오류 발생", e)
-            Toast.makeText(this, "이미지 처리 중 오류가 발생했습니다: ${e.message}", Toast.LENGTH_LONG).show()
+            Log.e(TAG, "업로드 처리 중 오류 발생", e)
+            Toast.makeText(this, "처리 중 오류가 발생했습니다: ${e.message}", Toast.LENGTH_LONG).show()
         }
-    }
-
-    // S3에 이미지 업로드 메서드
-    private fun uploadImageToS3(imageFile: File, comment: String, loadingDialog: android.app.AlertDialog) {
-        // 파일 타입 확인
-        val mimeType = getMimeType(imageFile)
-        val requestFile = imageFile.asRequestBody(mimeType.toMediaTypeOrNull())
-        
-        // 파일명 생성 (UUID 사용하여 고유한 파일명 생성)
-        val fileName = "travel_log_${UUID.randomUUID()}.${getExtension(mimeType)}"
-        
-        // Multipart 요청 생성
-        val imagePart = MultipartBody.Part.createFormData("file", fileName, requestFile)
-        
-        // S3 업로드 API 호출
-        RetrofitClient.apiService.uploadFileToS3(imagePart).enqueue(object : Callback<okhttp3.ResponseBody> {
-            override fun onResponse(call: Call<okhttp3.ResponseBody>, response: Response<okhttp3.ResponseBody>) {
-                if (response.isSuccessful) {
-                    try {
-                        // S3 응답에서 이미지 URL 추출
-                        val responseString = response.body()?.string() ?: "{}"
-                        val jsonObject = JSONObject(responseString)
-                        val imageUrl = jsonObject.optString("url", "")
-                        
-                        Log.d(TAG, "S3 업로드 성공: $imageUrl")
-                        
-                        // 이미지 URL을 포함하여 로그 생성 API 호출
-                        createTravelLog(comment, imageUrl, loadingDialog)
-                    } catch (e: Exception) {
-                        loadingDialog.dismiss()
-                        Log.e(TAG, "S3 응답 처리 중 오류", e)
-                        Toast.makeText(this@PlaceMemoryActivity, "이미지 URL 처리 중 오류가 발생했습니다", Toast.LENGTH_SHORT).show()
-                    }
-                } else {
-                    loadingDialog.dismiss()
-                    Log.e(TAG, "S3 업로드 실패: ${response.code()}, ${response.message()}")
-                    Toast.makeText(this@PlaceMemoryActivity, "이미지 업로드에 실패했습니다", Toast.LENGTH_SHORT).show()
-                }
-            }
-            
-            override fun onFailure(call: Call<okhttp3.ResponseBody>, t: Throwable) {
-                loadingDialog.dismiss()
-                Log.e(TAG, "S3 업로드 네트워크 오류", t)
-                Toast.makeText(this@PlaceMemoryActivity, "네트워크 오류: 이미지 업로드에 실패했습니다", Toast.LENGTH_SHORT).show()
-            }
-        })
     }
 
     // 여행 로그 생성 API 호출
     private fun createTravelLog(comment: String, imageUrl: String, loadingDialog: android.app.AlertDialog) {
-        // 요청 객체 생성
+        // API 문서 형식에 맞게 요청 객체 생성
         val requestBody = HashMap<String, Any>()
         requestBody["planId"] = planId
         requestBody["comment"] = comment
-        requestBody["isPublic"] = travelLogIsPublic // 여행 기록의 공개/비공개 상태 사용
+        requestBody["isPublic"] = travelLogIsPublic
         
         // 이미지 URL 리스트 추가
         val imageUrls = ArrayList<String>()
         imageUrls.add(imageUrl)
         requestBody["imageUrls"] = imageUrls
         
+        // 인증 정보 확인
+        val userId = RetrofitClient.getUserId()
+        Log.d(TAG, "사용자 ID: $userId, 요청 계획 ID: $planId")
+        
+        // API 요청 로깅
+        val gson = GsonBuilder().setPrettyPrinting().create()
+        val jsonRequest = gson.toJson(requestBody)
+        Log.d(TAG, "여행 기록 생성 요청 URL: ${RetrofitClient.BASE_URL}api/v1/logs")
+        Log.d(TAG, "여행 기록 생성 요청 본문:\n$jsonRequest")
+        
         // API 호출
         RetrofitClient.apiService.createTravelLog(requestBody).enqueue(object : Callback<BasicResponse> {
             override fun onResponse(call: Call<BasicResponse>, response: Response<BasicResponse>) {
                 loadingDialog.dismiss()
                 
-                if (response.isSuccessful) {
-                    Log.d(TAG, "여행 로그 생성 성공: ${response.body()}")
-                    Toast.makeText(this@PlaceMemoryActivity, "여행 기록이 저장되었습니다", Toast.LENGTH_SHORT).show()
+                // 응답 상세 로깅
+                val responseCode = response.code()
+                val responseBody = response.body()
+                val errorBody = response.errorBody()?.string()
+                
+                Log.d(TAG, "여행 기록 생성 응답 코드: $responseCode")
+                if (responseBody != null) {
+                    Log.d(TAG, "여행 기록 생성 응답 본문: ${gson.toJson(responseBody)}")
+                }
+                if (errorBody != null) {
+                    Log.e(TAG, "여행 기록 생성 에러 본문: $errorBody")
                     
-                    // 업로드 완료 화면으로 이동
+                    // JSON 에러 메시지 파싱 시도
+                    try {
+                        val errorJson = JSONObject(errorBody)
+                        val message = errorJson.optString("message", "알 수 없는 오류")
+                        Log.e(TAG, "파싱된 에러 메시지: $message")
+                        
+                        // 소유권 관련 오류인 경우 더 자세한 정보 제공
+                        if (message.contains("owner") || message.contains("not found")) {
+                            Toast.makeText(
+                                this@PlaceMemoryActivity,
+                                "해당 여행 일정($planId)에 대한 권한이 없습니다. 사용자 ID: $userId",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        } else {
+                            Toast.makeText(
+                                this@PlaceMemoryActivity,
+                                "오류: $message",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
+                        return
+                    } catch (e: Exception) {
+                        Log.e(TAG, "JSON 파싱 오류", e)
+                    }
+                }
+                
+                if (response.isSuccessful) {
+                    Log.d(TAG, "여행 로그 생성 성공")
+                    Toast.makeText(this@PlaceMemoryActivity, "여행 기록이 저장되었습니다", Toast.LENGTH_SHORT).show()
+                
+                // 업로드 완료 화면으로 이동
                     val intent = Intent(this@PlaceMemoryActivity, UploadCompleteActivity::class.java)
-                    startActivity(intent)
-                    finish()
-                } else {
+                startActivity(intent)
+                finish()
+            } else {
                     Log.e(TAG, "여행 로그 생성 실패: ${response.code()}, ${response.message()}")
-                    val errorBody = response.errorBody()?.string() ?: "알 수 없는 오류"
-                    Log.e(TAG, "에러 응답: $errorBody")
-                    Toast.makeText(this@PlaceMemoryActivity, "여행 기록 저장에 실패했습니다", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        this@PlaceMemoryActivity, 
+                        "여행 기록 저장에 실패했습니다: ${response.message()}", 
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
             }
             
             override fun onFailure(call: Call<BasicResponse>, t: Throwable) {
                 loadingDialog.dismiss()
                 Log.e(TAG, "여행 로그 생성 네트워크 오류", t)
-                Toast.makeText(this@PlaceMemoryActivity, "네트워크 오류: 여행 기록 저장에 실패했습니다", Toast.LENGTH_SHORT).show()
+                Log.e(TAG, "요청 URL: ${call.request().url}")
+                Toast.makeText(
+                    this@PlaceMemoryActivity, 
+                    "네트워크 오류: 여행 기록 저장에 실패했습니다", 
+                    Toast.LENGTH_SHORT
+                ).show()
             }
         })
     }
 
-    // URI를 파일로 변환하는 유틸리티 함수
-    private fun uriToFile(uri: Uri): File {
-        val inputStream = contentResolver.openInputStream(uri)
-        val file = File(cacheDir, "temp_image_${System.currentTimeMillis()}")
-        
-        FileOutputStream(file).use { outputStream ->
-            inputStream?.copyTo(outputStream)
-        }
-        
-        inputStream?.close()
-        return file
-    }
-
-    // MIME 타입 확인 유틸리티 함수
-    private fun getMimeType(file: File): String {
-        val extension = file.extension.lowercase()
-        return when (extension) {
-            "jpg", "jpeg" -> "image/jpeg"
-            "png" -> "image/png"
-            "gif" -> "image/gif"
-            "webp" -> "image/webp"
-            else -> "image/jpeg" // 기본값
-        }
-    }
-
-    // 확장자 추출 유틸리티 함수
-    private fun getExtension(mimeType: String): String {
-        return when (mimeType) {
-            "image/jpeg" -> "jpg"
-            "image/png" -> "png"
-            "image/gif" -> "gif"
-            "image/webp" -> "webp"
-            else -> "jpg" // 기본값
-        }
-    }
-    
     override fun onDestroy() {
         super.onDestroy()
         // Places API 클라이언트 명시적 종료 (메모리 누수 방지)

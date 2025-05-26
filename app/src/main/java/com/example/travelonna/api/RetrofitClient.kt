@@ -13,7 +13,7 @@ import okhttp3.logging.HttpLoggingInterceptor
 
 object RetrofitClient {
     private const val TAG = "RetrofitClient"
-    const val BASE_URL = "http://travelonna.shop:8080/"
+    const val BASE_URL = "http://travelonna.shop/"
     private const val TOKEN_PREF = "auth_pref"
     private const val TOKEN_KEY = "auth_token"
     private const val USER_ID_KEY = "user_id"

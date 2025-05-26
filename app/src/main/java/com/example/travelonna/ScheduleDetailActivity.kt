@@ -322,12 +322,12 @@ class ScheduleDetailActivity : AppCompatActivity() {
                 }
                 
                 recyclerView.adapter?.notifyDataSetChanged()
-            }
+                }
                 
-            // 드래그 위치 초기화
-            dragFrom = -1
-            dragTo = -1
-        }
+                // 드래그 위치 초기화
+                dragFrom = -1
+                dragTo = -1
+            }
             
         // 고정된 짧은 거리만 스와이프되도록 제한
         override fun onChildDraw(

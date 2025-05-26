@@ -70,27 +70,27 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:orientation="vertical">
+        android:orientation="vertical">
 
-            <!-- 장소 이름 -->
-            <TextView
-                android:id="@+id/placeNameTextView"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="동대구역"
-                android:textColor="@color/black"
-                android:textSize="20sp"
-                android:textStyle="bold" />
+        <!-- 장소 이름 -->
+        <TextView
+            android:id="@+id/placeNameTextView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="동대구역"
+            android:textColor="@color/black"
+            android:textSize="20sp"
+            android:textStyle="bold" />
 
-            <!-- 장소 주소 -->
-            <TextView
-                android:id="@+id/placeAddressTextView"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="대구광역시 동구 동대구로 550 (신암동 294)"
-                android:textColor="#666666"
-                android:textSize="14sp" />
+        <!-- 장소 주소 -->
+        <TextView
+            android:id="@+id/placeAddressTextView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="대구광역시 동구 동대구로 550 (신암동 294)"
+            android:textColor="#666666"
+            android:textSize="14sp" />
         </LinearLayout>
 
         <!-- 자물쇠 아이콘 -->

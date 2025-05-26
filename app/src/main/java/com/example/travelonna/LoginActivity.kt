@@ -42,7 +42,7 @@ class LoginActivity : AppCompatActivity() {
         .build()
 
     private val retrofit = Retrofit.Builder()
-        .baseUrl("http://travelonna.shop:8080/")  // 포트 번호 다시 추가
+        .baseUrl("http://travelonna.shop/")  // 포트 번호 제거
         .addConverterFactory(GsonConverterFactory.create())
         .client(okHttpClient)
         .build()

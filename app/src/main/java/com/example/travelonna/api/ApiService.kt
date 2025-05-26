@@ -85,12 +85,7 @@ interface ApiService {
     @GET("api/v1/follows/count/followings/{profileId}")
     fun getFollowingsCount(@Path("profileId") profileId: Int): Call<FollowCountResponse>
     
-    // S3에 파일 업로드하는 API
-    @Multipart
-    @POST("api/v1/files/upload")
-    fun uploadFileToS3(@Part file: MultipartBody.Part): Call<ResponseBody>
-    
     // 여행 로그 생성 API
-    @POST("api/v1/travel-logs")
+    @POST("api/v1/logs")
     fun createTravelLog(@Body requestBody: HashMap<String, Any>): Call<BasicResponse>
 } 
