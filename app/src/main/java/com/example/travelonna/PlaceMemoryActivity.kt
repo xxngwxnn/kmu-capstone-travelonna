@@ -447,6 +447,7 @@ class PlaceMemoryActivity : AppCompatActivity() {
         // API 문서 형식에 맞게 요청 객체 생성
         val requestBody = HashMap<String, Any>()
         requestBody["planId"] = planId
+        requestBody["placeId"] = placeId
         requestBody["comment"] = comment
         requestBody["isPublic"] = travelLogIsPublic
         
@@ -608,6 +609,7 @@ class PlaceMemoryActivity : AppCompatActivity() {
         // API 문서 형식에 맞게 요청 객체 생성
         val requestBody = HashMap<String, Any>()
         requestBody["planId"] = planId
+        requestBody["placeId"] = placeId
         requestBody["comment"] = comment
         requestBody["isPublic"] = travelLogIsPublic
         

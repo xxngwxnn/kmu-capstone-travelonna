@@ -3,7 +3,9 @@ package com.example.travelonna
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
 import android.widget.Button
 import android.widget.ImageButton
 import android.widget.ImageView
@@ -15,10 +17,14 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.example.travelonna.api.FollowCountResponse
 import com.example.travelonna.api.ProfileResponse
 import com.example.travelonna.api.RetrofitClient
+import com.example.travelonna.api.TravelLogData
+import com.example.travelonna.api.TravelLogResponse
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -38,9 +44,13 @@ class ProfileActivity : AppCompatActivity() {
     private lateinit var postsTab: TextView
     private lateinit var mapTab: TextView
     private lateinit var divider: View
+    private lateinit var postsRecyclerView: RecyclerView
     
     private val TAG = "ProfileActivity"
     private var profileId: Int = 0
+    private lateinit var travelLogsAdapter: TravelLogsAdapter
+    private var travelLogs: MutableList<TravelLogData> = mutableListOf()
+    private var currentProfileData: ProfileResponse? = null
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -61,6 +71,12 @@ class ProfileActivity : AppCompatActivity() {
         fetchProfileData()
     }
     
+    override fun onResume() {
+        super.onResume()
+        // 프로필 편집 후 돌아왔을 때 데이터 새로고침
+        fetchProfileData()
+    }
+    
     private fun initViews() {
         backButton = findViewById(R.id.back_button)
         notificationButton = findViewById(R.id.notification_button)
@@ -75,6 +91,10 @@ class ProfileActivity : AppCompatActivity() {
         postsTab = findViewById(R.id.posts_tab)
         mapTab = findViewById(R.id.map_tab)
         divider = findViewById(R.id.divider)
+        postsRecyclerView = findViewById(R.id.posts_recycler_view)
+        
+        // RecyclerView 설정
+        setupRecyclerView()
     }
     
     private fun setupListeners() {
@@ -90,7 +110,18 @@ class ProfileActivity : AppCompatActivity() {
         
         // Profile edit button
         profileEditButton.setOnClickListener {
-            // TODO: Navigate to profile edit screen
+            val intent = Intent(this, ProfileCreateActivity::class.java)
+            // 편집 모드임을 알리는 플래그
+            intent.putExtra("isEditMode", true)
+            // 현재 프로필 데이터 전달
+            currentProfileData?.let { profileData ->
+                intent.putExtra("nickname", profileData.nickname)
+                intent.putExtra("introduction", profileData.introduction ?: "")
+                intent.putExtra("profileImageUrl", profileData.profileImage ?: "")
+                intent.putExtra("userId", profileData.userId)
+                intent.putExtra("profileId", profileData.profileId)
+            }
+            startActivity(intent)
         }
         
         // Tab switching
@@ -133,12 +164,17 @@ class ProfileActivity : AppCompatActivity() {
                 if (response.isSuccessful) {
                     val profileData = response.body()
                     if (profileData != null) {
+                        // 현재 프로필 데이터 저장
+                        currentProfileData = profileData
                         // 프로필 데이터를 UI에 설정
                         profileId = profileData.profileId
                         updateProfileUI(profileData)
                         
                         // 팔로워 및 팔로잉 수 조회
                         fetchFollowCounts(profileId)
+                        
+                        // 사용자별 기록 조회
+                        fetchUserTravelLogs()
                     } else {
                         // 응답은 성공했지만 데이터가 null인 경우
                         Toast.makeText(this@ProfileActivity, "프로필 정보가 없습니다.", Toast.LENGTH_SHORT).show()
@@ -249,8 +285,7 @@ class ProfileActivity : AppCompatActivity() {
             profileImage.setImageResource(R.drawable.ic_launcher_background)
         }
         
-        // 임시 통계 데이터 (API에서 제공하지 않는 값)
-        postsCount.text = "25"
+        // 게시물 수는 fetchUserTravelLogs에서 설정됨
         
         // 진행 상태 설정 (임시)
         airplaneProgress.progress = 75
@@ -259,7 +294,7 @@ class ProfileActivity : AppCompatActivity() {
     private fun loadDummyData() {
         // 임시 데이터로 UI 업데이트
         usernameText.text = "travel_on_me"
-        postsCount.text = "25"
+        postsCount.text = "0" // 기본값으로 0 설정
         followersCount.text = "0"
         followingCount.text = "0"
         bioText.text = "여행을 하기 위해 살아가는 사나이"
@@ -297,4 +332,99 @@ class ProfileActivity : AppCompatActivity() {
         
         // TODO: Show map content, hide posts content
     }
+    
+    private fun setupRecyclerView() {
+        travelLogsAdapter = TravelLogsAdapter(travelLogs)
+        postsRecyclerView.apply {
+            layoutManager = androidx.recyclerview.widget.LinearLayoutManager(this@ProfileActivity) // 한 줄에 하나씩
+            adapter = travelLogsAdapter
+        }
+    }
+    
+    private fun fetchUserTravelLogs() {
+        val userId = RetrofitClient.getUserId()
+        Log.d(TAG, "사용자별 기록 조회 시작 - userId: $userId")
+        
+        RetrofitClient.apiService.getTravelLogsByUser(userId).enqueue(object : Callback<TravelLogResponse> {
+            override fun onResponse(call: Call<TravelLogResponse>, response: Response<TravelLogResponse>) {
+                if (response.isSuccessful && response.body()?.success == true) {
+                    val logs = response.body()?.data ?: emptyList()
+                    Log.d(TAG, "사용자별 기록 조회 성공 - 기록 수: ${logs.size}")
+                    
+                    // 기록 수 업데이트
+                    postsCount.text = logs.size.toString()
+                    
+                    // RecyclerView 업데이트
+                    travelLogs.clear()
+                    travelLogs.addAll(logs)
+                    travelLogsAdapter.notifyDataSetChanged()
+                    
+                    if (logs.isEmpty()) {
+                        // 기록이 없는 경우 메시지 표시 (필요시)
+                        Log.d(TAG, "사용자 기록이 없습니다")
+                    }
+                } else {
+                    Log.e(TAG, "사용자별 기록 조회 실패: ${response.code()}")
+                    postsCount.text = "0"
+                }
+            }
+            
+            override fun onFailure(call: Call<TravelLogResponse>, t: Throwable) {
+                Log.e(TAG, "사용자별 기록 조회 네트워크 오류", t)
+                postsCount.text = "0"
+            }
+        })
+    }
+}
+
+// 사용자별 기록을 표시하는 어댑터
+class TravelLogsAdapter(private val travelLogs: List<TravelLogData>) : 
+    RecyclerView.Adapter<TravelLogsAdapter.TravelLogViewHolder>() {
+
+    class TravelLogViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        val postImage: ImageView = view.findViewById(R.id.post_image)
+        val placeName: TextView = view.findViewById(R.id.place_name)
+        val placeAddress: TextView = view.findViewById(R.id.place_address)
+    }
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TravelLogViewHolder {
+        val view = LayoutInflater.from(parent.context)
+            .inflate(R.layout.item_profile_post, parent, false)
+        return TravelLogViewHolder(view)
+    }
+
+    override fun onBindViewHolder(holder: TravelLogViewHolder, position: Int) {
+        val travelLog = travelLogs[position]
+        
+        // 장소명 표시 (placeNames에서 첫 번째 장소 사용)
+        val placeName = if (travelLog.placeNames.isNotEmpty()) {
+            travelLog.placeNames.first()
+        } else {
+            travelLog.plan.title // 장소명이 없으면 계획 제목 사용
+        }
+        holder.placeName.text = placeName
+        
+        // 주소 표시 (계획의 location 사용)
+        holder.placeAddress.text = travelLog.plan.location
+        
+        // 이미지 표시 (imageUrls에서 첫 번째 이미지 사용)
+        if (travelLog.imageUrls.isNotEmpty()) {
+            Glide.with(holder.itemView.context)
+                .load(travelLog.imageUrls.first())
+                .placeholder(R.drawable.ic_launcher_background)
+                .error(R.drawable.ic_launcher_background)
+                .centerCrop()
+                .into(holder.postImage)
+        } else {
+            holder.postImage.setImageResource(R.drawable.ic_launcher_background)
+        }
+        
+        // 아이템 클릭 이벤트 (기록 상세 보기)
+        holder.itemView.setOnClickListener {
+            // TODO: 기록 상세 화면으로 이동
+            Log.d("TravelLogsAdapter", "기록 클릭 - logId: ${travelLog.logId}")
+        }
+    }
+
+    override fun getItemCount() = travelLogs.size
 } 

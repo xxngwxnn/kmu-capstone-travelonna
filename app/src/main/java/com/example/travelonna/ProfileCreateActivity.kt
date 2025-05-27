@@ -14,6 +14,7 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.cardview.widget.CardView
+import com.bumptech.glide.Glide
 import com.example.travelonna.api.ProfileCreateRequest
 import com.example.travelonna.api.ProfileResponse
 import com.example.travelonna.api.RetrofitClient
@@ -38,6 +39,11 @@ class ProfileCreateActivity : AppCompatActivity() {
     
     private var selectedImageUri: Uri? = null
     private val TAG = "ProfileCreateActivity"
+    
+    // 편집 모드 관련 변수들
+    private var isEditMode = false
+    private var profileId: Int = 0
+    private var currentProfileImageUrl: String? = null
     
     // Image picker result launcher
     private val pickImage = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
@@ -111,10 +117,201 @@ class ProfileCreateActivity : AppCompatActivity() {
             finish()
         }
         
+        // 편집 모드 확인 및 데이터 설정
+        checkEditModeAndSetupData()
+        
         // Set up confirm button
         findViewById<ImageButton>(R.id.confirmButton).setOnClickListener {
-            createProfile()
+            if (isEditMode) {
+                updateProfile()
+            } else {
+                createProfile()
+            }
         }
+    }
+    
+    // 편집 모드 확인 및 데이터 설정
+    private fun checkEditModeAndSetupData() {
+        isEditMode = intent.getBooleanExtra("isEditMode", false)
+        
+        if (isEditMode) {
+            // 편집 모드일 때 전달받은 데이터로 UI 설정
+            val nickname = intent.getStringExtra("nickname") ?: ""
+            val introduction = intent.getStringExtra("introduction") ?: ""
+            val profileImageUrl = intent.getStringExtra("profileImageUrl") ?: ""
+            profileId = intent.getIntExtra("profileId", 0)
+            
+            // 현재 프로필 이미지 URL 저장
+            currentProfileImageUrl = if (profileImageUrl.isNotEmpty() && profileImageUrl != "https://example.com/images/profile.jpg") {
+                profileImageUrl
+            } else {
+                null
+            }
+            
+            // UI에 기존 데이터 설정
+            nicknameEditText.setText(nickname)
+            introductionEditText.setText(introduction)
+            
+            // 프로필 이미지 로드 (URL이 있는 경우)
+            currentProfileImageUrl?.let { imageUrl ->
+                loadProfileImage(imageUrl)
+            }
+            
+            Log.d(TAG, "편집 모드로 시작: profileId=$profileId, nickname=$nickname, imageUrl=$currentProfileImageUrl")
+        }
+    }
+    
+    // 기존 프로필 이미지 로드
+    private fun loadProfileImage(imageUrl: String) {
+        try {
+            // 이미지를 원형에 꽉 차게 표시하기 위한 설정
+            profileAddIcon.layoutParams.width = ViewGroup.LayoutParams.MATCH_PARENT
+            profileAddIcon.layoutParams.height = ViewGroup.LayoutParams.MATCH_PARENT
+            profileAddIcon.scaleType = ImageView.ScaleType.CENTER_CROP
+            profileAddIcon.setPadding(0, 0, 0, 0)
+            
+            // Glide를 사용하여 이미지 로드
+            Glide.with(this)
+                .load(imageUrl)
+                .placeholder(R.drawable.ic_profile_add)
+                .error(R.drawable.ic_profile_add)
+                .centerCrop()
+                .into(profileAddIcon)
+                
+            Log.d(TAG, "프로필 이미지 로드: $imageUrl")
+        } catch (e: Exception) {
+            Log.e(TAG, "프로필 이미지 로드 중 오류 발생", e)
+            resetProfileIconToDefault()
+        }
+    }
+    
+    // 프로필 업데이트 (편집 모드)
+    private fun updateProfile() {
+        val nickname = nicknameEditText.text.toString().trim()
+        val introduction = introductionEditText.text.toString().trim()
+        
+        // Validate input
+        if (nickname.isEmpty()) {
+            Toast.makeText(this, "닉네임을 입력해주세요", Toast.LENGTH_SHORT).show()
+            return
+        }
+        
+        Log.d(TAG, "프로필 업데이트 시작: profileId=$profileId")
+        Log.d(TAG, "새 이미지 선택됨: ${selectedImageUri != null}")
+        Log.d(TAG, "기존 이미지 URL: $currentProfileImageUrl")
+        
+        // Show loading
+        Toast.makeText(this, "프로필을 수정 중입니다...", Toast.LENGTH_SHORT).show()
+        
+        // 이미지가 새로 선택되었는지 확인
+        if (selectedImageUri != null) {
+            // 새 이미지와 함께 프로필 업데이트
+            updateProfileWithNewImage(profileId, nickname, introduction)
+        } else {
+            // 이미지 변경 없이 프로필 업데이트 (기존 이미지 유지)
+            updateProfileWithExistingImage(profileId, nickname, introduction)
+        }
+    }
+    
+    // 새 이미지와 함께 프로필 업데이트
+    private fun updateProfileWithNewImage(profileId: Int, nickname: String, introduction: String) {
+        try {
+            // 1. URI에서 실제 파일 가져오기
+            val imageFile = uriToFile(selectedImageUri!!)
+            
+            // 2. RequestBody 객체 생성
+            val nicknamePart = nickname.toRequestBody("text/plain".toMediaTypeOrNull())
+            val introductionPart = (if (introduction.isEmpty()) "여행을 좋아하는 직장인입니다." else introduction)
+                .toRequestBody("text/plain".toMediaTypeOrNull())
+            
+            // 3. 이미지 파일 MIME 타입 확인 및 설정
+            val mimeType = getMimeType(imageFile)
+            if (!isValidImageMimeType(mimeType)) {
+                Toast.makeText(this, "지원하지 않는 이미지 형식입니다.", Toast.LENGTH_LONG).show()
+                updateProfileWithExistingImage(profileId, nickname, introduction)
+                return
+            }
+            
+            // 4. 이미지 파일 MultipartBody.Part로 변환
+            val requestFile = imageFile.asRequestBody(mimeType.toMediaTypeOrNull())
+            val imagePart = MultipartBody.Part.createFormData(
+                "profileImage", 
+                "profile_image.${getExtension(mimeType)}", 
+                requestFile
+            )
+            
+            Log.d(TAG, "프로필 업데이트 (이미지 포함) 요청 준비 완료 - profileId: $profileId")
+            
+            // 5. PUT API 호출 - 프로필 수정용 API 사용
+            RetrofitClient.apiService.updateUserProfileWithImage(
+                profileId, nicknamePart, introductionPart, imagePart
+            ).enqueue(object : Callback<ProfileResponse> {
+                override fun onResponse(call: Call<ProfileResponse>, response: Response<ProfileResponse>) {
+                    handleUpdateResponse(response)
+                }
+                
+                override fun onFailure(call: Call<ProfileResponse>, t: Throwable) {
+                    handleUpdateFailure(call, t)
+                }
+            })
+        } catch (e: Exception) {
+            Log.e(TAG, "프로필 업데이트 중 오류 발생", e)
+            Toast.makeText(this, "이미지 처리 중 오류가 발생했습니다: ${e.message}", Toast.LENGTH_SHORT).show()
+            updateProfileWithExistingImage(profileId, nickname, introduction)
+        }
+    }
+    
+    // 기존 이미지를 유지하면서 프로필 업데이트
+    private fun updateProfileWithExistingImage(profileId: Int, nickname: String, introduction: String) {
+        // Multipart 형식으로 데이터 준비 (기존 이미지 유지)
+        val nicknamePart = nickname.toRequestBody("text/plain".toMediaTypeOrNull())
+        val introductionPart = (if (introduction.isEmpty()) "여행을 좋아하는 직장인입니다." else introduction)
+            .toRequestBody("text/plain".toMediaTypeOrNull())
+        
+        Log.d(TAG, "프로필 업데이트 (기존 이미지 유지) 요청 - profileId: $profileId")
+        Log.d(TAG, "기존 이미지 URL: $currentProfileImageUrl")
+        Log.d(TAG, "업데이트 데이터: nickname=$nickname, introduction=$introduction")
+        
+        // PUT API 호출 - Multipart 형식으로 프로필 수정 (이미지는 null로 전달하여 기존 이미지 유지)
+        RetrofitClient.apiService.updateUserProfileWithImage(
+            profileId, nicknamePart, introductionPart, null
+        ).enqueue(object : Callback<ProfileResponse> {
+            override fun onResponse(call: Call<ProfileResponse>, response: Response<ProfileResponse>) {
+                handleUpdateResponse(response)
+            }
+            
+            override fun onFailure(call: Call<ProfileResponse>, t: Throwable) {
+                handleUpdateFailure(call, t)
+            }
+        })
+    }
+    
+    // 프로필 업데이트 응답 처리
+    private fun handleUpdateResponse(response: Response<ProfileResponse>) {
+        val responseCode = response.code()
+        val responseBody = response.body()
+        val errorBody = response.errorBody()?.string()
+        
+        Log.d(TAG, "프로필 업데이트 응답 코드: $responseCode")
+        
+        if (response.isSuccessful && response.body() != null) {
+            Toast.makeText(this@ProfileCreateActivity, "프로필이 수정되었습니다", Toast.LENGTH_SHORT).show()
+            
+            // 프로필 페이지로 돌아가기
+            finish()
+        } else {
+            Log.e(TAG, "프로필 업데이트 실패: ${response.code()}, ${response.message()}")
+            if (errorBody != null) {
+                Log.e(TAG, "에러 본문: $errorBody")
+            }
+            Toast.makeText(this@ProfileCreateActivity, "프로필 수정에 실패했습니다", Toast.LENGTH_SHORT).show()
+        }
+    }
+    
+    // 프로필 업데이트 실패 처리
+    private fun handleUpdateFailure(call: Call<ProfileResponse>, t: Throwable) {
+        Log.e(TAG, "프로필 업데이트 네트워크 오류", t)
+        Toast.makeText(this@ProfileCreateActivity, "네트워크 오류가 발생했습니다", Toast.LENGTH_SHORT).show()
     }
     
     private fun createProfile() {

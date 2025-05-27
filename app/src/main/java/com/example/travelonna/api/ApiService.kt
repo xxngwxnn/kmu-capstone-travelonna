@@ -78,6 +78,23 @@ interface ApiService {
         @Part profileImage: MultipartBody.Part?
     ): Call<ProfileResponse>
     
+    // 프로필 수정 API (JSON)
+    @PUT("api/v1/profiles/{profileId}")
+    fun updateUserProfile(
+        @Path("profileId") profileId: Int,
+        @Body profileData: HashMap<String, Any>
+    ): Call<ProfileResponse>
+    
+    // 프로필 수정 API (Multipart - 이미지 포함)
+    @Multipart
+    @PUT("api/v1/profiles/{profileId}")
+    fun updateUserProfileWithImage(
+        @Path("profileId") profileId: Int,
+        @Part("nickname") nickname: RequestBody,
+        @Part("introduction") introduction: RequestBody,
+        @Part profileImage: MultipartBody.Part?
+    ): Call<ProfileResponse>
+    
     // Follow count endpoints
     @GET("api/v1/follows/count/followers/{profileId}")
     fun getFollowersCount(@Path("profileId") profileId: Int): Call<FollowCountResponse>
@@ -96,4 +113,8 @@ interface ApiService {
     // 여행 로그 수정 API
     @PUT("api/v1/logs/{logId}")
     fun updateTravelLog(@Path("logId") logId: Int, @Body requestBody: HashMap<String, Any>): Call<BasicResponse>
+    
+    // 사용자별 여행 로그 조회 API
+    @GET("api/v1/logs/users/{userId}")
+    fun getTravelLogsByUser(@Path("userId") userId: Int): Call<TravelLogResponse>
 } 
