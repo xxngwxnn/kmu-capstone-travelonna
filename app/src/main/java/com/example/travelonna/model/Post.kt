@@ -6,5 +6,8 @@ data class Post(
     val userName: String,
     var isFollowing: Boolean,
     val description: String,
-    val date: String
+    val date: String,
+    var isLiked: Boolean = false,
+    var likeCount: Int = 0,
+    var commentCount: Int = 0
 ) 

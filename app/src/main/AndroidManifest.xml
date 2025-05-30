@@ -58,6 +58,10 @@
             android:exported="false" />
 
         <activity
+            android:name=".PostDetailActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".ScheduleCreateActivity"
             android:exported="false" />
 

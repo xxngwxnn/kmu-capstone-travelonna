@@ -479,7 +479,7 @@ class TravelDetailActivity : AppCompatActivity() {
                     name = it.name,
                     address = it.address,
                     order = 0,
-                    isPublic = !it.isLocked,
+                    isPublic = true,  // 기본값을 true로 설정
                     visitDate = "",
                     day = selectedTabIndex + 1,
                     cost = 0,
