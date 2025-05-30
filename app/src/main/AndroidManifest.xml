@@ -54,6 +54,10 @@
             android:exported="false" />
 
         <activity
+            android:name=".SearchActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".ScheduleCreateActivity"
             android:exported="false" />
 

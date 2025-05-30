@@ -4,7 +4,7 @@ data class Post(
     val id: Long,
     val imageResource: Int,
     val userName: String,
-    val isFollowing: Boolean,
+    var isFollowing: Boolean,
     val description: String,
     val date: String
 ) 

@@ -34,6 +34,11 @@ class MainActivity : AppCompatActivity() {
             startActivity(intent)
         }
 
+        findViewById<Button>(R.id.searchButton)?.setOnClickListener {
+            val intent = Intent(this, SearchActivity::class.java)
+            startActivity(intent)
+        }
+
         findViewById<Button>(R.id.createScheduleButton)?.setOnClickListener {
             val intent = Intent(this, ScheduleCreateActivity::class.java)
             startActivity(intent)

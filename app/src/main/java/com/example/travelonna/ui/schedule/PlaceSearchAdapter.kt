@@ -25,7 +25,7 @@ class PlaceSearchAdapter(
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PlaceViewHolder {
         val view = LayoutInflater.from(parent.context)
-            .inflate(R.layout.item_place_search, parent, false)
+            .inflate(R.layout.item_place_search_result, parent, false)
         return PlaceViewHolder(view)
     }
 

@@ -24,10 +24,21 @@
         android:layout_height="wrap_content"
         android:text="메인화면"
         android:layout_marginTop="16dp"
-        app:layout_constraintBottom_toTopOf="@+id/createScheduleButton"
+        app:layout_constraintBottom_toTopOf="@+id/searchButton"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/loginButton" />
+
+    <Button
+        android:id="@+id/searchButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="검색"
+        android:layout_marginTop="16dp"
+        app:layout_constraintBottom_toTopOf="@+id/createScheduleButton"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/homeButton" />
 
     <Button
         android:id="@+id/createScheduleButton"
@@ -38,7 +49,7 @@
         app:layout_constraintBottom_toTopOf="@+id/planButton"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/homeButton" />
+        app:layout_constraintTop_toBottomOf="@+id/searchButton" />
 
     <Button
         android:id="@+id/planButton"
