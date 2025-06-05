@@ -30,7 +30,17 @@ class LogAdapter(private val logs: List<TravelLog>) :
         val log = logs[position]
         holder.titleText.text = log.title
         holder.dateText.text = log.date
-        holder.typeText.text = log.type
+        
+        // 여행 타입과 상태를 함께 표시
+        val typeAndStatus = "${log.type} · ${log.status}"
+        holder.typeText.text = typeAndStatus
+        
+        // 진행 중인 일정은 파란색으로 강조
+        if (log.status == "진행중") {
+            holder.typeText.setTextColor(holder.itemView.context.getColor(R.color.blue_primary))
+        } else {
+            holder.typeText.setTextColor(holder.itemView.context.getColor(R.color.gray_text))
+        }
         
         // 아이템 클릭 이벤트 처리
         holder.itemContainer.setOnClickListener {
@@ -38,12 +48,11 @@ class LogAdapter(private val logs: List<TravelLog>) :
                 putExtra("TRAVEL_TITLE", log.title)
                 putExtra("TRAVEL_DATE", log.date)
                 putExtra("TRAVEL_TYPE", log.type)
+                putExtra("TRAVEL_STATUS", log.status)
                 putExtra("TRAVEL_PLACES_COUNT", log.places.size)
+                putExtra("PLAN_ID", log.planId)
                 
-                // 실제 planId 전달 (각 로그에 planId 필드가 있다고 가정)
-                putExtra("PLAN_ID", log.planId) 
-                
-                // 장소 정보 전달 (간단하게 하기 위해 인덱스로 전달)
+                // 장소 정보 전달
                 log.places.forEachIndexed { index, place ->
                     putExtra("PLACE_NAME_$index", place.name)
                     putExtra("PLACE_ADDRESS_$index", place.address)

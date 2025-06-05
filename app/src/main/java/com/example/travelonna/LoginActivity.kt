@@ -338,21 +338,25 @@ class LoginActivity : AppCompatActivity() {
             override fun onResponse(call: Call<ProfileResponse>, response: Response<ProfileResponse>) {
                 Log.d(TAG, "Profile check response code: ${response.code()}")
                 
-                if (response.isSuccessful && response.body() != null) {
-                    // Profile exists, navigate to PlanActivity
-                    Log.d(TAG, "User profile exists, navigating to PlanActivity")
-                    navigateToPlanActivity()
-                } else if (response.code() == 400 || response.code() == 404) {
-                    // 400/404 indicates profile doesn't exist
-                    Log.d(TAG, "User profile doesn't exist (${response.code()}), navigating to ProfileCreateActivity")
-                    Toast.makeText(this@LoginActivity, "프로필을 생성해주세요", Toast.LENGTH_SHORT).show()
-                    navigateToProfileCreateActivity()
-                } else {
-                    // Other error
-                    Log.e(TAG, "Error checking profile: ${response.code()}, ${response.message()}")
-                    Log.e(TAG, "Error body: ${response.errorBody()?.string()}")
-                    // Navigate to plan activity anyway as fallback
-                    navigateToPlanActivity()
+                when (response.code()) {
+                    200 -> {
+                        // Profile exists, navigate to PlanActivity
+                        Log.d(TAG, "User profile exists, navigating to PlanActivity")
+                        navigateToPlanActivity()
+                    }
+                    204 -> {
+                        // 204 indicates profile doesn't exist
+                        Log.d(TAG, "User profile doesn't exist (204), navigating to ProfileCreateActivity")
+                        Toast.makeText(this@LoginActivity, "프로필을 생성해주세요", Toast.LENGTH_SHORT).show()
+                        navigateToProfileCreateActivity()
+                    }
+                    else -> {
+                        // Other error
+                        Log.e(TAG, "Error checking profile: ${response.code()}, ${response.message()}")
+                        Log.e(TAG, "Error body: ${response.errorBody()?.string()}")
+                        // Navigate to plan activity anyway as fallback
+                        navigateToPlanActivity()
+                    }
                 }
             }
             

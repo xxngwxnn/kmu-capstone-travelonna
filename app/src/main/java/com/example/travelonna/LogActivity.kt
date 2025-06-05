@@ -205,10 +205,15 @@ class LogActivity : AppCompatActivity() {
         
         return plans
             .filter { plan ->
-                // 종료일이 현재 날짜보다 이전인 여행만 필터링 (완료된 여행)
                 try {
+                    // 시작일과 종료일 파싱
+                    val startDate = apiDateFormat.parse(plan.startDate)
                     val endDate = apiDateFormat.parse(plan.endDate)
-                    endDate != null && endDate.before(currentDate)
+                    
+                    // 진행 중이거나 완료된 여행만 포함
+                    // (시작일이 현재 이전이거나 같고, 종료일이 현재 이전이거나 같은 경우)
+                    startDate != null && endDate != null && 
+                    (startDate.before(currentDate) || startDate == currentDate)
                 } catch (e: Exception) {
                     Log.e(TAG, "날짜 파싱 오류: ${e.message}")
                     false
@@ -233,12 +238,21 @@ class LogActivity : AppCompatActivity() {
                 // 그룹 여부 결정
                 val type = if (plan.groupId != null) "그룹" else "개인"
                 
+                // 진행 상태 확인
+                val status = try {
+                    val parsedEndDate = apiDateFormat.parse(plan.endDate)
+                    if (parsedEndDate.before(currentDate)) "완료" else "진행중"
+                } catch (e: Exception) {
+                    "완료"
+                }
+                
                 TravelLog(
                     title = plan.title,
                     date = "$startDate - $endDate",
                     type = type,
                     places = listOf(), // 장소 데이터는 아직 API에 없음
-                    planId = plan.planId.toInt() // planId 추가
+                    planId = plan.planId.toInt(), // planId 추가
+                    status = status // 상태 추가
                 )
             }
     }
@@ -246,8 +260,8 @@ class LogActivity : AppCompatActivity() {
     // 어댑터 업데이트
     private fun updateAdapterWithLogs(logs: List<TravelLog>) {
         if (logs.isEmpty()) {
-            // 완료된 여행이 없을 경우 안내 메시지 표시
-            Toast.makeText(this, "완료된 여행이 없습니다", Toast.LENGTH_SHORT).show()
+            // 진행 중이거나 완료된 여행이 없을 경우 안내 메시지 표시
+            Toast.makeText(this, "진행 중이거나 완료된 여행이 없습니다", Toast.LENGTH_SHORT).show()
         }
         
         logAdapter = LogAdapter(logs)
