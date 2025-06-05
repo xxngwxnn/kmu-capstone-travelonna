@@ -167,79 +167,93 @@ class ScheduleDetailActivity : AppCompatActivity() {
     // 결과 처리를 위한 onActivityResult 수정
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == 100 && resultCode == RESULT_OK && data != null) {
-            val selectedDay = data.getIntExtra("SELECTED_DAY", 0)
-            
-            // 현재 뷰페이저 위치가 선택한 날짜와 다르면 해당 날짜로 이동
-            if (viewPager.currentItem != selectedDay) {
-                viewPager.currentItem = selectedDay
-            }
-            
-            // API를 통해 장소가 추가된 경우
-            if (data.getBooleanExtra("PLACE_ADDED", false)) {
-                Toast.makeText(this, "장소가 추가되었습니다", Toast.LENGTH_SHORT).show()
-                // 장소 추가 후 일정 상세 정보 다시 로드
-                if (planId > 0) {
-                    Log.d("ScheduleDetail", "Refreshing plan details after adding new place: planId=$planId, selectedDay=$selectedDay")
+        
+        when (requestCode) {
+            REQUEST_EDIT_PLAN -> {
+                if (resultCode == RESULT_OK) {
+                    // 일정이 수정되었으므로 데이터 새로고침
                     fetchPlanDetail(planId)
+                    Toast.makeText(this, "일정이 수정되었습니다.", Toast.LENGTH_SHORT).show()
+                }
+            }
+            100 -> {
+                if (resultCode == RESULT_OK && data != null) {
+                    val selectedDay = data.getIntExtra("SELECTED_DAY", 0)
+                    
+                    // 현재 뷰페이저 위치가 선택한 날짜와 다르면 해당 날짜로 이동
+                    if (viewPager.currentItem != selectedDay) {
+                        viewPager.currentItem = selectedDay
+                    }
+                    
+                    // API를 통해 장소가 추가된 경우
+                    if (data.getBooleanExtra("PLACE_ADDED", false)) {
+                        Toast.makeText(this, "장소가 추가되었습니다", Toast.LENGTH_SHORT).show()
+                        // 장소 추가 후 일정 상세 정보 다시 로드
+                        if (planId > 0) {
+                            Log.d("ScheduleDetail", "Refreshing plan details after adding new place: planId=$planId, selectedDay=$selectedDay")
+                            fetchPlanDetail(planId)
                         } else {
-                    Log.d("ScheduleDetail", "Cannot refresh plan details: Invalid planId=$planId")
+                            Log.d("ScheduleDetail", "Cannot refresh plan details: Invalid planId=$planId")
+                        }
+                        return
+                    }
+                    
+                    // 선택된 장소 정보 처리 (로컬 로직)
+                    val placeName = data.getStringExtra("PLACE_NAME") ?: ""
+                    val placeAddress = data.getStringExtra("PLACE_ADDRESS") ?: ""
+                    val placeLat = data.getDoubleExtra("PLACE_LAT", 0.0)
+                    val placeLng = data.getDoubleExtra("PLACE_LNG", 0.0)
+                    val estimatedCost = data.getStringExtra("ESTIMATED_COST") ?: "0"
+                    val memo = data.getStringExtra("MEMO") ?: ""
+                    val isPublic = data.getBooleanExtra("IS_PUBLIC", false)
+                    
+                    // 새로운 장소 아이템 생성
+                    val newPlace = PlaceItem(
+                        name = placeName,
+                        address = placeAddress,
+                        imageResId = R.drawable.dummy_place_1,
+                        cost = estimatedCost,
+                        memo = memo,
+                        isPublic = isPublic
+                    )
+                    
+                    // 현재 표시 중인 날짜의 RecyclerView에 장소 추가
+                    val recyclerView = findViewById<ViewPager2>(R.id.viewPager)
+                        .getChildAt(0) as RecyclerView
+                    val viewHolder = recyclerView.findViewHolderForAdapterPosition(selectedDay) as? DayPagerAdapter.DayPageHolder
+                    
+                    viewHolder?.let {
+                        val adapter = it.recyclerView.adapter as PlaceAdapter
+                        val placesList = adapter.places
+                        placesList.add(newPlace)
+                        adapter.notifyItemInserted(placesList.size - 1)
+                    }
+                    
+                    Toast.makeText(this, "장소가 추가되었습니다: $placeName", Toast.LENGTH_SHORT).show()
                 }
-                return
             }
-            
-            // 선택된 장소 정보 처리 (로컬 로직) - API 사용 시 제거 가능
-            val placeName = data.getStringExtra("PLACE_NAME") ?: ""
-            val placeAddress = data.getStringExtra("PLACE_ADDRESS") ?: ""
-            val placeLat = data.getDoubleExtra("PLACE_LAT", 0.0)
-            val placeLng = data.getDoubleExtra("PLACE_LNG", 0.0)
-            val estimatedCost = data.getStringExtra("ESTIMATED_COST") ?: "0"
-            val memo = data.getStringExtra("MEMO") ?: ""
-            val isPublic = data.getBooleanExtra("IS_PUBLIC", false)
-            
-            // 새로운 장소 아이템 생성
-            val newPlace = PlaceItem(
-                name = placeName,
-                address = placeAddress,
-                imageResId = R.drawable.dummy_place_1, // 임시 이미지
-                cost = estimatedCost,
-                memo = memo,
-                isPublic = isPublic
-            )
-            
-            // 현재 표시 중인 날짜의 RecyclerView에 장소 추가
-            val recyclerView = findViewById<ViewPager2>(R.id.viewPager)
-                .getChildAt(0) as RecyclerView
-            val viewHolder = recyclerView.findViewHolderForAdapterPosition(selectedDay) as? DayPagerAdapter.DayPageHolder
-            
-            viewHolder?.let {
-                val adapter = it.recyclerView.adapter as PlaceAdapter
-                val placesList = adapter.places
-                placesList.add(newPlace)
-                adapter.notifyItemInserted(placesList.size - 1)
-            }
-            
-            Toast.makeText(this, "장소가 추가되었습니다: $placeName", Toast.LENGTH_SHORT).show()
-        }
-        // 장소 편집 결과 처리 (요청 코드 200)
-        else if (requestCode == 200 && resultCode == RESULT_OK && data != null) {
-            // API를 통해 장소가 수정된 경우
-            if (data.getBooleanExtra("PLACE_UPDATED", false) || data.getBooleanExtra("PLACE_ADDED", false)) {
-                val selectedDay = data.getIntExtra("SELECTED_DAY", viewPager.currentItem)
-                
-                // 현재 뷰페이저 위치가 선택한 날짜와 다르면 해당 날짜로 이동
-                if (viewPager.currentItem != selectedDay) {
-                    viewPager.currentItem = selectedDay
-                }
-                
-                Toast.makeText(this, "장소 정보가 업데이트되었습니다", Toast.LENGTH_SHORT).show()
-                
-                // 장소 정보 업데이트 후 일정 상세 정보 다시 로드
-                if (planId > 0) {
-                    Log.d("ScheduleDetail", "Refreshing plan details after updating place: planId=$planId")
-                    fetchPlanDetail(planId)
-                } else {
-                    Log.d("ScheduleDetail", "Cannot refresh plan details: Invalid planId=$planId")
+            200 -> {
+                // 장소 편집 결과 처리
+                if (resultCode == RESULT_OK && data != null) {
+                    // API를 통해 장소가 수정된 경우
+                    if (data.getBooleanExtra("PLACE_UPDATED", false) || data.getBooleanExtra("PLACE_ADDED", false)) {
+                        val selectedDay = data.getIntExtra("SELECTED_DAY", viewPager.currentItem)
+                        
+                        // 현재 뷰페이저 위치가 선택한 날짜와 다르면 해당 날짜로 이동
+                        if (viewPager.currentItem != selectedDay) {
+                            viewPager.currentItem = selectedDay
+                        }
+                        
+                        Toast.makeText(this, "장소 정보가 업데이트되었습니다", Toast.LENGTH_SHORT).show()
+                        
+                        // 장소 정보 업데이트 후 일정 상세 정보 다시 로드
+                        if (planId > 0) {
+                            Log.d("ScheduleDetail", "Refreshing plan details after updating place: planId=$planId")
+                            fetchPlanDetail(planId)
+                        } else {
+                            Log.d("ScheduleDetail", "Cannot refresh plan details: Invalid planId=$planId")
+                        }
+                    }
                 }
             }
         }
@@ -1113,6 +1127,7 @@ class ScheduleDetailActivity : AppCompatActivity() {
         val transportTextView = dialog.findViewById<TextView>(R.id.transportTextView)
         val totalCostTextView = dialog.findViewById<TextView>(R.id.totalCostTextView)
         val memoTextView = dialog.findViewById<TextView>(R.id.memoTextView)
+        val editButton = dialog.findViewById<ImageButton>(R.id.editButton)
 
         // 데이터 설정
         titleTextView.text = planDetail.title
@@ -1134,7 +1149,30 @@ class ScheduleDetailActivity : AppCompatActivity() {
         // 메모
         memoTextView.text = planDetail.memo.ifEmpty { "메모가 없습니다." }
 
+        // 편집 버튼 클릭 리스너
+        editButton.setOnClickListener {
+            // 일정 생성 화면으로 이동하면서 기존 데이터 전달
+            val intent = Intent(this, ScheduleCreateActivity::class.java).apply {
+                putExtra("IS_EDIT_MODE", true)
+                putExtra("PLAN_ID", planDetail.planId)
+                putExtra("TITLE", planDetail.title)
+                putExtra("START_DATE", planDetail.startDate)
+                putExtra("END_DATE", planDetail.endDate)
+                putExtra("LOCATION", planDetail.location)
+                putExtra("TRANSPORT_INFO", planDetail.transportInfo)
+                putExtra("IS_PUBLIC", planDetail.isPublic)
+                putExtra("MEMO", planDetail.memo)
+                putExtra("TOTAL_COST", planDetail.totalCost)
+            }
+            startActivityForResult(intent, REQUEST_EDIT_PLAN)
+            dialog.dismiss()
+        }
+
         dialog.show()
+    }
+
+    companion object {
+        private const val REQUEST_EDIT_PLAN = 1001
     }
 
     override fun onDestroy() {

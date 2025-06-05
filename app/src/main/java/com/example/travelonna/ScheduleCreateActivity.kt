@@ -56,6 +56,8 @@ class ScheduleCreateActivity : AppCompatActivity() {
     private lateinit var transportEtc: TextView
 
     private var selectedTransport = "" // 기본 선택 없음
+    private var isEditMode = false // 편집 모드 여부
+    private var planId = 0 // 수정할 일정의 ID
 
     private val startDateCalendar = Calendar.getInstance()
     private val endDateCalendar = Calendar.getInstance()
@@ -96,12 +98,54 @@ class ScheduleCreateActivity : AppCompatActivity() {
         transportCard = findViewById(R.id.transportCard)
         memoCard = findViewById(R.id.memoCard)
         
-        // 초기 UI 설정 - 처음에는 일정 유형과 일정 이름 모두 바로 표시
+        // 편집 모드 확인 및 데이터 설정
+        isEditMode = intent.getBooleanExtra("IS_EDIT_MODE", false)
+        
+        // 초기 UI 설정
         setupInitialUI()
         
         // 교통수단 선택 리스너 설정
         setupTransportSelectionListeners()
 
+        if (isEditMode) {
+            // 기존 데이터 가져오기
+            planId = intent.getIntExtra("PLAN_ID", 0)
+            val title = intent.getStringExtra("TITLE") ?: ""
+            val startDate = intent.getStringExtra("START_DATE") ?: ""
+            val endDate = intent.getStringExtra("END_DATE") ?: ""
+            val location = intent.getStringExtra("LOCATION") ?: ""
+            val transportInfo = intent.getStringExtra("TRANSPORT_INFO") ?: ""
+            val isPublic = intent.getBooleanExtra("IS_PUBLIC", true)
+            val memo = intent.getStringExtra("MEMO") ?: ""
+            val totalCost = intent.getIntExtra("TOTAL_COST", 0)
+
+            // UI에 기존 데이터 설정
+            scheduleNameInput.setText(title)
+            locationSelectButton.text = location
+            memoInput.setText(memo)
+            typeToggle.setChecked(!isPublic) // 토글이 반대로 되어있으므로
+
+            // 날짜 설정
+            try {
+                val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+                startDateCalendar.time = dateFormat.parse(startDate) ?: Calendar.getInstance().time
+                endDateCalendar.time = dateFormat.parse(endDate) ?: Calendar.getInstance().time
+                updateDateRangeText()
+            } catch (e: Exception) {
+                Log.e("ScheduleCreate", "Date parsing error", e)
+            }
+
+            // 교통수단 선택 상태 복원
+            selectedTransport = transportInfo
+            updateTransportSelection(transportInfo)
+
+            // 버튼 텍스트 변경
+            createScheduleButton.text = "일정 수정하기"
+            
+            // 타이틀 변경
+            findViewById<TextView>(R.id.titleText).text = "일정 수정"
+        }
+        
         // 토글 버튼 리스너 수정
         typeToggle.setOnCheckedChangeListener { isChecked ->
             updateToggleTextColors(isChecked)
@@ -175,7 +219,7 @@ class ScheduleCreateActivity : AppCompatActivity() {
                 endDateCalendar.set(Calendar.DAY_OF_MONTH, dayOfMonth)
                 
                 // 날짜가 모두 선택되면 UI 업데이트
-                updateDateRangeLabel()
+                updateDateRangeText()
             },
             endDateCalendar.get(Calendar.YEAR),
             endDateCalendar.get(Calendar.MONTH),
@@ -188,13 +232,11 @@ class ScheduleCreateActivity : AppCompatActivity() {
         datePickerDialog.show()
     }
 
-    private fun updateDateRangeLabel() {
-        val dateFormat = SimpleDateFormat("yyyy년 MM월 dd일", Locale.getDefault())
+    private fun updateDateRangeText() {
+        val dateFormat = SimpleDateFormat("yyyy.MM.dd", Locale.KOREA)
         val startDateStr = dateFormat.format(startDateCalendar.time)
         val endDateStr = dateFormat.format(endDateCalendar.time)
-        
-        // 시작일~종료일 형식으로 표시
-        dateRangeButton.text = "$startDateStr~$endDateStr"
+        dateRangeButton.text = "$startDateStr - $endDateStr"
         
         // 날짜 선택 완료 후 위치 선택 카드 표시
         showNextStep(locationCard)
@@ -236,13 +278,51 @@ class ScheduleCreateActivity : AppCompatActivity() {
         val apiDateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
         val startDateStr = apiDateFormat.format(startDateCalendar.time)
         val endDateStr = apiDateFormat.format(endDateCalendar.time)
-        
-        // 그룹 여행인 경우 먼저 그룹 URL 생성 API 호출
-        if (typeToggle.isChecked()) {
-            createGroupUrlFirst(startDateStr, endDateStr, loadingDialog)
+
+        // 요청 객체 생성
+        val planRequest = PlanCreateRequest(
+            title = scheduleNameInput.text.toString(),
+            startDate = startDateStr,
+            endDate = endDateStr,
+            location = locationSelectButton.text.toString(),
+            memo = memoInput.text.toString(),
+            isGroupPlan = typeToggle.isChecked(),
+            transportInfo = selectedTransport,
+            groupId = null
+        )
+
+        if (isEditMode) {
+            // 수정 API 호출
+            RetrofitClient.apiService.updatePlan(planId, planRequest)
+                .enqueue(object : Callback<PlanCreateResponse> {
+                    override fun onResponse(call: Call<PlanCreateResponse>, response: Response<PlanCreateResponse>) {
+                        loadingDialog.dismiss()
+                        
+                        if (response.isSuccessful) {
+                            Toast.makeText(this@ScheduleCreateActivity, "일정이 수정되었습니다.", Toast.LENGTH_SHORT).show()
+                            setResult(RESULT_OK)
+                            finish()
+                        } else {
+                            val errorMsg = response.errorBody()?.string() ?: "일정 수정 중 오류가 발생했습니다"
+                            Toast.makeText(this@ScheduleCreateActivity, errorMsg, Toast.LENGTH_SHORT).show()
+                            Log.e("ScheduleCreate", "API Error: $errorMsg")
+                        }
+                    }
+                    
+                    override fun onFailure(call: Call<PlanCreateResponse>, t: Throwable) {
+                        loadingDialog.dismiss()
+                        Toast.makeText(this@ScheduleCreateActivity, "네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
+                        Log.e("ScheduleCreate", "Network Error: ${t.message}")
+                    }
+                })
         } else {
-            // 개인 여행의 경우 바로 일정 생성
-            createPlan(startDateStr, endDateStr, null, loadingDialog)
+            // 그룹 여행인 경우 먼저 그룹 URL 생성 API 호출
+            if (typeToggle.isChecked()) {
+                createGroupUrlFirst(startDateStr, endDateStr, loadingDialog)
+            } else {
+                // 개인 여행의 경우 바로 일정 생성
+                createPlan(startDateStr, endDateStr, null, loadingDialog)
+            }
         }
     }
     
@@ -508,14 +588,25 @@ class ScheduleCreateActivity : AppCompatActivity() {
 
     // 초기 UI 설정 메서드
     private fun setupInitialUI() {
-        // 처음에는 일정 유형과 일정 이름 모두 바로 표시
-        typeCard.visibility = View.VISIBLE
-        nameCard.visibility = View.VISIBLE  // 지연 없이 바로 표시
-        dateCard.visibility = View.GONE
-        locationCard.visibility = View.GONE
-        transportCard.visibility = View.GONE
-        memoCard.visibility = View.GONE
-        createScheduleButton.visibility = View.GONE
+        if (isEditMode) {
+            // 편집 모드일 때는 모든 카드를 한 번에 표시
+            typeCard.visibility = View.VISIBLE
+            nameCard.visibility = View.VISIBLE
+            dateCard.visibility = View.VISIBLE
+            locationCard.visibility = View.VISIBLE
+            transportCard.visibility = View.VISIBLE
+            memoCard.visibility = View.VISIBLE
+            createScheduleButton.visibility = View.VISIBLE
+        } else {
+            // 새로 생성할 때는 순차적으로 표시
+            typeCard.visibility = View.VISIBLE
+            nameCard.visibility = View.VISIBLE
+            dateCard.visibility = View.GONE
+            locationCard.visibility = View.GONE
+            transportCard.visibility = View.GONE
+            memoCard.visibility = View.GONE
+            createScheduleButton.visibility = View.GONE
+        }
     }
     
     // 다음 단계 표시 메서드
@@ -527,10 +618,18 @@ class ScheduleCreateActivity : AppCompatActivity() {
     private fun setupTransportSelectionListeners() {
         // 초기 상태 설정 (선택 없음)
         transportCar.isSelected = false
-        transportCar.setTextColor(ContextCompat.getColor(this, R.color.gray_text))
-        transportBus.setTextColor(ContextCompat.getColor(this, R.color.gray_text))
-        transportTrain.setTextColor(ContextCompat.getColor(this, R.color.gray_text))
-        transportEtc.setTextColor(ContextCompat.getColor(this, R.color.gray_text))
+        transportCar.background = null
+        transportBus.background = null
+        transportTrain.background = null
+        transportEtc.background = null
+
+        // 편집 모드가 아닐 때만 초기 색상을 회색으로 설정
+        if (!isEditMode) {
+            transportCar.setTextColor(ContextCompat.getColor(this, R.color.gray_text))
+            transportBus.setTextColor(ContextCompat.getColor(this, R.color.gray_text))
+            transportTrain.setTextColor(ContextCompat.getColor(this, R.color.gray_text))
+            transportEtc.setTextColor(ContextCompat.getColor(this, R.color.gray_text))
+        }
         
         val transportViews = listOf(transportCar, transportBus, transportTrain, transportEtc)
         val transportValues = listOf("car", "bus", "train", "etc")
@@ -543,14 +642,14 @@ class ScheduleCreateActivity : AppCompatActivity() {
         transportViews.forEachIndexed { index, view ->
             view.setOnClickListener {
                 // 모든 뷰 선택 해제 및 회색 텍스트로 설정
-                transportViews.forEach { 
-                    it.isSelected = false 
-                    it.setTextColor(ContextCompat.getColor(this, R.color.gray_text))
+                transportViews.forEach { transportView -> 
+                    transportView.isSelected = false
+                    transportView.setTextColor(ContextCompat.getColor(this, R.color.gray_text))
                 }
                 
                 // 선택된 뷰만 선택 상태로 변경 및 파란색 텍스트로 설정
                 view.isSelected = true
-                view.setTextColor(ContextCompat.getColor(this, R.color.blue))
+                view.setTextColor(ContextCompat.getColor(this, R.color.blue_primary))
                 
                 // 선택된 교통수단 값 저장
                 selectedTransport = transportValues[index]
@@ -568,6 +667,20 @@ class ScheduleCreateActivity : AppCompatActivity() {
             }
         }
         
+        // 편집 모드일 때 초기 교통수단 선택 상태 설정
+        if (isEditMode && selectedTransport.isNotEmpty()) {
+            val index = transportValues.indexOf(selectedTransport.lowercase())
+            if (index != -1) {
+                transportViews[index].setTextColor(ContextCompat.getColor(this, R.color.blue_primary))
+                transportViews[index].isSelected = true
+                
+                // 기차가 선택된 경우 검색 버튼 표시
+                if (selectedTransport == "train") {
+                    searchTransportButton.visibility = View.VISIBLE
+                }
+            }
+        }
+        
         // 교통수단 검색 버튼 리스너 설정
         searchTransportButton.setOnClickListener {
             if (locationSelectButton.text.toString() != "위치를 선택해주세요." && 
@@ -581,6 +694,31 @@ class ScheduleCreateActivity : AppCompatActivity() {
             } else {
                 Toast.makeText(this, "위치와 날짜를 먼저 선택해주세요", Toast.LENGTH_SHORT).show()
             }
+        }
+    }
+
+    // 교통수단 선택 상태 업데이트 메서드
+    private fun updateTransportSelection(transport: String) {
+        // 모든 교통수단 버튼 초기화
+        val transportViews = listOf(transportCar, transportBus, transportTrain, transportEtc)
+        transportViews.forEach { view ->
+            view.background = null
+            view.setTextColor(ContextCompat.getColor(this, R.color.gray_text))
+            view.isSelected = false
+        }
+
+        // 선택된 교통수단 강조
+        val selectedView = when (transport.lowercase()) {
+            "car" -> transportCar
+            "bus" -> transportBus
+            "train" -> transportTrain
+            "etc" -> transportEtc
+            else -> null
+        }
+
+        selectedView?.let {
+            it.isSelected = true
+            it.setTextColor(ContextCompat.getColor(this, R.color.blue_primary))
         }
     }
 } 
