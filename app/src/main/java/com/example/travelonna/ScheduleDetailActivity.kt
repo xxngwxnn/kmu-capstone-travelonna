@@ -41,6 +41,9 @@ import com.google.android.libraries.places.api.net.PlacesClient
 import android.widget.ImageButton
 import android.graphics.Canvas
 import android.graphics.Paint
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
+import android.app.Dialog
 
 class ScheduleDetailActivity : AppCompatActivity() {
 
@@ -106,9 +109,9 @@ class ScheduleDetailActivity : AppCompatActivity() {
             finish()
         }
                                 
-                                // 총 일수 계산
-                                val diffInMillis = endDateCalendar.timeInMillis - startDateCalendar.timeInMillis
-                                dayCount = TimeUnit.MILLISECONDS.toDays(diffInMillis).toInt() + 1
+        // 총 일수 계산
+        val diffInMillis = endDateCalendar.timeInMillis - startDateCalendar.timeInMillis
+        dayCount = TimeUnit.MILLISECONDS.toDays(diffInMillis).toInt() + 1
         
         // ViewPager 설정
         viewPager.adapter = DayPagerAdapter(this, dayCount, startDateCalendar)
@@ -135,18 +138,10 @@ class ScheduleDetailActivity : AppCompatActivity() {
                 Log.d("ScheduleDetail", "Sending Plan ID: $planId to PlaceInfoActivity")
                 
                 startActivityForResult(intent, 100)
-        } catch (e: Exception) {
+            } catch (e: Exception) {
                 Toast.makeText(this, "오류 발생: ${e.message}", Toast.LENGTH_SHORT).show()
-            e.printStackTrace()
-        }
-    }
-    
-        // 완료 버튼 리스너
-        confirmButton.setOnClickListener {
-            // 일정 완료 화면으로 이동
-            val intent = Intent(this, ScheduleCompleteActivity::class.java)
-            startActivity(intent)
-            finish() // 현재 화면 종료
+                e.printStackTrace()
+            }
         }
         
         // 최초 로드 시 일정 정보 가져오기 (planId가 유효한 경우)
@@ -156,6 +151,17 @@ class ScheduleDetailActivity : AppCompatActivity() {
         } else {
             Log.d("ScheduleDetail", "No valid planId provided ($planId), skipping plan detail fetch")
         }
+        
+        // 완료 버튼 리스너
+        confirmButton.setOnClickListener {
+            // 일정 완료 화면으로 이동
+            val intent = Intent(this, ScheduleCompleteActivity::class.java)
+            startActivity(intent)
+            finish() // 현재 화면 종료
+        }
+
+        // 헤더 클릭 리스너 설정
+        setupHeaderClickListener()
     }
     
     // 결과 처리를 위한 onActivityResult 수정
@@ -982,10 +988,11 @@ class ScheduleDetailActivity : AppCompatActivity() {
             
             // 그룹 일정인지 확인하고 공유 버튼 설정
             if (detail.isGroup) {
+                // 그룹 일정인 경우 공유 버튼 표시
+                shareButton.visibility = View.VISIBLE
                 // 일정 ID를 사용하여 그룹 정보 가져오기
                 val planId = detail.planId
                 Log.d("ScheduleDetail", "This is a group plan with planId: $planId")
-                
                 fetchGroupInfo(planId)
             } else {
                 // 그룹이 아닌 경우 공유 버튼 숨김
@@ -1002,8 +1009,7 @@ class ScheduleDetailActivity : AppCompatActivity() {
 
     // 그룹 기능 설정
     private fun setupGroupFunctionality(urlCode: String) {
-        // 그룹 여행일 경우에만 공유 버튼 표시
-        shareButton.visibility = View.VISIBLE
+        // 공유 버튼 클릭 리스너 설정
         shareButton.setOnClickListener {
             // 공유 기능 구현
             val shareIntent = Intent().apply {
@@ -1013,8 +1019,6 @@ class ScheduleDetailActivity : AppCompatActivity() {
             }
             startActivity(Intent.createChooser(shareIntent, "공유 방법 선택"))
         }
-        
-        // 웹소켓 연결 등 추가 처리는 여기에 구현
     }
 
     // 그룹 정보를 가져오는 함수 추가
@@ -1060,6 +1064,77 @@ class ScheduleDetailActivity : AppCompatActivity() {
                     shareButton.visibility = View.GONE
                 }
             })
+    }
+
+    private fun setupHeaderClickListener() {
+        val headerLayout = findViewById<View>(R.id.headerLayout)
+        headerLayout.setOnClickListener {
+            showPlanDetailDialog()
+        }
+    }
+
+    private fun showPlanDetailDialog() {
+        val planId = intent.getIntExtra("PLAN_ID", -1)
+        if (planId == -1) {
+            Toast.makeText(this, "일정 정보를 불러올 수 없습니다.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        // API 호출
+        RetrofitClient.apiService.getPlanDetail(planId).enqueue(object : Callback<PlanDetailResponse> {
+            override fun onResponse(call: Call<PlanDetailResponse>, response: Response<PlanDetailResponse>) {
+                if (response.isSuccessful && response.body()?.data != null) {
+                    showPlanInfoDialog(response.body()?.data!!)
+                } else {
+                    Toast.makeText(this@ScheduleDetailActivity, "일정 정보를 불러오는데 실패했습니다.", Toast.LENGTH_SHORT).show()
+                }
+            }
+
+            override fun onFailure(call: Call<PlanDetailResponse>, t: Throwable) {
+                Toast.makeText(this@ScheduleDetailActivity, "네트워크 오류가 발생했습니다.", Toast.LENGTH_SHORT).show()
+            }
+        })
+    }
+
+    private fun showPlanInfoDialog(planDetail: com.example.travelonna.api.PlanDetail) {
+        val dialog = Dialog(this)
+        dialog.setContentView(R.layout.dialog_schedule_info)
+
+        // 다이얼로그 크기 설정
+        val window = dialog.window
+        window?.setLayout(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        )
+        window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+
+        // 뷰 참조
+        val titleTextView = dialog.findViewById<TextView>(R.id.titleTextView)
+        val transportTextView = dialog.findViewById<TextView>(R.id.transportTextView)
+        val totalCostTextView = dialog.findViewById<TextView>(R.id.totalCostTextView)
+        val memoTextView = dialog.findViewById<TextView>(R.id.memoTextView)
+
+        // 데이터 설정
+        titleTextView.text = planDetail.title
+        
+        // 교통수단 한글로 변환
+        val transportText = when (planDetail.transportInfo.lowercase()) {
+            "train" -> "기차"
+            "bus" -> "버스"
+            "car" -> "차량"
+            "etc" -> "기타"
+            else -> "미지정"
+        }
+        transportTextView.text = transportText
+        
+        // 총 비용 (천 단위 콤마)
+        val formattedCost = String.format("%,d원", planDetail.totalCost)
+        totalCostTextView.text = formattedCost
+        
+        // 메모
+        memoTextView.text = planDetail.memo.ifEmpty { "메모가 없습니다." }
+
+        dialog.show()
     }
 
     override fun onDestroy() {

@@ -578,7 +578,7 @@ class PlaceMemoryActivity : AppCompatActivity() {
             }
             
             override fun onFailure(call: Call<com.example.travelonna.api.TravelLogResponse>, t: Throwable) {
-                Log.e(TAG, "기존 기록 조회 네트워크 오류", t)
+                Log.e(TAG, "기존 기록 조회 중 네트워크 오류", t)
                 isEditMode = false
                 uploadButton.text = "업로드"
             }

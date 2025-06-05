@@ -447,27 +447,65 @@ class ProfileCreateActivity : AppCompatActivity() {
     
     // 이미지 없이 프로필 업로드
     private fun uploadProfileWithoutImage(userId: Int, nickname: String, introduction: String) {
-        // 기존 JSON 방식으로 프로필 생성
-        val request = ProfileCreateRequest(
-            userId = userId,
-            nickname = nickname,
-            profileImageUrl = "https://example.com/images/profile.jpg", // 기본 이미지 URL
-            introduction = if (introduction.isEmpty()) "여행을 좋아하는 직장인입니다." else introduction
-        )
-        
-        val gson = com.google.gson.GsonBuilder().setPrettyPrinting().create()
-        val jsonRequest = gson.toJson(request)
-        Log.d(TAG, "프로필 생성 요청 본문(이미지 없음):\n$jsonRequest")
-        
-        RetrofitClient.apiService.createUserProfile(request).enqueue(object : Callback<ProfileResponse> {
-            override fun onResponse(call: Call<ProfileResponse>, response: Response<ProfileResponse>) {
-                handleProfileResponse(response)
+        // 기본 이미지 파일 가져오기
+        try {
+            val inputStream = resources.openRawResource(R.drawable.profile_basic)
+            val file = File(cacheDir, "profile_basic.png")
+            
+            FileOutputStream(file).use { outputStream ->
+                inputStream.copyTo(outputStream)
             }
             
-            override fun onFailure(call: Call<ProfileResponse>, t: Throwable) {
-                handleProfileFailure(call, t)
-            }
-        })
+            // RequestBody 객체 생성
+            val userIdPart = userId.toString().toRequestBody("text/plain".toMediaTypeOrNull())
+            val nicknamePart = nickname.toRequestBody("text/plain".toMediaTypeOrNull())
+            val introductionPart = (if (introduction.isEmpty()) "여행을 좋아하는 직장인입니다." else introduction)
+                .toRequestBody("text/plain".toMediaTypeOrNull())
+            
+            // 기본 이미지 파일 MultipartBody.Part로 변환
+            val requestFile = file.asRequestBody("image/png".toMediaTypeOrNull())
+            val imagePart = MultipartBody.Part.createFormData(
+                "profileImage",
+                "profile_basic.png",
+                requestFile
+            )
+            
+            Log.d(TAG, "기본 이미지로 프로필 생성 시도")
+            
+            // Multipart API 호출
+            RetrofitClient.apiService.createUserProfileWithImage(
+                userIdPart, nicknamePart, introductionPart, imagePart
+            ).enqueue(object : Callback<ProfileResponse> {
+                override fun onResponse(call: Call<ProfileResponse>, response: Response<ProfileResponse>) {
+                    handleProfileResponse(response)
+                }
+                
+                override fun onFailure(call: Call<ProfileResponse>, t: Throwable) {
+                    handleProfileFailure(call, t)
+                }
+            })
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "기본 이미지 처리 중 오류 발생", e)
+            
+            // 기본 이미지 처리 실패 시 이미지 없이 JSON 요청으로 진행
+            val request = ProfileCreateRequest(
+                userId = userId,
+                nickname = nickname,
+                profileImageUrl = "https://example.com/images/profile.jpg",
+                introduction = if (introduction.isEmpty()) "여행을 좋아하는 직장인입니다." else introduction
+            )
+            
+            RetrofitClient.apiService.createUserProfile(request).enqueue(object : Callback<ProfileResponse> {
+                override fun onResponse(call: Call<ProfileResponse>, response: Response<ProfileResponse>) {
+                    handleProfileResponse(response)
+                }
+                
+                override fun onFailure(call: Call<ProfileResponse>, t: Throwable) {
+                    handleProfileFailure(call, t)
+                }
+            })
+        }
     }
     
     // 프로필 생성 응답 처리
