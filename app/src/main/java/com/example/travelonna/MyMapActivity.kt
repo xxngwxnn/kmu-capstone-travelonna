@@ -18,6 +18,7 @@ import com.google.gson.JsonParser
 import org.json.JSONObject
 import org.json.JSONArray
 import java.io.IOException
+import com.google.android.material.floatingactionbutton.FloatingActionButton
 
 class MyMapActivity : AppCompatActivity(), OnMapReadyCallback {
     
@@ -32,6 +33,12 @@ class MyMapActivity : AppCompatActivity(), OnMapReadyCallback {
         // 뒤로가기 버튼 설정
         findViewById<ImageView>(R.id.backButton).setOnClickListener {
             finish()
+        }
+        
+        // 상점 버튼 설정
+        findViewById<FloatingActionButton>(R.id.storeButton).setOnClickListener {
+            // TODO: 상점 액티비티로 이동
+            Toast.makeText(this, "상점 기능 준비 중입니다.", Toast.LENGTH_SHORT).show()
         }
         
         // 지도 프래그먼트 초기화
