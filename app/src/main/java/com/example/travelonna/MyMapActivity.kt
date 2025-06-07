@@ -12,6 +12,8 @@ import com.google.android.gms.maps.model.*
 import com.google.android.gms.maps.CameraUpdateFactory
 import android.widget.ImageView
 import android.widget.Toast
+import android.view.View
+import androidx.constraintlayout.widget.ConstraintLayout
 import com.example.travelonna.model.RegionPolygon
 import com.example.travelonna.util.CoordinateConverter
 import com.google.gson.JsonParser
@@ -19,16 +21,26 @@ import org.json.JSONObject
 import org.json.JSONArray
 import java.io.IOException
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import kotlinx.coroutines.*
+import kotlin.coroutines.CoroutineContext
 
-class MyMapActivity : AppCompatActivity(), OnMapReadyCallback {
+class MyMapActivity : AppCompatActivity(), OnMapReadyCallback, CoroutineScope {
     
     private lateinit var map: GoogleMap
     private val regions = mutableListOf<RegionPolygon>()
     private val polygons = mutableMapOf<String, Polygon>()
+    private lateinit var loadingLayout: ConstraintLayout
+    private lateinit var job: Job
+    
+    override val coroutineContext: CoroutineContext
+        get() = Dispatchers.Main + job
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_my_map)
+        
+        job = Job()
+        loadingLayout = findViewById(R.id.loadingLayout)
         
         // 뒤로가기 버튼 설정
         findViewById<ImageView>(R.id.backButton).setOnClickListener {
@@ -46,8 +58,26 @@ class MyMapActivity : AppCompatActivity(), OnMapReadyCallback {
             .findFragmentById(R.id.map) as SupportMapFragment
         mapFragment.getMapAsync(this)
         
+        // 로딩 표시 시작
+        showLoading()
+        
         // 행정구역 데이터 로드
-        loadRegionData()
+        launch {
+            loadRegionData()
+        }
+    }
+    
+    override fun onDestroy() {
+        super.onDestroy()
+        job.cancel()
+    }
+    
+    private fun showLoading() {
+        loadingLayout.visibility = View.VISIBLE
+    }
+    
+    private fun hideLoading() {
+        loadingLayout.visibility = View.GONE
     }
     
     override fun onMapReady(googleMap: GoogleMap) {
@@ -91,9 +121,6 @@ class MyMapActivity : AppCompatActivity(), OnMapReadyCallback {
             isTiltGesturesEnabled = false
         }
         
-        // 폴리곤 표시
-        displayRegions()
-        
         // 폴리곤 클릭 리스너
         map.setOnPolygonClickListener { polygon ->
             val regionName = polygon.tag as String
@@ -113,7 +140,7 @@ class MyMapActivity : AppCompatActivity(), OnMapReadyCallback {
         }
     }
     
-    private fun loadRegionData() {
+    private suspend fun loadRegionData() = withContext(Dispatchers.IO) {
         try {
             // sig.json 파일 읽기
             val jsonString = assets.open("sig.json").bufferedReader().use { it.readText() }
@@ -173,10 +200,21 @@ class MyMapActivity : AppCompatActivity(), OnMapReadyCallback {
             
             Log.d("MyMapActivity", "Successfully loaded ${regions.size} regions")
             
+            // UI 업데이트는 메인 스레드에서 수행
+            withContext(Dispatchers.Main) {
+                displayRegions()
+                hideLoading()
+            }
+            
         } catch (e: Exception) {
             Log.e("MyMapActivity", "행정구역 데이터 로드 실패", e)
             e.printStackTrace()
-            Toast.makeText(this, "행정구역 데이터를 불러오는데 실패했습니다", Toast.LENGTH_SHORT).show()
+            
+            // 에러 메시지도 메인 스레드에서 표시
+            withContext(Dispatchers.Main) {
+                Toast.makeText(this@MyMapActivity, "행정구역 데이터를 불러오는데 실패했습니다", Toast.LENGTH_SHORT).show()
+                hideLoading()
+            }
         }
     }
     
