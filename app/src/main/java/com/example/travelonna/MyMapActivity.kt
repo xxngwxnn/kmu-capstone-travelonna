@@ -65,9 +65,22 @@ class MyMapActivity : AppCompatActivity(), OnMapReadyCallback {
             Log.e("MyMapActivity", "스타일 파일을 찾을 수 없습니다.", e)
         }
         
+        // 한국의 경계 설정
+        val southKorea = LatLngBounds(
+            LatLng(33.0, 124.5),  // 남서쪽 경계 (제주도 포함)
+            LatLng(38.5, 131.0)   // 북동쪽 경계 (독도 포함)
+        )
+        
         // 초기 위치를 대한민국 중심으로 설정
         val koreaCenter = LatLng(36.0, 128.0)
         map.moveCamera(CameraUpdateFactory.newLatLngZoom(koreaCenter, 7f))
+        
+        // 카메라 이동 제한 설정
+        map.setLatLngBoundsForCameraTarget(southKorea)
+        
+        // 최소/최대 줌 레벨 설정
+        map.setMinZoomPreference(6f)  // 한국 전체가 보이는 정도
+        map.setMaxZoomPreference(18f) // 거리 수준까지 확대 가능
         
         // 지도 UI 설정
         map.uiSettings.apply {
