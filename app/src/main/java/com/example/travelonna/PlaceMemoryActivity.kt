@@ -17,6 +17,7 @@ import android.util.Log
 import com.example.travelonna.api.BasicResponse
 import com.example.travelonna.api.PlaceCreateRequest
 import com.example.travelonna.api.PlaceDetail
+import com.example.travelonna.api.PlaceDetailResponse
 import com.example.travelonna.api.PlanDetailResponse
 import com.example.travelonna.api.RetrofitClient
 import retrofit2.Call
@@ -290,17 +291,16 @@ class PlaceMemoryActivity : AppCompatActivity() {
     
     // 서버에서 장소 상세 정보 가져오기
     private fun fetchPlaceDetail() {
-        Log.d(TAG, "Fetching place detail for planId: $planId, placeId: $placeId")
+        Log.d(TAG, "Fetching place detail for placeId: $placeId")
         
-        // 일정 정보 가져오기 API 호출
-        RetrofitClient.apiService.getPlanDetail(planId).enqueue(object : Callback<PlanDetailResponse> {
-            override fun onResponse(call: Call<PlanDetailResponse>, response: Response<PlanDetailResponse>) {
+        // 장소 상세 정보 API 호출
+        RetrofitClient.apiService.getPlaceDetail(placeId).enqueue(object : Callback<PlaceDetailResponse> {
+            override fun onResponse(
+                call: Call<PlaceDetailResponse>,
+                response: Response<PlaceDetailResponse>
+            ) {
                 if (response.isSuccessful && response.body()?.success == true) {
-                    val planDetail = response.body()?.data
-                    val places = planDetail?.places
-                    
-                    // 현재 장소 정보 찾기
-                    val placeDetail = places?.find { it.id == placeId }
+                    val placeDetail = response.body()?.data
                     
                     placeDetail?.let { place ->
                         // 장소 정보 저장
@@ -326,14 +326,17 @@ class PlaceMemoryActivity : AppCompatActivity() {
                         if (place.googleId.isNotEmpty()) {
                             loadPlaceImage(place.googleId)
                         }
-                    } ?: Log.w(TAG, "Place not found in plan detail")
+                    } ?: Log.w(TAG, "Place detail is null")
                 } else {
-                    Log.e(TAG, "Failed to fetch plan detail: ${response.code()}")
+                    val errorMsg = response.errorBody()?.string() ?: "장소 정보를 가져오는데 실패했습니다"
+                    Log.e(TAG, "API Error: $errorMsg")
+                    Toast.makeText(this@PlaceMemoryActivity, errorMsg, Toast.LENGTH_SHORT).show()
                 }
             }
             
-            override fun onFailure(call: Call<PlanDetailResponse>, t: Throwable) {
-                Log.e(TAG, "Network error when fetching plan detail", t)
+            override fun onFailure(call: Call<PlaceDetailResponse>, t: Throwable) {
+                Log.e(TAG, "Network error when fetching place detail", t)
+                Toast.makeText(this@PlaceMemoryActivity, "네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
             }
         })
     }
@@ -542,10 +545,10 @@ class PlaceMemoryActivity : AppCompatActivity() {
 
     // 기존 여행 기록 조회
     private fun checkExistingTravelLog() {
-        Log.d(TAG, "기존 여행 기록 조회 시작 - planId: $planId")
+        Log.d(TAG, "기존 여행 기록 조회 시작 - placeId: $placeId")
         
-        RetrofitClient.apiService.getTravelLogsByPlan(planId).enqueue(object : Callback<com.example.travelonna.api.TravelLogResponse> {
-            override fun onResponse(call: Call<com.example.travelonna.api.TravelLogResponse>, response: Response<com.example.travelonna.api.TravelLogResponse>) {
+        RetrofitClient.apiService.getTravelLogsByPlace(placeId).enqueue(object : Callback<TravelLogResponse> {
+            override fun onResponse(call: Call<TravelLogResponse>, response: Response<TravelLogResponse>) {
                 if (response.isSuccessful && response.body()?.success == true) {
                     val logs = response.body()?.data
                     if (!logs.isNullOrEmpty()) {
@@ -577,7 +580,7 @@ class PlaceMemoryActivity : AppCompatActivity() {
                 }
             }
             
-            override fun onFailure(call: Call<com.example.travelonna.api.TravelLogResponse>, t: Throwable) {
+            override fun onFailure(call: Call<TravelLogResponse>, t: Throwable) {
                 Log.e(TAG, "기존 기록 조회 중 네트워크 오류", t)
                 isEditMode = false
                 uploadButton.text = "업로드"

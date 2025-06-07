@@ -523,7 +523,7 @@ class TravelDetailActivity : AppCompatActivity() {
             
             override fun onAnimationEnd(animation: android.view.animation.Animation?) {
                 // 애니메이션이 끝나면 새 어댑터 설정
-                recyclerViewPlaces.adapter = PlaceAdapter(newPlaces, placesClient)
+                recyclerViewPlaces.adapter = PlaceAdapter(newPlaces, placesClient, planId)
                 
                 // 새 콘텐츠 슬라이드 인
                 recyclerViewPlaces.startAnimation(slideIn)
@@ -607,7 +607,7 @@ class TravelDetailActivity : AppCompatActivity() {
                 if (updatedPlace.day == dayToShow) {
                     // 현재 탭에 해당하는 장소 목록 다시 가져와서 어댑터 업데이트
                     val places = planDetail!!.places.filter { it.day == dayToShow }
-                    recyclerViewPlaces.adapter = PlaceAdapter(places, placesClient)
+                    recyclerViewPlaces.adapter = PlaceAdapter(places, placesClient, planId)
                 }
                 
                 Log.d(TAG, "장소 ID: $placeId 공개 상태가 $newIsPublic 로 업데이트되었습니다.")
@@ -621,8 +621,11 @@ class TravelDetailActivity : AppCompatActivity() {
 }
 
 // 장소 어댑터
-class PlaceAdapter(private val places: List<PlaceDetail>, private val placesClient: PlacesClient) : 
-    RecyclerView.Adapter<PlaceAdapter.PlaceViewHolder>() {
+class PlaceAdapter(
+    private val places: List<PlaceDetail>, 
+    private val placesClient: PlacesClient,
+    private val planId: Int
+) : RecyclerView.Adapter<PlaceAdapter.PlaceViewHolder>() {
 
     class PlaceViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val placeImage: ImageView = view.findViewById(R.id.placeImage)
@@ -719,13 +722,10 @@ class PlaceAdapter(private val places: List<PlaceDetail>, private val placesClie
         
         // 아이템 클릭 이벤트 다시 활성화
         holder.itemView.setOnClickListener {
-            val activity = holder.itemView.context as TravelDetailActivity
             val intent = Intent(holder.itemView.context, PlaceMemoryActivity::class.java).apply {
                 putExtra("PLACE_NAME", place.name)
                 putExtra("PLACE_ADDRESS", place.address)
                 putExtra("PLACE_ID", place.id)
-                putExtra("PLAN_ID", activity.getPlanId())
-                putExtra("IS_PUBLIC", place.isPublic)
                 putExtra("GOOGLE_ID", place.googleId)
                 putExtra("VISIT_DATE", place.visitDate)
                 putExtra("COST", place.cost)
@@ -733,6 +733,8 @@ class PlaceAdapter(private val places: List<PlaceDetail>, private val placesClie
                 putExtra("LAT", place.lat)
                 putExtra("LON", place.lon)
                 putExtra("ORDER", place.order)
+                putExtra("IS_PUBLIC", place.isPublic)
+                putExtra("PLAN_ID", planId)
             }
             holder.itemView.context.startActivity(intent)
         }
