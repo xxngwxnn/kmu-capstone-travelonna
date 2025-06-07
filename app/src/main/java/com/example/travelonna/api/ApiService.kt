@@ -124,4 +124,8 @@ interface ApiService {
     // 장소 상세 조회 API
     @GET("api/v1/places/{placeId}")
     fun getPlaceDetail(@Path("placeId") placeId: Int): Call<PlaceDetailResponse>
+
+    // 여행 로그 수정 API
+    @PUT("api/v1/logs/{logId}")
+    fun updateTravelLog(@Path("logId") logId: Int, @Body requestBody: HashMap<String, Any>): Call<BasicResponse>
 } 

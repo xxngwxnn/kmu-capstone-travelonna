@@ -31,4 +31,4 @@ data class TravelLogPlan(
     val title: String,
     val isPublic: Boolean,
     val totalCost: Int
-) 
+)

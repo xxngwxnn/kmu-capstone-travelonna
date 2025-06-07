@@ -20,6 +20,7 @@ import com.example.travelonna.api.PlaceDetail
 import com.example.travelonna.api.PlaceDetailResponse
 import com.example.travelonna.api.PlanDetailResponse
 import com.example.travelonna.api.RetrofitClient
+import com.example.travelonna.api.TravelLogResponse
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response

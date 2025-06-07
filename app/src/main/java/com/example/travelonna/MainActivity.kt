@@ -49,6 +49,11 @@ class MainActivity : AppCompatActivity() {
             startActivity(intent)
         }
         
+        findViewById<Button>(R.id.myMapButton)?.setOnClickListener {
+            val intent = Intent(this, MyMapActivity::class.java)
+            startActivity(intent)
+        }
+        
         findViewById<Button>(R.id.profileButton)?.setOnClickListener {
             val intent = Intent(this, ProfileActivity::class.java)
             startActivity(intent)

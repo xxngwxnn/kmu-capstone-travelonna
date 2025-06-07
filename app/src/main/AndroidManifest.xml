@@ -110,6 +110,10 @@
             android:name=".FollowListActivity"
             android:exported="false" />
 
+        <activity
+            android:name=".MyMapActivity"
+            android:exported="false" />
+
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyDsi4wg1BwtoztstYV2Z7NRtklS-eRyGxk" />
