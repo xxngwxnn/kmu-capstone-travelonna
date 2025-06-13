@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.EditText
@@ -12,16 +13,26 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.travelonna.adapter.AccountSearchAdapter
 import com.example.travelonna.adapter.PlaceAdapter
+import com.example.travelonna.api.RetrofitClient
+import com.example.travelonna.api.SearchResponse
 import com.example.travelonna.model.Place
 import com.example.travelonna.model.Post
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 
 class SearchActivity : AppCompatActivity() {
+
+    companion object {
+        private const val TAG = "SearchActivity"
+    }
 
     private lateinit var backButton: ImageView
     private lateinit var searchEditText: EditText
@@ -55,262 +66,6 @@ class SearchActivity : AppCompatActivity() {
     private val RECENT_SEARCHES_KEY = "recent_searches"
     private val MAX_RECENT_SEARCHES = 5
     
-    // 임시 데이터 - 실제로는 API에서 받아와야 함
-    private val allPosts = mutableListOf(
-        Post(
-            id = 1L,
-            imageResource = R.drawable.main_dummy_1,
-            userName = "seoul_traveler",
-            isFollowing = true,
-            description = "서울 N서울타워에서 본 야경이 정말 아름다웠어요. 연인과 함께 방문하기 좋은 곳!",
-            date = "2023.10.15"
-        ),
-        Post(
-            id = 2L,
-            imageResource = R.drawable.main_dummy_2,
-            userName = "jeju_explorer",
-            isFollowing = false,
-            description = "제주도 성산일출봉에서 맞이한 아침. 일출 명소로 정말 추천해요!",
-            date = "2023.09.22"
-        ),
-        Post(
-            id = 3L,
-            imageResource = R.drawable.main_dummy_1,
-            userName = "busan_lover",
-            isFollowing = true,
-            description = "부산 해운대 해변에서의 휴가. 날씨도 좋고 바다도 정말 깨끗했습니다.",
-            date = "2023.08.10"
-        ),
-        Post(
-            id = 4L,
-            imageResource = R.drawable.main_dummy_2,
-            userName = "korea_trip",
-            isFollowing = false,
-            description = "경복궁 야간 개장! 밤에 보는 고궁의 모습은 또 다른 매력이 있네요.",
-            date = "2023.07.05"
-        ),
-        Post(
-            id = 5L,
-            imageResource = R.drawable.main_dummy_1,
-            userName = "travel_with_me",
-            isFollowing = true,
-            description = "전주 한옥마을에서의 하루. 한복 입고 거리 구경하기 너무 좋았어요!",
-            date = "2023.06.17"
-        ),
-        Post(
-            id = 6L,
-            imageResource = R.drawable.main_dummy_2,
-            userName = "photo_journey",
-            isFollowing = false,
-            description = "인사동 문화거리에서 전통 공예품 구경. 외국인 친구들이 정말 좋아했어요.",
-            date = "2023.05.30"
-        ),
-        Post(
-            id = 7L,
-            imageResource = R.drawable.main_dummy_1,
-            userName = "hiking_korea",
-            isFollowing = true,
-            description = "북한산 등산 코스 추천! 정상에서 본 서울 전경이 일품입니다.",
-            date = "2023.04.12"
-        ),
-        Post(
-            id = 8L,
-            imageResource = R.drawable.main_dummy_2,
-            userName = "food_traveler",
-            isFollowing = false,
-            description = "명동에서 꼭 먹어봐야 할 길거리 음식 TOP 5! 오뎅부터 호떡까지~",
-            date = "2023.03.25"
-        ),
-        Post(
-            id = 9L,
-            imageResource = R.drawable.main_dummy_1,
-            userName = "korean_culture",
-            isFollowing = true,
-            description = "북촌 한옥마을에서의 전통 문화 체험. 한복 입고 사진 찍기 추천!",
-            date = "2023.02.18"
-        ),
-        Post(
-            id = 10L,
-            imageResource = R.drawable.main_dummy_2,
-            userName = "seoul_night",
-            isFollowing = false,
-            description = "서울의 야경 명소들. 한강 야경부터 남산타워까지!",
-            date = "2023.01.30"
-        ),
-        Post(
-            id = 11L,
-            imageResource = R.drawable.main_dummy_1,
-            userName = "jeju_guide",
-            isFollowing = true,
-            description = "제주도 여행 가이드. 숨은 명소부터 맛집까지 소개합니다.",
-            date = "2022.12.15"
-        ),
-        Post(
-            id = 12L,
-            imageResource = R.drawable.main_dummy_2,
-            userName = "busan_foodie",
-            isFollowing = false,
-            description = "부산 맛집 투어! 회부터 돼지국밥까지 부산의 맛을 소개합니다.",
-            date = "2022.11.20"
-        ),
-        Post(
-            id = 13L,
-            imageResource = R.drawable.main_dummy_1,
-            userName = "korea_photographer",
-            isFollowing = true,
-            description = "한국의 아름다운 풍경들. 사진으로 담은 한국의 매력.",
-            date = "2022.10.05"
-        ),
-        Post(
-            id = 14L,
-            imageResource = R.drawable.main_dummy_2,
-            userName = "seoul_shopping",
-            isFollowing = false,
-            description = "서울 쇼핑 가이드. 동대문부터 명동까지 쇼핑 명소 소개!",
-            date = "2022.09.12"
-        ),
-        Post(
-            id = 15L,
-            imageResource = R.drawable.main_dummy_1,
-            userName = "korean_festival",
-            isFollowing = true,
-            description = "한국의 전통 축제들. 계절별 축제 정보와 체험 후기.",
-            date = "2022.08.25"
-        ),
-        Post(
-            id = 16L,
-            imageResource = R.drawable.main_dummy_2,
-            userName = "jeju_cafe",
-            isFollowing = false,
-            description = "제주도 카페 투어. 바다가 보이는 카페부터 숨은 명소까지!",
-            date = "2022.07.30"
-        )
-    )
-    
-    // 장소 더미 데이터
-    private val allPlaces = mutableListOf(
-        Place(
-            id = 1L,
-            name = "서울타워 N서울타워",
-            imageResource = R.drawable.main_dummy_1,
-            address = "서울특별시 용산구 남산공원길 105",
-            rating = 4.5f,
-            distance = "2.3km"
-        ),
-        Place(
-            id = 2L,
-            name = "경복궁",
-            imageResource = R.drawable.main_dummy_2,
-            address = "서울특별시 종로구 사직로 161",
-            rating = 4.7f,
-            distance = "1.8km"
-        ),
-        Place(
-            id = 4L,
-            name = "부산 해운대 해변",
-            imageResource = R.drawable.main_dummy_2,
-            address = "부산광역시 해운대구 해운대해변로",
-            rating = 4.6f,
-            distance = "0.5km"
-        ),
-        Place(
-            id = 5L,
-            name = "인사동 문화거리",
-            imageResource = R.drawable.main_dummy_1,
-            address = "서울특별시 종로구 인사동길",
-            rating = 4.4f,
-            distance = "1.2km"
-        ),
-        Place(
-            id = 6L,
-            name = "광안대교",
-            imageResource = R.drawable.main_dummy_2,
-            address = "부산광역시 수영구 광안해변로 219",
-            rating = 4.7f,
-            distance = "0.8km"
-        ),
-        Place(
-            id = 7L,
-            name = "전주 한옥마을",
-            imageResource = R.drawable.main_dummy_1,
-            address = "전라북도 전주시 완산구 기린대로 99",
-            rating = 4.9f,
-            distance = "2.1km"
-        ),
-        Place(
-            id = 8L,
-            name = "경주 불국사",
-            imageResource = R.drawable.main_dummy_2,
-            address = "경상북도 경주시 불국로 385",
-            rating = 4.8f,
-            distance = "3.7km"
-        ),
-        Place(
-            id = 9L,
-            name = "에버랜드",
-            imageResource = R.drawable.main_dummy_1,
-            address = "경기도 용인시 처인구 포곡읍 에버랜드로 199",
-            rating = 4.6f,
-            distance = "4.2km"
-        ),
-        Place(
-            id = 10L,
-            name = "롯데월드",
-            imageResource = R.drawable.main_dummy_2,
-            address = "서울특별시 송파구 올림픽로 240",
-            rating = 4.5f,
-            distance = "1.5km"
-        ),
-        Place(
-            id = 11L,
-            name = "강릉 안목해변",
-            imageResource = R.drawable.main_dummy_1,
-            address = "강원도 강릉시 주문진읍 안목해변길",
-            rating = 4.7f,
-            distance = "0.3km"
-        ),
-        Place(
-            id = 12L,
-            name = "남산공원",
-            imageResource = R.drawable.main_dummy_2,
-            address = "서울특별시 용산구 남산공원길 105",
-            rating = 4.4f,
-            distance = "1.7km"
-        ),
-        Place(
-            id = 13L,
-            name = "북촌 한옥마을",
-            imageResource = R.drawable.main_dummy_1,
-            address = "서울특별시 종로구 계동길 37",
-            rating = 4.6f,
-            distance = "2.4km"
-        ),
-        Place(
-            id = 14L,
-            name = "동대문디자인플라자",
-            imageResource = R.drawable.main_dummy_2,
-            address = "서울특별시 중구 을지로 281",
-            rating = 4.5f,
-            distance = "1.9km"
-        ),
-        Place(
-            id = 15L,
-            name = "한강공원",
-            imageResource = R.drawable.main_dummy_1,
-            address = "서울특별시 영등포구 여의대로",
-            rating = 4.8f,
-            distance = "0.6km"
-        ),
-        Place(
-            id = 16L,
-            name = "명동 쇼핑거리",
-            imageResource = R.drawable.main_dummy_2,
-            address = "서울특별시 중구 명동길",
-            rating = 4.3f,
-            distance = "1.1km"
-        )
-    )
-    
     private val postAdapter = AccountSearchAdapter(listOf())
     private val placeAdapter = PlaceAdapter(listOf())
 
@@ -319,6 +74,19 @@ class SearchActivity : AppCompatActivity() {
         setContentView(R.layout.activity_search)
 
         // 뷰 초기화
+        initViews()
+        
+        // 리스너 설정
+        setupListeners()
+        
+        // 리사이클러뷰 설정
+        setupRecyclerViews()
+        
+        // 초기 상태 설정
+        showInitialState()
+    }
+    
+    private fun initViews() {
         backButton = findViewById(R.id.backButton)
         searchEditText = findViewById(R.id.searchEditText)
         searchIcon = findViewById(R.id.searchIcon)
@@ -341,7 +109,9 @@ class SearchActivity : AppCompatActivity() {
         accountTabText = findViewById(R.id.accountTabText)
         placeTabIndicator = findViewById(R.id.placeTabIndicator)
         accountTabIndicator = findViewById(R.id.accountTabIndicator)
-
+    }
+    
+    private fun setupListeners() {
         // 뒤로가기 버튼 설정
         backButton.setOnClickListener {
             finish()
@@ -361,7 +131,7 @@ class SearchActivity : AppCompatActivity() {
                 
                 if (s.length >= 2) {
                     // 검색창에 2글자 이상 입력 시 검색 시작
-                    showSearchResultsWithoutSaving(s.toString())
+                    performSearch(s.toString())
                 } else {
                     // 2글자 미만일 때는 즉시 초기 상태로 복귀
                     clearSearchResults()
@@ -378,7 +148,7 @@ class SearchActivity : AppCompatActivity() {
                 val query = searchEditText.text.toString().trim()
                 if (query.isNotEmpty()) {
                     saveRecentSearch(query)
-                    showSearchResults(query)
+                    performSearch(query)
                 }
                 true
             } else {
@@ -391,17 +161,9 @@ class SearchActivity : AppCompatActivity() {
             val query = searchEditText.text.toString().trim()
             if (query.isNotEmpty()) {
                 saveRecentSearch(query)
-                showSearchResults(query)
+                performSearch(query)
             }
         }
-
-        // 검색 결과 리사이클러뷰 설정
-        recyclerView.layoutManager = LinearLayoutManager(this)
-        recyclerView.adapter = postAdapter
-        
-        // 장소 그리드 리사이클러뷰 설정
-        placeRecyclerView.layoutManager = GridLayoutManager(this, 2)
-        placeRecyclerView.adapter = placeAdapter
 
         // 인기 검색어 클릭 이벤트
         val popularSearchItems = listOf(
@@ -417,7 +179,7 @@ class SearchActivity : AppCompatActivity() {
                 val keyword = item.text.toString()
                 searchEditText.setText(keyword)
                 saveRecentSearch(keyword)
-                showSearchResults(keyword)
+                performSearch(keyword)
             }
         }
         
@@ -427,7 +189,7 @@ class SearchActivity : AppCompatActivity() {
                 setCurrentTab(SearchType.PLACE)
                 val query = searchEditText.text.toString().trim()
                 if (query.isNotEmpty()) {
-                    searchPlaces(query)
+                    performSearch(query)
                 }
             }
         }
@@ -437,13 +199,138 @@ class SearchActivity : AppCompatActivity() {
                 setCurrentTab(SearchType.ACCOUNT)
                 val query = searchEditText.text.toString().trim()
                 if (query.isNotEmpty()) {
-                    searchPosts(query)
+                    performSearch(query)
                 }
             }
         }
+    }
+    
+    private fun setupRecyclerViews() {
+        // 검색 결과 리사이클러뷰 설정
+        recyclerView.layoutManager = LinearLayoutManager(this)
+        recyclerView.adapter = postAdapter
         
-        // 초기 상태 설정
-        showInitialState()
+        // 장소 그리드 리사이클러뷰 설정
+        placeRecyclerView.layoutManager = GridLayoutManager(this, 2)
+        placeRecyclerView.adapter = placeAdapter
+    }
+    
+    // 실제 API 검색 수행
+    private fun performSearch(query: String) {
+        if (query.isEmpty()) {
+            clearSearchResults()
+            showInitialState()
+            return
+        }
+
+        // 초기 화면 요소 숨기기
+        hideInitialState()
+        
+        // 탭 레이아웃 보이기
+        tabLayout.visibility = View.VISIBLE
+        
+        // 로딩 상태 표시
+        showLoading()
+        
+        Log.d(TAG, "Performing search with keyword: $query")
+        
+        // API 호출
+        RetrofitClient.apiService.search(query).enqueue(object : Callback<SearchResponse> {
+            override fun onResponse(call: Call<SearchResponse>, response: Response<SearchResponse>) {
+                hideLoading()
+                
+                if (response.isSuccessful && response.body() != null) {
+                    val searchResponse = response.body()!!
+                    Log.d(TAG, "Search API success: ${searchResponse.success}")
+                    
+                    if (searchResponse.success) {
+                        handleSearchResults(searchResponse)
+                    } else {
+                        Log.e(TAG, "Search API returned success=false: ${searchResponse.message}")
+                        showNoResults(true)
+                        Toast.makeText(this@SearchActivity, searchResponse.message, Toast.LENGTH_SHORT).show()
+                    }
+                } else {
+                    Log.e(TAG, "Search API failed: ${response.code()}, ${response.message()}")
+                    Log.e(TAG, "Error body: ${response.errorBody()?.string()}")
+                    showNoResults(true)
+                    Toast.makeText(this@SearchActivity, "검색에 실패했습니다.", Toast.LENGTH_SHORT).show()
+                }
+            }
+            
+            override fun onFailure(call: Call<SearchResponse>, t: Throwable) {
+                hideLoading()
+                Log.e(TAG, "Search API network error", t)
+                showNoResults(true)
+                Toast.makeText(this@SearchActivity, "네트워크 오류가 발생했습니다.", Toast.LENGTH_SHORT).show()
+            }
+        })
+    }
+    
+    // 검색 결과 처리
+    private fun handleSearchResults(searchResponse: SearchResponse) {
+        val data = searchResponse.data
+        
+        when (currentSearchType) {
+            SearchType.PLACE -> {
+                // 장소 검색 결과 처리
+                val places = data.places.map { searchPlace ->
+                    Place(
+                        id = searchPlace.placeId.toLong(),
+                        name = searchPlace.name,
+                        address = searchPlace.address,
+                        imageResource = R.drawable.placeholder_image // 기본 이미지
+                    )
+                }
+                
+                placeAdapter.updateData(places)
+                setCurrentTab(SearchType.PLACE)
+                showNoResults(places.isEmpty())
+                
+                Log.d(TAG, "Places found: ${places.size}")
+            }
+            
+            SearchType.ACCOUNT -> {
+                // 사용자 및 로그 검색 결과 처리
+                val posts = mutableListOf<Post>()
+                
+                // 사용자 검색 결과를 Post로 변환
+                data.users.forEach { user ->
+                    posts.add(Post(
+                        id = user.userId.toLong(),
+                        userName = user.nickname,
+                        isFollowing = false,
+                        description = user.introduction,
+                        imageResource = R.drawable.default_profile, // 기본 프로필 이미지
+                        date = "사용자", // 사용자의 경우 날짜 대신 "사용자" 표시
+                        likeCount = 0,
+                        commentCount = 0,
+                        isLiked = false
+                    ))
+                }
+                
+                // 로그 검색 결과를 Post로 변환
+                data.logs.forEach { log ->
+                    posts.add(Post(
+                        id = log.logId.toLong(),
+                        userName = log.userName,
+                        isFollowing = false,
+                        description = log.comment,
+                        imageResource = R.drawable.placeholder_image, // 기본 이미지
+                        date = log.createdAt.substring(0, 10), // 날짜 부분만 추출 (YYYY-MM-DD)
+                        likeCount = log.likeCount,
+                        commentCount = 0,
+                        isLiked = false
+                    ))
+                }
+                
+                postAdapter.updateData(posts)
+                setCurrentTab(SearchType.ACCOUNT)
+                showNoResults(posts.isEmpty())
+                
+                Log.d(TAG, "Users found: ${data.users.size}, Logs found: ${data.logs.size}")
+            }
+        }
     }
     
     // 현재 선택된 탭 설정
@@ -501,9 +388,8 @@ class SearchActivity : AppCompatActivity() {
         loadRecentSearches()
     }
     
-    // 검색 결과 화면 표시
-    private fun showSearchResults(query: String) {
-        // 초기 화면 요소 숨기기
+    // 초기 상태 숨기기
+    private fun hideInitialState() {
         recentSearchesTitle.visibility = View.GONE
         popularSearchesTitle.visibility = View.GONE
         recentSearchesContainer.visibility = View.GONE
@@ -514,166 +400,28 @@ class SearchActivity : AppCompatActivity() {
         popularSearchItem3.visibility = View.GONE
         popularSearchItem4.visibility = View.GONE
         popularSearchItem5.visibility = View.GONE
-        
-        // 탭 레이아웃 보이기
-        tabLayout.visibility = View.VISIBLE
-        
-        // 검색어 저장
-        saveRecentSearch(query)
-        
-        // 현재 선택된 탭에 따라 다른 검색 실행
-        if (currentSearchType == SearchType.PLACE) {
-            searchPlaces(query)
-        } else {
-            searchPosts(query)
-        }
     }
-
-    // 검색 결과 화면 표시 (검색어 저장 없이)
-    private fun showSearchResultsWithoutSaving(query: String) {
-        // 초기 화면 요소 숨기기
-        recentSearchesTitle.visibility = View.GONE
-        popularSearchesTitle.visibility = View.GONE
-        recentSearchesContainer.visibility = View.GONE
-        
-        // 인기 검색어 숨기기
-        popularSearchItem1.visibility = View.GONE
-        popularSearchItem2.visibility = View.GONE
-        popularSearchItem3.visibility = View.GONE
-        popularSearchItem4.visibility = View.GONE
-        popularSearchItem5.visibility = View.GONE
-        
-        // 탭 레이아웃 보이기
-        tabLayout.visibility = View.VISIBLE
-        
-        // 현재 선택된 탭에 따라 다른 검색 실행
-        if (currentSearchType == SearchType.PLACE) {
-            searchPlaces(query)
-        } else {
-            searchPosts(query)
-        }
-    }
-
-    private fun searchPosts(query: String) {
-        if (query.isEmpty()) {
-            clearSearchResults()
-            showInitialState()
-            return
-        }
-
-        // 로딩 상태 표시
+    
+    // 로딩 상태 표시
+    private fun showLoading() {
         progressBar.visibility = View.VISIBLE
         recyclerView.visibility = View.GONE
         placeRecyclerView.visibility = View.GONE
         noResultsText.visibility = View.GONE
-        
-        // 약간의 지연 효과 (실제 API 호출 시뮬레이션)
-        recyclerView.postDelayed({
-            // 검색어가 비어있으면 검색 중단
-            if (searchEditText.text.toString().isEmpty()) {
-                clearSearchResults()
-                showInitialState()
-                return@postDelayed
-            }
-
-            // 검색어로 필터링
-            val results = allPosts.filter { post ->
-                post.userName.contains(query, ignoreCase = true) || 
-                post.description.contains(query, ignoreCase = true)
-            }
-            
-            // 결과 업데이트
-            postAdapter.updateData(results)
-            
-            // 로딩 상태 해제
-            progressBar.visibility = View.GONE
-            
-            // 탭에 따른 리사이클러뷰 표시
-            setCurrentTab(SearchType.ACCOUNT)
-            
-            // 결과가 없으면 메시지 표시
-            showNoResults(results.isEmpty())
-        }, 500) // 0.5초 지연
     }
     
-    private fun searchPlaces(query: String) {
-        if (query.isEmpty()) {
-            clearSearchResults()
-            showInitialState()
-            return
-        }
-
-        // 로딩 상태 표시
-        progressBar.visibility = View.VISIBLE
-        recyclerView.visibility = View.GONE
-        placeRecyclerView.visibility = View.GONE
-        noResultsText.visibility = View.GONE
-        
-        // 약간의 지연 효과 (실제 API 호출 시뮬레이션)
-        placeRecyclerView.postDelayed({
-            // 검색어가 비어있으면 검색 중단
-            if (searchEditText.text.toString().isEmpty()) {
-                clearSearchResults()
-                showInitialState()
-                return@postDelayed
-            }
-
-            // 검색어로 필터링
-            val results = if (query.equals("seoul", ignoreCase = true) || 
-                              query.equals("서울", ignoreCase = true)) {
-                // 서울 관련 검색어일 경우 커스텀 더미 이미지 사용
-                listOf(
-                    Place(
-                        id = 101L,
-                        name = "서울타워 N서울타워",
-                        imageResource = R.drawable.search_place_dummy1
-                    ),
-                    Place(
-                        id = 102L,
-                        name = "서울숲",
-                        imageResource = R.drawable.search_place_dummy2
-                    ),
-                    Place(
-                        id = 103L,
-                        name = "서울 여의도 한강공원",
-                        imageResource = R.drawable.search_place_dummy3
-                    ),
-                    Place(
-                        id = 104L,
-                        name = "서울 경복궁",
-                        imageResource = R.drawable.search_place_dummy4
-                    )
-                )
-            } else {
-                // 다른 검색어의 경우 기존 필터링 사용
-                allPlaces.filter { place ->
-                    place.name.contains(query, ignoreCase = true)
-                }.map { place ->
-                    // 평점과 거리 정보 제거
-                    Place(
-                        id = place.id,
-                        name = place.name,
-                        imageResource = place.imageResource
-                    )
-                }
-            }
-            
-            // 결과 업데이트
-            placeAdapter.updateData(results)
-            
-            // 로딩 상태 해제
-            progressBar.visibility = View.GONE
-            
-            // 탭에 따른 리사이클러뷰 표시
-            setCurrentTab(SearchType.PLACE)
-            
-            // 결과가 없으면 메시지 표시
-            showNoResults(results.isEmpty())
-        }, 500) // 0.5초 지연
+    // 로딩 상태 숨기기
+    private fun hideLoading() {
+        progressBar.visibility = View.GONE
     }
     
+    // 검색 결과 없음 표시
     private fun showNoResults(show: Boolean) {
         noResultsText.visibility = if (show) View.VISIBLE else View.GONE
+        if (show) {
+            recyclerView.visibility = View.GONE
+            placeRecyclerView.visibility = View.GONE
+        }
     }
     
     // 최근 검색어 저장
@@ -753,7 +501,7 @@ class SearchActivity : AppCompatActivity() {
                 searchItemView.setOnClickListener {
                     searchEditText.setText(searchTerm)
                     saveRecentSearch(searchTerm) // 클릭 시 맨 위로 이동
-                    showSearchResults(searchTerm)
+                    performSearch(searchTerm)
                 }
                 
                 // Margins 설정을 위해 LayoutParams 사용
@@ -761,21 +509,13 @@ class SearchActivity : AppCompatActivity() {
                     LinearLayout.LayoutParams.WRAP_CONTENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
                 )
-                layoutParams.setMargins(
-                    0,
-                    0,
-                    resources.getDimensionPixelSize(R.dimen.activity_horizontal_margin),
-                    0
-                )
+                layoutParams.setMargins(0, 0, 16, 0) // 오른쪽 마진 16dp
                 searchItemView.layoutParams = layoutParams
                 
                 horizontalLayout.addView(searchItemView)
             }
             
-            // HorizontalScrollView에 추가
             horizontalScrollView.addView(horizontalLayout)
-            
-            // 최종적으로 컨테이너에 추가
             recentSearchesContainer.addView(horizontalScrollView)
         }
     }

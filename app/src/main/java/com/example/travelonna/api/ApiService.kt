@@ -64,6 +64,10 @@ interface ApiService {
     @DELETE("api/v1/plans/{planId}")
     fun deletePlan(@Path("planId") planId: Int): Call<BasicResponse>
     
+    // Search endpoint
+    @GET("api/v1/search")
+    fun search(@Query("keyword") keyword: String): Call<SearchResponse>
+    
     // User profile endpoints
     @GET("api/v1/profiles/user/{userId}")
     fun getUserProfile(@Path("userId") userId: Int): Call<ProfileResponse>
