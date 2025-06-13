@@ -40,4 +40,18 @@ data class PlanData(
             else -> "D+${-daysUntil}"
         }
     }
-} 
+}
+
+data class PlanResponse(
+    val success: Boolean,
+    val message: String,
+    val data: PlanData
+)
+
+data class PlanUpdateRequest(
+    val title: String,
+    val description: String?,
+    val startDate: String,
+    val endDate: String,
+    val isPublic: Boolean = true
+) 

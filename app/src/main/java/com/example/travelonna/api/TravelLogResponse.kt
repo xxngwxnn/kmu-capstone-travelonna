@@ -32,3 +32,25 @@ data class TravelLogPlan(
     val isPublic: Boolean,
     val totalCost: Int
 )
+
+// 추가 모델들
+data class TravelLogCreateRequest(
+    val placeId: Int,
+    val title: String,
+    val content: String,
+    val visitDate: String,
+    val isPublic: Boolean = true
+)
+
+data class TravelLogUpdateRequest(
+    val title: String,
+    val content: String,
+    val visitDate: String,
+    val isPublic: Boolean = true
+)
+
+data class TravelLogListResponse(
+    val success: Boolean,
+    val message: String,
+    val data: List<TravelLogData>?
+)

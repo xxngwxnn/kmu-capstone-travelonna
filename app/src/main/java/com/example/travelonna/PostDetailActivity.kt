@@ -1,32 +1,32 @@
 package com.example.travelonna
 
-import android.app.Dialog
 import android.content.Intent
-import android.graphics.Color
-import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
+import android.util.Log
 import android.view.View
-import android.view.Window
-import android.view.WindowManager
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageView
-import android.widget.LinearLayout
-import android.widget.Switch
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import de.hdodenhof.circleimageview.CircleImageView
-import com.example.travelonna.model.Post
-import com.example.travelonna.model.Comment
-import com.example.travelonna.util.PostManager
+import com.example.travelonna.R
 import com.example.travelonna.adapter.CommentAdapter
+import com.example.travelonna.api.*
+import com.example.travelonna.model.Post
+import com.example.travelonna.util.PostManager
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 
-class PostDetailActivity : AppCompatActivity(), PostManager.PostUpdateListener {
+class PostDetailActivity : AppCompatActivity(), CommentAdapter.CommentActionListener {
     
     companion object {
         const val EXTRA_POST_ID = "extra_post_id"
+        const val RESULT_REFRESH_NEEDED = "result_refresh_needed"
+        private const val TAG = "PostDetailActivity"
     }
     
     private lateinit var backButton: ImageView
@@ -41,8 +41,6 @@ class PostDetailActivity : AppCompatActivity(), PostManager.PostUpdateListener {
     private lateinit var commentCount: TextView
     private lateinit var commentEditText: EditText
     private lateinit var sendButton: ImageView
-    private lateinit var followText: TextView
-    private lateinit var followToggle: Switch
     private lateinit var commentHeader: TextView
     private lateinit var commentsRecyclerView: RecyclerView
     private lateinit var noCommentsText: TextView
@@ -52,6 +50,7 @@ class PostDetailActivity : AppCompatActivity(), PostManager.PostUpdateListener {
     // 게시물 ID
     private var postId: Long = -1L
     private var currentPost: Post? = null
+    private var hasDataChanged = false
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -72,56 +71,53 @@ class PostDetailActivity : AppCompatActivity(), PostManager.PostUpdateListener {
             loadPostData(postId)
             loadComments(postId)
         } else {
-            // If no post ID, load dummy data for preview
-            loadDummyData()
+            Log.e(TAG, "No post ID provided")
+            finish()
         }
-        
-        // PostManager 리스너 등록
-        PostManager.addListener(this)
-    }
-    
-    override fun onDestroy() {
-        super.onDestroy()
-        // 메모리 누수 방지를 위해 리스너 제거
-        PostManager.removeListener(this)
     }
     
     private fun initViews() {
-        backButton = findViewById(R.id.backButton)
-        postImage = findViewById(R.id.postImage)
-        userName = findViewById(R.id.userName)
-        scheduleButton = findViewById(R.id.scheduleButton)
-        postContent = findViewById(R.id.postContent)
-        postDate = findViewById(R.id.postDate)
-        likeIcon = findViewById(R.id.likeIcon)
-        likeCount = findViewById(R.id.likeCount)
-        commentIcon = findViewById(R.id.commentIcon)
-        commentCount = findViewById(R.id.commentCount)
-        commentEditText = findViewById(R.id.commentEditText)
-        sendButton = findViewById(R.id.sendButton)
-        followText = findViewById(R.id.followText)
-        followToggle = findViewById(R.id.followToggle)
-        commentHeader = findViewById(R.id.commentHeader)
-        commentsRecyclerView = findViewById(R.id.commentsRecyclerView)
-        noCommentsText = findViewById(R.id.noCommentsText)
-    }
-    
-    private fun setupCommentsRecyclerView() {
-        commentAdapter = CommentAdapter(emptyList())
-        commentsRecyclerView.layoutManager = LinearLayoutManager(this)
-        commentsRecyclerView.adapter = commentAdapter
+        try {
+            backButton = findViewById(R.id.backButton)
+            postImage = findViewById(R.id.postImage)
+            userName = findViewById(R.id.userName)
+            scheduleButton = findViewById(R.id.scheduleButton)
+            postContent = findViewById(R.id.postContent)
+            postDate = findViewById(R.id.postDate)
+            likeIcon = findViewById(R.id.likeIcon)
+            likeCount = findViewById(R.id.likeCount)
+            commentIcon = findViewById(R.id.commentIcon)
+            commentCount = findViewById(R.id.commentCount)
+            commentEditText = findViewById(R.id.commentEditText)
+            sendButton = findViewById(R.id.sendButton)
+            commentHeader = findViewById(R.id.commentHeader)
+            commentsRecyclerView = findViewById(R.id.commentsRecyclerView)
+            noCommentsText = findViewById(R.id.noCommentsText)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error initializing views", e)
+        }
     }
     
     private fun setupListeners() {
         // Back button click listener
         backButton.setOnClickListener {
-            finish()
+            finishWithResult()
         }
         
-        // Like button click listener
-        likeIcon.setOnClickListener {
-            if (postId != -1L) {
-                PostManager.toggleLike(postId)
+        // Schedule button click listener
+        scheduleButton.setOnClickListener {
+            // 현재 게시물의 planId를 가져와서 전달
+            val planId = currentPost?.planId ?: 0
+            
+            Log.d(TAG, "Schedule button clicked - planId: $planId, currentPost: $currentPost")
+            
+            if (planId > 0) {
+                val intent = Intent(this, TravelDetailActivity::class.java).apply {
+                    putExtra("PLAN_ID", planId)
+                }
+                startActivity(intent)
+            } else {
+                Toast.makeText(this, "연결된 여행 계획이 없습니다.", Toast.LENGTH_SHORT).show()
             }
         }
         
@@ -129,48 +125,114 @@ class PostDetailActivity : AppCompatActivity(), PostManager.PostUpdateListener {
         sendButton.setOnClickListener {
             sendComment()
         }
-        
-        // Schedule button click listener
-        scheduleButton.setOnClickListener {
-            // 팝업 대신 액티비티로 전환
-            val intent = Intent(this, TravelDetailActivity::class.java).apply {
-                putExtra("PLAN_ID", postId)
-            }
-            startActivity(intent)
-        }
-        
-        // Follow toggle listener
-        followToggle.setOnCheckedChangeListener { _, isChecked ->
-            if (postId != -1L) {
-                PostManager.updateFollowStatus(postId, isChecked)
-            }
-        }
+    }
+    
+    private fun setupCommentsRecyclerView() {
+        commentAdapter = CommentAdapter(mutableListOf(), this)
+        commentsRecyclerView.layoutManager = LinearLayoutManager(this)
+        commentsRecyclerView.adapter = commentAdapter
     }
     
     private fun loadPostData(postId: Long) {
-        // PostManager에서 게시물 데이터 가져오기
-        currentPost = PostManager.getPost(postId)
-        currentPost?.let { post ->
+        val post = PostManager.getPost(postId)
+        if (post != null) {
+            currentPost = post
             updateUI(post)
-        } ?: run {
-            // 게시물을 찾을 수 없으면 더미 데이터 로드
-            loadDummyData()
+            Log.d(TAG, "Post data loaded from PostManager: ${post.description}")
+        } else {
+            Log.w(TAG, "Post not found in PostManager: $postId")
+            // 기본값으로 표시
+            showDefaultData()
         }
     }
     
-    private fun loadComments(postId: Long) {
-        val comments = PostManager.getComments(postId)
-        updateCommentsUI(comments)
+    private fun updateUI(post: Post) {
+        userName.text = post.userName
+        postContent.text = post.description
+        postDate.text = post.date
+        likeCount.text = post.likeCount.toString()
+        commentCount.text = post.commentCount.toString()
+        
+        // 이미지 처리
+        if (post.hasImage) {
+            postImage.visibility = android.view.View.VISIBLE
+            postImage.setImageResource(post.imageResource)
+        } else {
+            postImage.visibility = android.view.View.GONE
+        }
+        
+        // 좋아요 상태
+        if (post.isLiked) {
+            likeIcon.setImageResource(R.drawable.ic_like_filled)
+            likeIcon.setColorFilter(getColor(R.color.red))
+        } else {
+            likeIcon.setImageResource(R.drawable.ic_like_outline)
+            likeIcon.setColorFilter(getColor(R.color.gray_text))
+        }
     }
     
-    private fun updateCommentsUI(comments: List<Comment>) {
+    private fun showDefaultData() {
+        userName.text = "사용자"
+        postContent.text = "게시물 내용을 불러올 수 없습니다."
+        postDate.text = "날짜 없음"
+        likeCount.text = "0"
+        commentCount.text = "0"
+        postImage.visibility = android.view.View.GONE
+        
+        likeIcon.setImageResource(R.drawable.ic_like_outline)
+        likeIcon.setColorFilter(getColor(R.color.gray_text))
+    }
+    
+    private fun loadComments(postId: Long) {
+        Log.d(TAG, "Loading comments for logId: $postId")
+        
+        RetrofitClient.apiService.getLogComments(postId.toInt()).enqueue(object : Callback<CommentsResponse> {
+            override fun onResponse(call: Call<CommentsResponse>, response: Response<CommentsResponse>) {
+                if (response.isSuccessful && response.body() != null) {
+                    val commentsResponse = response.body()!!
+                    
+                    if (commentsResponse.success) {
+                        Log.d(TAG, "Comments loaded: ${commentsResponse.data?.size ?: 0} items")
+                        updateCommentsUI(commentsResponse.data ?: emptyList())
+                    } else {
+                        Log.w(TAG, "Failed to load comments: ${commentsResponse.message}")
+                        showCommentsError("댓글 로드에 실패했습니다.")
+                    }
+                } else {
+                    Log.e(TAG, "HTTP error loading comments: ${response.code()}")
+                    
+                    when (response.code()) {
+                        404 -> {
+                            Log.w(TAG, "Log not found for comments")
+                            // 404는 댓글이 없는 것으로 처리
+                            updateCommentsUI(emptyList())
+                        }
+                        500 -> {
+                            showCommentsError("서버에 일시적인 문제가 있습니다. 잠시 후 다시 시도해주세요.")
+                        }
+                        else -> {
+                            showCommentsError("댓글을 불러올 수 없습니다.")
+                        }
+                    }
+                }
+            }
+            
+            override fun onFailure(call: Call<CommentsResponse>, t: Throwable) {
+                Log.e(TAG, "Network error loading comments", t)
+                showCommentsError("네트워크 연결을 확인해주세요.")
+            }
+        })
+    }
+    
+    private fun updateCommentsUI(comments: List<CommentData>) {
         if (comments.isEmpty()) {
+            noCommentsText.text = "아직 댓글이 없습니다"
             noCommentsText.visibility = View.VISIBLE
             commentsRecyclerView.visibility = View.GONE
         } else {
             noCommentsText.visibility = View.GONE
             commentsRecyclerView.visibility = View.VISIBLE
-            commentAdapter.updateData(comments)
+            commentAdapter.updateComments(comments)
         }
         
         // 댓글 헤더 업데이트
@@ -178,89 +240,112 @@ class PostDetailActivity : AppCompatActivity(), PostManager.PostUpdateListener {
         commentHeader.text = commentCountText
     }
     
-    private fun updateUI(post: Post) {
-        postImage.setImageResource(post.imageResource)
-        userName.text = post.userName
-        postContent.text = post.description
-        postDate.text = post.date
-        likeCount.text = post.likeCount.toString()
-        commentCount.text = post.commentCount.toString()
-        
-        // 좋아요 상태 업데이트
-        updateLikeStatus(post.isLiked)
-        
-        // 팔로우 상태 설정
-        followToggle.isChecked = post.isFollowing
-        updateFollowStatus(post.isFollowing)
-    }
-    
-    private fun updateLikeStatus(isLiked: Boolean) {
-        if (isLiked) {
-            likeIcon.setImageResource(R.drawable.ic_like_filled)
-            likeIcon.setColorFilter(getColor(R.color.red))
+    private fun showCommentsError(message: String) {
+        // 이미 댓글이 표시된 경우 에러 메시지만 토스트로 표시
+        if (commentAdapter.itemCount > 0) {
+            Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
         } else {
-            likeIcon.setImageResource(R.drawable.ic_like_filled)
-            likeIcon.setColorFilter(getColor(R.color.gray_text))
-        }
-    }
-    
-    private fun loadDummyData() {
-        // Set dummy post data
-        postImage.setImageResource(R.drawable.main_dummy_1)
-        userName.text = "Pro_traveler_kr"
-        postContent.text = "지난 주에 일본 가벼지만을 다녀왔어요~ 모던하면서도 자분하고 깔끔한 느낌이었어요. 그 외 내용들을 적어주세요. 그 외 내용들을 적어주세요. 그외 내용들을 적어주세요. 그 외 내용들을 적어주세요. 그 외 내용들을 적어주세요."
-        postDate.text = "2025.08.17"
-        likeCount.text = "125"
-        commentCount.text = "23"
-        
-        // 팔로우 상태 설정 (초기 상태를 팔로우 중으로 설정)
-        followToggle.isChecked = true
-        updateFollowStatus(true)
-        
-        // 빈 댓글 목록 표시
-        updateCommentsUI(emptyList())
-    }
-    
-    private fun updateFollowStatus(isFollowing: Boolean) {
-        if (isFollowing) {
-            followText.text = "팔로우 중"
-            followText.setTextColor(getColor(R.color.blue))
-        } else {
-            followText.text = "팔로우"
-            followText.setTextColor(getColor(R.color.gray_text))
+            // 댓글이 없는 경우 에러 메시지를 텍스트로 표시
+            noCommentsText.text = message
+            noCommentsText.visibility = View.VISIBLE
+            commentsRecyclerView.visibility = View.GONE
         }
     }
     
     private fun sendComment() {
         val commentText = commentEditText.text.toString().trim()
         if (commentText.isNotEmpty() && postId != -1L) {
-            // 현재 사용자 이름 (임시로 "나"로 설정)
-            val currentUserName = "나"
+            Log.d(TAG, "Creating comment for logId: $postId")
             
-            // 댓글 추가
-            PostManager.addComment(postId, currentUserName, commentText)
+            val request = CreateCommentRequest(
+                comment = commentText
+            )
             
-            // 입력 필드 클리어
-            commentEditText.setText("")
+            // 전송 버튼 비활성화 (중복 전송 방지)
+            sendButton.isEnabled = false
+            
+            RetrofitClient.apiService.createComment(postId.toInt(), request).enqueue(object : Callback<CommentData> {
+                override fun onResponse(call: Call<CommentData>, response: Response<CommentData>) {
+                    sendButton.isEnabled = true
+                    
+                    if (response.isSuccessful && response.body() != null) {
+                        val newComment = response.body()!!
+                        Log.d(TAG, "Comment created successfully: ${newComment.commentId}")
+                        
+                        // 입력 필드 클리어
+                        commentEditText.setText("")
+                        
+                        // 새 댓글을 즉시 목록에 추가
+                        commentAdapter.addComment(newComment)
+                        
+                        // 댓글 목록이 비어있었다면 UI 업데이트
+                        if (commentAdapter.itemCount == 1) {
+                            noCommentsText.visibility = View.GONE
+                            commentsRecyclerView.visibility = View.VISIBLE
+                        }
+                        
+                        // 댓글 헤더 업데이트
+                        commentHeader.text = "댓글 ${commentAdapter.itemCount}개"
+                        
+                        // 댓글 수 UI 업데이트
+                        val currentCommentCount = commentCount.text.toString().toIntOrNull() ?: 0
+                        commentCount.text = (currentCommentCount + 1).toString()
+                        
+                        // 새 댓글로 스크롤
+                        commentsRecyclerView.scrollToPosition(0)
+                        hasDataChanged = true
+                        
+                        Toast.makeText(this@PostDetailActivity, "댓글이 작성되었습니다.", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Log.e(TAG, "HTTP error creating comment: ${response.code()}")
+                        
+                        when (response.code()) {
+                            400 -> {
+                                Toast.makeText(this@PostDetailActivity, "잘못된 요청입니다.", Toast.LENGTH_SHORT).show()
+                            }
+                            404 -> {
+                                Toast.makeText(this@PostDetailActivity, "게시물을 찾을 수 없습니다.", Toast.LENGTH_SHORT).show()
+                            }
+                            else -> {
+                                Toast.makeText(this@PostDetailActivity, "댓글 작성에 실패했습니다.", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
+                }
+                
+                override fun onFailure(call: Call<CommentData>, t: Throwable) {
+                    sendButton.isEnabled = true
+                    Log.e(TAG, "Network error creating comment", t)
+                    Toast.makeText(this@PostDetailActivity, "네트워크 오류가 발생했습니다.", Toast.LENGTH_SHORT).show()
+                }
+            })
         }
     }
     
-    override fun onPostUpdated(post: Post) {
-        // 현재 게시물이 업데이트되면 UI 반영
-        if (post.id == postId) {
-            runOnUiThread {
-                currentPost = post
-                updateUI(post)
+    private fun finishWithResult() {
+        if (hasDataChanged) {
+            val resultIntent = Intent().apply {
+                putExtra(RESULT_REFRESH_NEEDED, true)
             }
+            setResult(RESULT_OK, resultIntent)
+            Log.d(TAG, "Finishing with refresh result due to data changes")
         }
+        finish()
     }
     
-    override fun onCommentsUpdated(postId: Long, comments: List<Comment>) {
-        // 현재 게시물의 댓글이 업데이트되면 UI 반영
-        if (postId == this.postId) {
-            runOnUiThread {
-                updateCommentsUI(comments)
-            }
-        }
+    override fun onBackPressed() {
+        super.onBackPressed()
+        finishWithResult()
+    }
+
+    // CommentActionListener 구현
+    override fun onEditComment(comment: CommentData, position: Int) {
+        // TODO: 댓글 수정 다이얼로그 구현
+        Toast.makeText(this, "댓글 수정 기능 준비 중입니다.", Toast.LENGTH_SHORT).show()
+    }
+
+    override fun onDeleteComment(comment: CommentData, position: Int) {
+        // TODO: 댓글 삭제 확인 다이얼로그 구현
+        Toast.makeText(this, "댓글 삭제 기능 준비 중입니다.", Toast.LENGTH_SHORT).show()
     }
 } 

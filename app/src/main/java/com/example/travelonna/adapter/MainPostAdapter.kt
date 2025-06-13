@@ -7,7 +7,6 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
-import com.example.travelonna.PostDetailActivity
 import com.example.travelonna.R
 import com.example.travelonna.model.Post
 import com.example.travelonna.view.CustomToggleButton
@@ -68,35 +67,27 @@ class MainPostAdapter(private var posts: List<Post>) :
             PostManager.toggleLike(post.id)
         }
         
-        // 댓글 아이콘 클릭 이벤트 - 상세 화면으로 이동
-        holder.commentIcon.setOnClickListener {
-            val context = holder.itemView.context
-            val intent = Intent(context, PostDetailActivity::class.java).apply {
-                putExtra(PostDetailActivity.EXTRA_POST_ID, post.id)
-            }
-            context.startActivity(intent)
-        }
+        // 댓글 아이콘 클릭 이벤트 - 일단 비활성화
+        // holder.commentIcon.setOnClickListener {
+        //     // TODO: PostDetailActivity 구현 후 활성화
+        // }
         
         // 팔로우 토글 클릭 이벤트
         holder.followToggle.setOnCheckedChangeListener { isChecked ->
             PostManager.updateFollowStatus(post.id, isChecked)
         }
         
-        // 게시물 클릭 이벤트 - 상세 화면으로 이동 (좋아요 영역 제외)
-        val postClickListener = View.OnClickListener {
-            val context = holder.itemView.context
-            val intent = Intent(context, PostDetailActivity::class.java).apply {
-                putExtra(PostDetailActivity.EXTRA_POST_ID, post.id)
-            }
-            context.startActivity(intent)
-        }
+        // 게시물 클릭 이벤트 - 일단 비활성화
+        // val postClickListener = View.OnClickListener {
+        //     // TODO: PostDetailActivity 구현 후 활성화
+        // }
         
-        // 게시물의 여러 영역에 클릭 리스너 설정
-        holder.itemView.setOnClickListener(postClickListener)
-        holder.postImage.setOnClickListener(postClickListener)
-        holder.userName.setOnClickListener(postClickListener)
-        holder.description.setOnClickListener(postClickListener)
-        holder.date.setOnClickListener(postClickListener)
+        // 게시물의 여러 영역에 클릭 리스너 설정 - 일단 비활성화
+        // holder.itemView.setOnClickListener(postClickListener)
+        // holder.postImage.setOnClickListener(postClickListener)
+        // holder.userName.setOnClickListener(postClickListener)
+        // holder.description.setOnClickListener(postClickListener)
+        // holder.date.setOnClickListener(postClickListener)
     }
 
     private fun updateFollowStatus(holder: MainPostViewHolder, isFollowing: Boolean) {

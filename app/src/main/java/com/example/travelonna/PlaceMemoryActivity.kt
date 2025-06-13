@@ -21,6 +21,9 @@ import com.example.travelonna.api.PlaceDetailResponse
 import com.example.travelonna.api.PlanDetailResponse
 import com.example.travelonna.api.RetrofitClient
 import com.example.travelonna.api.TravelLogResponse
+import com.example.travelonna.api.TravelLogCreateRequest
+import com.example.travelonna.api.TravelLogUpdateRequest
+import com.example.travelonna.api.TravelLogListResponse
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -40,6 +43,9 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import okhttp3.ResponseBody
 import com.google.gson.GsonBuilder
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class PlaceMemoryActivity : AppCompatActivity() {
 
@@ -65,6 +71,7 @@ class PlaceMemoryActivity : AppCompatActivity() {
     private var lon = ""         // 경도
     private var order = 1        // 순서
     private var memo = ""        // 메모
+    private var placeName: String? = null // 장소 이름
     private var travelLogIsPublic = true // 여행 기록(travel log)의 공개 여부, 기본값은 공개
     private val TAG = "PlaceMemoryActivity"
     
@@ -127,7 +134,7 @@ class PlaceMemoryActivity : AppCompatActivity() {
         lockIconView = findViewById(R.id.lockIconView)
 
         // Intent에서 데이터 가져오기
-        val placeName = intent.getStringExtra("PLACE_NAME") ?: "동대구역"
+        placeName = intent.getStringExtra("PLACE_NAME") ?: "동대구역"
         val placeAddress = intent.getStringExtra("PLACE_ADDRESS") ?: "대구광역시 동구 동대구로 550 (신암동 294)"
         
         // 추가 데이터 가져오기
@@ -470,9 +477,18 @@ class PlaceMemoryActivity : AppCompatActivity() {
         Log.d(TAG, "여행 기록 생성 요청 URL: ${RetrofitClient.BASE_URL}api/v1/logs")
         Log.d(TAG, "여행 기록 생성 요청 본문:\n$jsonRequest")
         
+        // TravelLogCreateRequest 객체 생성
+        val travelLogRequest = TravelLogCreateRequest(
+            placeId = placeId,
+            title = placeName ?: "여행 기록",
+            content = comment,
+            visitDate = getCurrentDate(),
+            isPublic = travelLogIsPublic
+        )
+        
         // API 호출
-        RetrofitClient.apiService.createTravelLog(requestBody).enqueue(object : Callback<BasicResponse> {
-            override fun onResponse(call: Call<BasicResponse>, response: Response<BasicResponse>) {
+        RetrofitClient.apiService.createTravelLog(travelLogRequest).enqueue(object : Callback<TravelLogResponse> {
+            override fun onResponse(call: Call<TravelLogResponse>, response: Response<TravelLogResponse>) {
                 loadingDialog.dismiss()
                 
                 // 응답 상세 로깅
@@ -531,7 +547,7 @@ class PlaceMemoryActivity : AppCompatActivity() {
                 }
             }
             
-            override fun onFailure(call: Call<BasicResponse>, t: Throwable) {
+            override fun onFailure(call: Call<TravelLogResponse>, t: Throwable) {
                 loadingDialog.dismiss()
                 Log.e(TAG, "여행 로그 생성 네트워크 오류", t)
                 Log.e(TAG, "요청 URL: ${call.request().url}")
@@ -548,8 +564,8 @@ class PlaceMemoryActivity : AppCompatActivity() {
     private fun checkExistingTravelLog() {
         Log.d(TAG, "기존 여행 기록 조회 시작 - placeId: $placeId")
         
-        RetrofitClient.apiService.getTravelLogsByPlace(placeId).enqueue(object : Callback<TravelLogResponse> {
-            override fun onResponse(call: Call<TravelLogResponse>, response: Response<TravelLogResponse>) {
+        RetrofitClient.apiService.getTravelLogsByPlace(placeId).enqueue(object : Callback<TravelLogListResponse> {
+            override fun onResponse(call: Call<TravelLogListResponse>, response: Response<TravelLogListResponse>) {
                 if (response.isSuccessful && response.body()?.success == true) {
                     val logs = response.body()?.data
                     if (!logs.isNullOrEmpty()) {
@@ -581,7 +597,7 @@ class PlaceMemoryActivity : AppCompatActivity() {
                 }
             }
             
-            override fun onFailure(call: Call<TravelLogResponse>, t: Throwable) {
+            override fun onFailure(call: Call<TravelLogListResponse>, t: Throwable) {
                 Log.e(TAG, "기존 기록 조회 중 네트워크 오류", t)
                 isEditMode = false
                 uploadButton.text = "업로드"
@@ -610,17 +626,13 @@ class PlaceMemoryActivity : AppCompatActivity() {
 
     // 여행 로그 수정 API 호출
     private fun updateTravelLogApi(comment: String, imageUrl: String, loadingDialog: android.app.AlertDialog) {
-        // API 문서 형식에 맞게 요청 객체 생성
-        val requestBody = HashMap<String, Any>()
-        requestBody["planId"] = planId
-        requestBody["placeId"] = placeId
-        requestBody["comment"] = comment
-        requestBody["isPublic"] = travelLogIsPublic
-        
-        // 이미지 URL 리스트 추가
-        val imageUrls = ArrayList<String>()
-        imageUrls.add(imageUrl)
-        requestBody["imageUrls"] = imageUrls
+        // TravelLogUpdateRequest 객체 생성
+        val updateRequest = TravelLogUpdateRequest(
+            title = "여행 기록",
+            content = comment,
+            visitDate = getCurrentDate(),
+            isPublic = travelLogIsPublic
+        )
         
         // 인증 정보 확인
         val userId = RetrofitClient.getUserId()
@@ -628,13 +640,13 @@ class PlaceMemoryActivity : AppCompatActivity() {
         
         // API 요청 로깅
         val gson = GsonBuilder().setPrettyPrinting().create()
-        val jsonRequest = gson.toJson(requestBody)
+        val jsonRequest = gson.toJson(updateRequest)
         Log.d(TAG, "여행 기록 수정 요청 URL: ${RetrofitClient.BASE_URL}api/v1/logs/$existingLogId")
         Log.d(TAG, "여행 기록 수정 요청 본문:\n$jsonRequest")
         
         // API 호출
-        RetrofitClient.apiService.updateTravelLog(existingLogId!!, requestBody).enqueue(object : Callback<BasicResponse> {
-            override fun onResponse(call: Call<BasicResponse>, response: Response<BasicResponse>) {
+        RetrofitClient.apiService.updateTravelLog(existingLogId!!, updateRequest).enqueue(object : Callback<TravelLogResponse> {
+            override fun onResponse(call: Call<TravelLogResponse>, response: Response<TravelLogResponse>) {
                 loadingDialog.dismiss()
                 
                 // 응답 상세 로깅
@@ -684,7 +696,7 @@ class PlaceMemoryActivity : AppCompatActivity() {
                 }
             }
             
-            override fun onFailure(call: Call<BasicResponse>, t: Throwable) {
+            override fun onFailure(call: Call<TravelLogResponse>, t: Throwable) {
                 loadingDialog.dismiss()
                 Log.e(TAG, "여행 로그 수정 네트워크 오류", t)
                 Log.e(TAG, "요청 URL: ${call.request().url}")
@@ -695,6 +707,12 @@ class PlaceMemoryActivity : AppCompatActivity() {
                 ).show()
             }
         })
+    }
+
+    // 현재 날짜를 yyyy-MM-dd 형식으로 반환하는 메서드
+    private fun getCurrentDate(): String {
+        val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        return dateFormat.format(Date())
     }
 
     override fun onDestroy() {

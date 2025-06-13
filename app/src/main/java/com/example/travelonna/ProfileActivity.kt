@@ -25,6 +25,7 @@ import com.example.travelonna.api.ProfileResponse
 import com.example.travelonna.api.RetrofitClient
 import com.example.travelonna.api.TravelLogData
 import com.example.travelonna.api.TravelLogResponse
+import com.example.travelonna.api.TravelLogListResponse
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -345,8 +346,8 @@ class ProfileActivity : AppCompatActivity() {
         val userId = RetrofitClient.getUserId()
         Log.d(TAG, "사용자별 기록 조회 시작 - userId: $userId")
         
-        RetrofitClient.apiService.getTravelLogsByUser(userId).enqueue(object : Callback<TravelLogResponse> {
-            override fun onResponse(call: Call<TravelLogResponse>, response: Response<TravelLogResponse>) {
+        RetrofitClient.apiService.getTravelLogsByUser(userId).enqueue(object : Callback<TravelLogListResponse> {
+            override fun onResponse(call: Call<TravelLogListResponse>, response: Response<TravelLogListResponse>) {
                 if (response.isSuccessful && response.body()?.success == true) {
                     val logs = response.body()?.data ?: emptyList()
                     Log.d(TAG, "사용자별 기록 조회 성공 - 기록 수: ${logs.size}")
@@ -369,7 +370,7 @@ class ProfileActivity : AppCompatActivity() {
                 }
             }
             
-            override fun onFailure(call: Call<TravelLogResponse>, t: Throwable) {
+            override fun onFailure(call: Call<TravelLogListResponse>, t: Throwable) {
                 Log.e(TAG, "사용자별 기록 조회 네트워크 오류", t)
                 postsCount.text = "0"
             }

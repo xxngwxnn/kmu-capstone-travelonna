@@ -25,6 +25,8 @@ import com.example.travelonna.view.CustomToggleButton
 import com.example.travelonna.api.PlanCreateRequest
 import com.example.travelonna.api.PlanCreateResponse
 import com.example.travelonna.api.PlanCreateData
+import com.example.travelonna.api.PlanUpdateRequest
+import com.example.travelonna.api.PlanResponse
 import com.example.travelonna.api.RetrofitClient
 import retrofit2.Call
 import retrofit2.Callback
@@ -292,10 +294,19 @@ class ScheduleCreateActivity : AppCompatActivity() {
         )
 
         if (isEditMode) {
+            // PlanCreateRequest를 PlanUpdateRequest로 변환
+            val updateRequest = PlanUpdateRequest(
+                title = planRequest.title,
+                description = planRequest.memo,
+                startDate = planRequest.startDate,
+                endDate = planRequest.endDate,
+                isPublic = !planRequest.isGroupPlan
+            )
+            
             // 수정 API 호출
-            RetrofitClient.apiService.updatePlan(planId, planRequest)
-                .enqueue(object : Callback<PlanCreateResponse> {
-                    override fun onResponse(call: Call<PlanCreateResponse>, response: Response<PlanCreateResponse>) {
+            RetrofitClient.apiService.updatePlan(planId, updateRequest)
+                .enqueue(object : Callback<PlanResponse> {
+                    override fun onResponse(call: Call<PlanResponse>, response: Response<PlanResponse>) {
                         loadingDialog.dismiss()
                         
                         if (response.isSuccessful) {
@@ -309,7 +320,7 @@ class ScheduleCreateActivity : AppCompatActivity() {
                         }
                     }
                     
-                    override fun onFailure(call: Call<PlanCreateResponse>, t: Throwable) {
+                    override fun onFailure(call: Call<PlanResponse>, t: Throwable) {
                         loadingDialog.dismiss()
                         Toast.makeText(this@ScheduleCreateActivity, "네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
                         Log.e("ScheduleCreate", "Network Error: ${t.message}")

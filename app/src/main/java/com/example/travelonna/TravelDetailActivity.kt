@@ -144,9 +144,19 @@ class TravelDetailActivity : AppCompatActivity() {
                         Toast.makeText(this@TravelDetailActivity, "데이터를 가져오는데 실패했습니다: ${detailResponse.message}", Toast.LENGTH_SHORT).show()
                     }
                 } else {
-                    val errorMessage = "API 호출 실패: ${response.code()}"
-                    Log.e(TAG, errorMessage)
-                    Toast.makeText(this@TravelDetailActivity, errorMessage, Toast.LENGTH_SHORT).show()
+                    // HTTP 에러 코드에 따른 적절한 메시지 표시
+                    val errorMessage = when (response.code()) {
+                        400 -> "이 여행 계획에 접근할 권한이 없거나 계획을 찾을 수 없습니다."
+                        403 -> "이 여행 계획에 접근할 권한이 없습니다."
+                        404 -> "여행 계획을 찾을 수 없습니다."
+                        else -> "여행 계획을 불러오는 중 오류가 발생했습니다."
+                    }
+                    
+                    Log.e(TAG, "API 호출 실패: ${response.code()}")
+                    Toast.makeText(this@TravelDetailActivity, errorMessage, Toast.LENGTH_LONG).show()
+                    
+                    // 에러 발생 시 액티비티 종료
+                    finish()
                 }
             }
             

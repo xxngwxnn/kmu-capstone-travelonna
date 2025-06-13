@@ -68,10 +68,21 @@
         android:layout_height="wrap_content"
         android:text="나만의 지도"
         android:layout_marginTop="16dp"
-        app:layout_constraintBottom_toTopOf="@+id/profileButton"
+        app:layout_constraintBottom_toTopOf="@+id/userLogMapButton"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/planButton" />
+
+    <Button
+        android:id="@+id/userLogMapButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="여행 기록 지도"
+        android:layout_marginTop="16dp"
+        app:layout_constraintBottom_toTopOf="@+id/profileButton"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/myMapButton" />
 
     <Button
         android:id="@+id/profileButton"
@@ -82,7 +93,7 @@
         app:layout_constraintBottom_toTopOf="@+id/logButton"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/myMapButton" />
+        app:layout_constraintTop_toBottomOf="@+id/userLogMapButton" />
 
     <Button
         android:id="@+id/logButton"

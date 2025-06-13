@@ -15,7 +15,7 @@ import android.widget.Spinner
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.Toast
-import com.example.travelonna.api.Plan
+import com.example.travelonna.api.PlanData
 import com.example.travelonna.api.RetrofitClient
 import com.example.travelonna.model.TravelLog
 import com.example.travelonna.model.TravelPlace
@@ -156,10 +156,10 @@ class LogActivity : AppCompatActivity() {
     private fun fetchTravelPlans() {
         Log.d("LogActivity", "Fetching travel plans from API: ${RetrofitClient.BASE_URL}api/v1/plans")
         
-        RetrofitClient.planApiService.getPlans().enqueue(object : Callback<com.example.travelonna.api.PlanResponse> {
+        RetrofitClient.apiService.getPlans("Bearer YOUR_TOKEN").enqueue(object : Callback<com.example.travelonna.api.PlanListResponse> {
             override fun onResponse(
-                call: Call<com.example.travelonna.api.PlanResponse>,
-                response: Response<com.example.travelonna.api.PlanResponse>
+                call: Call<com.example.travelonna.api.PlanListResponse>,
+                response: Response<com.example.travelonna.api.PlanListResponse>
             ) {
                 if (response.isSuccessful) {
                     val planResponse = response.body()
@@ -168,7 +168,7 @@ class LogActivity : AppCompatActivity() {
                     if (planResponse != null && planResponse.success) {
                         // API 응답을 TravelLog 객체로 변환
                         allTravelLogs = convertPlansToTravelLogs(planResponse.data)
-                        Log.d("LogActivity", "Received ${planResponse.data.size} plans from API")
+                        Log.d("LogActivity", "Received ${planResponse.data?.size ?: 0} plans from API")
                         
                         // 리스트 업데이트
                         updateAdapterWithLogs(allTravelLogs)
@@ -189,7 +189,7 @@ class LogActivity : AppCompatActivity() {
                 }
             }
 
-            override fun onFailure(call: Call<com.example.travelonna.api.PlanResponse>, t: Throwable) {
+            override fun onFailure(call: Call<com.example.travelonna.api.PlanListResponse>, t: Throwable) {
                 Log.e("LogActivity", "API call failed", t)
                 Toast.makeText(this@LogActivity, "네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
                 // 실패 시 샘플 데이터 사용
@@ -200,7 +200,8 @@ class LogActivity : AppCompatActivity() {
     }
     
     // Plan 객체를 TravelLog 객체로 변환
-    private fun convertPlansToTravelLogs(plans: List<Plan>): List<TravelLog> {
+    private fun convertPlansToTravelLogs(plans: List<PlanData>?): List<TravelLog> {
+        if (plans.isNullOrEmpty()) return emptyList()
         val currentDate = Calendar.getInstance().time
         
         return plans
