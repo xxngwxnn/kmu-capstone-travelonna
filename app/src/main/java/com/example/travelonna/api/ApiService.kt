@@ -101,6 +101,13 @@ interface ApiService {
     @GET("api/v1/follows/count/followings/{profileId}")
     fun getFollowingsCount(@Path("profileId") profileId: Int): Call<FollowCountResponse>
     
+    // Follow list endpoints
+    @GET("api/v1/follows/followers/{profileId}")
+    fun getFollowersList(@Path("profileId") profileId: Int): Call<FollowListResponse>
+    
+    @GET("api/v1/follows/followings/{profileId}")
+    fun getFollowingsList(@Path("profileId") profileId: Int): Call<FollowListResponse>
+    
     // Travel log endpoints
     @GET("api/v1/places/{placeId}/detail")
     fun getPlaceDetail(@Path("placeId") placeId: Int): Call<PlaceDetailResponse>

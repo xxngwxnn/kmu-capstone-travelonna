@@ -139,6 +139,7 @@ class ProfileActivity : AppCompatActivity() {
             val intent = Intent(this, FollowListActivity::class.java)
             intent.putExtra("type", "followers")
             intent.putExtra("nickname", usernameText.text.toString())
+            intent.putExtra("profileId", profileId)
             startActivity(intent)
         }
         
@@ -146,6 +147,7 @@ class ProfileActivity : AppCompatActivity() {
             val intent = Intent(this, FollowListActivity::class.java)
             intent.putExtra("type", "following")
             intent.putExtra("nickname", usernameText.text.toString())
+            intent.putExtra("profileId", profileId)
             startActivity(intent)
         }
     }

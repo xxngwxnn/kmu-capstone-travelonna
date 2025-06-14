@@ -47,8 +47,7 @@ class FollowAdapter(
         
         // 팔로우 토글 변경 이벤트
         holder.followToggle.setOnCheckedChangeListener { isChecked ->
-            user.isFollowing = isChecked
-            updateFollowStatus(holder, isChecked)
+            // 상태 변경은 콜백에서 처리하도록 하고, 여기서는 즉시 변경하지 않음
             onFollowClick(user, position)
         }
     }

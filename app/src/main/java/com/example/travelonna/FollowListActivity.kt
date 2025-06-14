@@ -13,9 +13,15 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.travelonna.adapter.FollowAdapter
 import com.example.travelonna.api.FollowCountResponse
+import com.example.travelonna.api.FollowListResponse
+import com.example.travelonna.api.FollowRequest
+import com.example.travelonna.api.FollowResponse
+import com.example.travelonna.api.FollowUser
 import com.example.travelonna.api.RetrofitClient
+import com.example.travelonna.api.UnfollowResponse
 import com.example.travelonna.model.User
 import com.google.android.material.tabs.TabLayout
+import androidx.appcompat.app.AlertDialog
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -74,17 +80,15 @@ class FollowListActivity : AppCompatActivity() {
         initViews()
         setupListeners()
         
-        // Intent에서 타입과 닉네임 가져오기
+        // Intent에서 타입과 닉네임, 프로필 ID 가져오기
         val type = intent.getStringExtra("type") ?: "followers"
         val nickname = intent.getStringExtra("nickname") ?: "travel_on_me"
+        profileId = intent.getIntExtra("profileId", RetrofitClient.getUserId())
         
         // 닉네임 설정
         tvTitle.text = nickname
         
         isFollowerTab = type == "followers"
-        
-        // 프로필 ID를 가져오기 (API 호출용)
-        profileId = RetrofitClient.getUserId()
         
         // 팔로워 및 팔로잉 수 가져오기
         fetchFollowCounts(profileId)
@@ -211,11 +215,11 @@ class FollowListActivity : AppCompatActivity() {
     
     private fun updateContent() {
         if (isFollowerTab) {
-            setupRecyclerView(followers)
             tvSectionTitle.text = "모든 팔로워"
+            fetchFollowersList(profileId)
         } else {
-            setupRecyclerView(following)
             tvSectionTitle.text = "모든 팔로잉"
+            fetchFollowingsList(profileId)
         }
     }
     
@@ -224,16 +228,246 @@ class FollowListActivity : AppCompatActivity() {
         currentList.addAll(users)
         
         adapter = FollowAdapter(currentList) { user, position ->
-            // 팔로우 상태가 변경될 때 메시지 표시
-            val message = if (user.isFollowing) 
-                "${user.username}님을 팔로우합니다." 
-            else 
-                "${user.username}님 팔로우를 취소했습니다."
-            
-            Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+            handleFollowToggle(user, position)
         }
         
         recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.adapter = adapter
+    }
+
+    // FollowUser를 User 모델로 변환하는 확장 함수
+    private fun FollowUser.toUser(isFollowerList: Boolean): User {
+        // 팔로워 목록인 경우: fromUser가 실제 사용자 ID
+        // 팔로잉 목록인 경우: toUser가 실제 사용자 ID
+        val actualUserId = if (isFollowerList) this.fromUser else this.toUser
+        
+        return User(
+            id = actualUserId.toString(),
+            username = "user_$actualUserId", // 실제로는 사용자명을 받아와야 함
+            profileImageUrl = null,
+            isFollowing = this.following
+        )
+    }
+
+    private fun fetchFollowersList(profileId: Int) {
+        RetrofitClient.apiService.getFollowersList(profileId).enqueue(object : Callback<FollowListResponse> {
+            override fun onResponse(call: Call<FollowListResponse>, response: Response<FollowListResponse>) {
+                if (response.isSuccessful && response.body() != null) {
+                    val followListResponse = response.body()!!
+                    
+                    if (followListResponse.success) {
+                        val userList = followListResponse.data.map { it.toUser(isFollowerList = true) }
+                        setupRecyclerView(userList)
+                        Log.d(TAG, "팔로워 목록 조회 성공: ${userList.size}명")
+                    } else {
+                        Log.w(TAG, "팔로워 목록 조회 실패: ${followListResponse.message}")
+                        // 실패 시 더미 데이터 사용
+                        setupRecyclerView(followers)
+                    }
+                } else {
+                    Log.e(TAG, "팔로워 목록 HTTP 오류: ${response.code()}")
+                    // HTTP 오류 시 더미 데이터 사용
+                    setupRecyclerView(followers)
+                }
+            }
+            
+            override fun onFailure(call: Call<FollowListResponse>, t: Throwable) {
+                Log.e(TAG, "팔로워 목록 네트워크 오류", t)
+                // 네트워크 오류 시 더미 데이터 사용
+                setupRecyclerView(followers)
+                Toast.makeText(this@FollowListActivity, "네트워크 오류로 더미 데이터를 표시합니다.", Toast.LENGTH_SHORT).show()
+            }
+        })
+    }
+
+    private fun fetchFollowingsList(profileId: Int) {
+        RetrofitClient.apiService.getFollowingsList(profileId).enqueue(object : Callback<FollowListResponse> {
+            override fun onResponse(call: Call<FollowListResponse>, response: Response<FollowListResponse>) {
+                if (response.isSuccessful && response.body() != null) {
+                    val followListResponse = response.body()!!
+                    
+                    if (followListResponse.success) {
+                        val userList = followListResponse.data.map { it.toUser(isFollowerList = false) }
+                        setupRecyclerView(userList)
+                        Log.d(TAG, "팔로잉 목록 조회 성공: ${userList.size}명")
+                    } else {
+                        Log.w(TAG, "팔로잉 목록 조회 실패: ${followListResponse.message}")
+                        // 실패 시 더미 데이터 사용
+                        setupRecyclerView(following)
+                    }
+                } else {
+                    Log.e(TAG, "팔로잉 목록 HTTP 오류: ${response.code()}")
+                    // HTTP 오류 시 더미 데이터 사용
+                    setupRecyclerView(following)
+                }
+            }
+            
+            override fun onFailure(call: Call<FollowListResponse>, t: Throwable) {
+                Log.e(TAG, "팔로잉 목록 네트워크 오류", t)
+                // 네트워크 오류 시 더미 데이터 사용
+                setupRecyclerView(following)
+                Toast.makeText(this@FollowListActivity, "네트워크 오류로 더미 데이터를 표시합니다.", Toast.LENGTH_SHORT).show()
+            }
+        })
+    }
+
+    /**
+     * 팔로우 토글 처리
+     */
+    private fun handleFollowToggle(user: User, position: Int) {
+        if (user.isFollowing) {
+            // 팔로우 중인 상태에서 토글하면 언팔로우 확인 다이얼로그 표시
+            showUnfollowConfirmDialog(user, position)
+        } else {
+            // 팔로우하지 않은 상태에서 토글하면 팔로우 실행
+            followUser(user, position)
+        }
+    }
+
+    /**
+     * 언팔로우 확인 다이얼로그 표시
+     */
+    private fun showUnfollowConfirmDialog(user: User, position: Int) {
+        AlertDialog.Builder(this)
+            .setTitle("팔로우 취소")
+            .setMessage("${user.username}님의 팔로우를 취소하시겠습니까?")
+            .setPositiveButton("취소") { _, _ ->
+                // 언팔로우 실행
+                unfollowUser(user, position)
+            }
+            .setNegativeButton("아니오") { dialog, _ ->
+                // 토글 상태를 원래대로 되돌리기
+                revertToggleState(position)
+                dialog.dismiss()
+            }
+            .setOnCancelListener {
+                // 다이얼로그 취소 시에도 토글 상태 되돌리기
+                revertToggleState(position)
+            }
+            .show()
+    }
+
+    /**
+     * 실제 언팔로우 API 호출
+     */
+    private fun unfollowUser(user: User, position: Int) {
+        val userId = user.id.toIntOrNull()
+        if (userId == null) {
+            Toast.makeText(this, "사용자 정보가 올바르지 않습니다.", Toast.LENGTH_SHORT).show()
+            revertToggleState(position)
+            return
+        }
+
+        Log.d(TAG, "언팔로우 API 호출 - userId: $userId, username: ${user.username}")
+        RetrofitClient.apiService.unfollowUser(userId).enqueue(object : Callback<UnfollowResponse> {
+            override fun onResponse(call: Call<UnfollowResponse>, response: Response<UnfollowResponse>) {
+                if (response.isSuccessful && response.body() != null) {
+                    val unfollowResponse = response.body()!!
+                    
+                    if (unfollowResponse.success) {
+                        // 언팔로우 성공 - 목록에서 제거하지 않고 상태만 변경
+                        user.isFollowing = false
+                        adapter.notifyItemChanged(position)
+                        Toast.makeText(this@FollowListActivity, "${user.username}님의 팔로우를 취소했습니다.", Toast.LENGTH_SHORT).show()
+                        Log.d(TAG, "언팔로우 성공: ${user.username}")
+                        
+                        // 팔로잉 수만 업데이트 (현재 탭이 팔로잉 탭인 경우)
+                        if (!isFollowerTab) {
+                            followingCount = maxOf(0, followingCount - 1)
+                            setupTabText()
+                        }
+                    } else {
+                        Log.w(TAG, "언팔로우 실패: ${unfollowResponse.message}")
+                        Toast.makeText(this@FollowListActivity, "팔로우 취소에 실패했습니다.", Toast.LENGTH_SHORT).show()
+                        revertToggleState(position)
+                    }
+                } else {
+                    Log.e(TAG, "언팔로우 HTTP 오류: ${response.code()}")
+                    Toast.makeText(this@FollowListActivity, "서버 오류가 발생했습니다.", Toast.LENGTH_SHORT).show()
+                    revertToggleState(position)
+                }
+            }
+            
+            override fun onFailure(call: Call<UnfollowResponse>, t: Throwable) {
+                Log.e(TAG, "언팔로우 네트워크 오류", t)
+                Toast.makeText(this@FollowListActivity, "네트워크 오류가 발생했습니다.", Toast.LENGTH_SHORT).show()
+                revertToggleState(position)
+            }
+        })
+    }
+
+    /**
+     * 실제 팔로우 API 호출
+     */
+    private fun followUser(user: User, position: Int) {
+        val userId = user.id.toIntOrNull()
+        if (userId == null) {
+            Toast.makeText(this, "사용자 정보가 올바르지 않습니다.", Toast.LENGTH_SHORT).show()
+            revertToggleState(position)
+            return
+        }
+
+        val currentUserId = RetrofitClient.getUserId()
+        val request = FollowRequest(toUser = userId, fromUser = currentUserId)
+        
+        Log.d(TAG, "팔로우 API 호출 - toUser: $userId, fromUser: $currentUserId, username: ${user.username}")
+        RetrofitClient.apiService.followUser(request).enqueue(object : Callback<FollowResponse> {
+            override fun onResponse(call: Call<FollowResponse>, response: Response<FollowResponse>) {
+                if (response.isSuccessful && response.body() != null) {
+                    val followResponse = response.body()!!
+                    
+                    if (followResponse.success && followResponse.data != null) {
+                        // 팔로우 성공
+                        val isFollowing = followResponse.data.isFollowing
+                        Toast.makeText(this@FollowListActivity, "${user.username}님을 팔로우했습니다.", Toast.LENGTH_SHORT).show()
+                        Log.d(TAG, "팔로우 성공: ${user.username}, isFollowing: $isFollowing")
+                        
+                        // 팔로잉 수 업데이트 (현재 탭이 팔로잉 탭인 경우)
+                        if (!isFollowerTab && isFollowing) {
+                            followingCount += 1
+                            setupTabText()
+                        }
+                        
+                        // 팔로우 성공 후 페이지 업데이트 (최신 상태 반영)
+                        refreshCurrentTab()
+                    } else {
+                        Log.w(TAG, "팔로우 실패: ${followResponse.message}")
+                        Toast.makeText(this@FollowListActivity, "팔로우에 실패했습니다.", Toast.LENGTH_SHORT).show()
+                        revertToggleState(position)
+                    }
+                } else {
+                    Log.e(TAG, "팔로우 HTTP 오류: ${response.code()}")
+                    Toast.makeText(this@FollowListActivity, "서버 오류가 발생했습니다.", Toast.LENGTH_SHORT).show()
+                    revertToggleState(position)
+                }
+            }
+            
+            override fun onFailure(call: Call<FollowResponse>, t: Throwable) {
+                Log.e(TAG, "팔로우 네트워크 오류", t)
+                Toast.makeText(this@FollowListActivity, "네트워크 오류가 발생했습니다.", Toast.LENGTH_SHORT).show()
+                revertToggleState(position)
+            }
+        })
+    }
+
+    /**
+     * 현재 탭 새로고침
+     */
+    private fun refreshCurrentTab() {
+        // 팔로워/팔로잉 수 다시 조회
+        fetchFollowCounts(profileId)
+        
+        // 현재 탭의 목록 다시 조회
+        updateContent()
+    }
+
+    /**
+     * 토글 상태를 원래대로 되돌리기
+     */
+    private fun revertToggleState(position: Int) {
+        if (position < currentList.size) {
+            // 어댑터에 변경사항 알림하여 원래 상태로 되돌림
+            adapter.notifyItemChanged(position)
+        }
     }
 } 
