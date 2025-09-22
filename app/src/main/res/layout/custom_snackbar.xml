@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:padding="16dp"
+    android:gravity="center_vertical"
+    android:background="@drawable/custom_snackbar_background"
+    android:layout_margin="16dp">
+
+    <ImageView
+        android:id="@+id/snackbar_icon"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:layout_marginEnd="12dp"
+        android:src="@drawable/ic_check_circle"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/snackbar_message"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:textColor="@android:color/white"
+        android:textSize="14sp"
+        android:fontFamily="sans-serif-medium"
+        android:text="메시지" />
+
+</LinearLayout> 

@@ -14,8 +14,8 @@ class UploadCompleteActivity : AppCompatActivity() {
         val completeButton = findViewById<ImageButton>(R.id.completeButton)
         
         completeButton.setOnClickListener {
-            // LogActivity로 이동
-            val intent = Intent(this, LogActivity::class.java)
+            // ProfileActivity로 이동 (보러가기 기능)
+            val intent = Intent(this, ProfileActivity::class.java)
             intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
             startActivity(intent)
             finish()

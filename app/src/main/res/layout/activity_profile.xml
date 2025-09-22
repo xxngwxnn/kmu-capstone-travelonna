@@ -36,13 +36,7 @@
             android:textSize="18sp"
             android:textStyle="bold" />
 
-        <ImageButton
-            android:id="@+id/notification_button"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Notifications"
-            android:src="@drawable/alarm_on_icon" />
+
     </LinearLayout>
 
     <!-- Divider line between header and profile -->
@@ -260,7 +254,16 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:padding="8dp"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/bottomNavBar"
         app:layout_constraintTop_toBottomOf="@id/divider" />
+
+    <include
+        layout="@layout/view_bottom_nav_bar"
+        android:id="@+id/bottomNavBar"
+        android:layout_width="match_parent"
+        android:layout_height="65dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout> 

@@ -132,4 +132,16 @@ data class PlanPlace(
     
     @SerializedName("googleId")
     val googleId: String?
-) 
+)
+
+data class LikeToggleResponse(
+    val success: Boolean,
+    val message: String,
+    val data: Boolean  // true면 좋아요 추가, false면 좋아요 취소
+)
+
+data class LikeToggleData(
+    val isLiked: Boolean,
+    val likeCount: Int
+)
+

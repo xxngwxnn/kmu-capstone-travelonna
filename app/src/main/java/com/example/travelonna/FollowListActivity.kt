@@ -1,5 +1,7 @@
 package com.example.travelonna
 
+import android.content.Intent
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import android.os.Bundle
 import android.util.Log
 import android.widget.ImageButton
@@ -17,6 +19,7 @@ import com.example.travelonna.api.FollowListResponse
 import com.example.travelonna.api.FollowRequest
 import com.example.travelonna.api.FollowResponse
 import com.example.travelonna.api.FollowUser
+import com.example.travelonna.api.ProfileResponse
 import com.example.travelonna.api.RetrofitClient
 import com.example.travelonna.api.UnfollowResponse
 import com.example.travelonna.model.User
@@ -243,7 +246,7 @@ class FollowListActivity : AppCompatActivity() {
         
         return User(
             id = actualUserId.toString(),
-            username = "user_$actualUserId", // 실제로는 사용자명을 받아와야 함
+            username = this.nickname ?: "user_$actualUserId", // nickname이 있으면 사용, 없으면 fallback
             profileImageUrl = null,
             isFollowing = this.following
         )
@@ -257,8 +260,12 @@ class FollowListActivity : AppCompatActivity() {
                     
                     if (followListResponse.success) {
                         val userList = followListResponse.data.map { it.toUser(isFollowerList = true) }
-                        setupRecyclerView(userList)
-                        Log.d(TAG, "팔로워 목록 조회 성공: ${userList.size}명")
+                        
+                        // 각 사용자의 실제 닉네임 조회
+                        fetchUserNicknames(userList) { updatedUserList ->
+                            setupRecyclerView(updatedUserList)
+                            Log.d(TAG, "팔로워 목록 조회 성공: ${updatedUserList.size}명")
+                        }
                     } else {
                         Log.w(TAG, "팔로워 목록 조회 실패: ${followListResponse.message}")
                         // 실패 시 더미 데이터 사용
@@ -288,8 +295,12 @@ class FollowListActivity : AppCompatActivity() {
                     
                     if (followListResponse.success) {
                         val userList = followListResponse.data.map { it.toUser(isFollowerList = false) }
-                        setupRecyclerView(userList)
-                        Log.d(TAG, "팔로잉 목록 조회 성공: ${userList.size}명")
+                        
+                        // 각 사용자의 실제 닉네임 조회
+                        fetchUserNicknames(userList) { updatedUserList ->
+                            setupRecyclerView(updatedUserList)
+                            Log.d(TAG, "팔로잉 목록 조회 성공: ${updatedUserList.size}명")
+                        }
                     } else {
                         Log.w(TAG, "팔로잉 목록 조회 실패: ${followListResponse.message}")
                         // 실패 시 더미 데이터 사용
@@ -309,6 +320,65 @@ class FollowListActivity : AppCompatActivity() {
                 Toast.makeText(this@FollowListActivity, "네트워크 오류로 더미 데이터를 표시합니다.", Toast.LENGTH_SHORT).show()
             }
         })
+    }
+    
+    /**
+     * 팔로우 목록의 각 사용자에 대해 실제 닉네임을 조회하여 업데이트
+     */
+    private fun fetchUserNicknames(userList: List<User>, callback: (List<User>) -> Unit) {
+        if (userList.isEmpty()) {
+            callback(userList)
+            return
+        }
+        
+        val updatedUsers = userList.toMutableList()
+        var completedRequests = 0
+        val totalRequests = userList.size
+        
+        userList.forEachIndexed { index, user ->
+            val userId = user.id.toIntOrNull()
+            if (userId == null) {
+                completedRequests++
+                if (completedRequests == totalRequests) {
+                    callback(updatedUsers)
+                }
+                return@forEachIndexed
+            }
+            
+            Log.d(TAG, "사용자 프로필 조회 시작 - userId: $userId")
+            RetrofitClient.apiService.getUserProfile(userId).enqueue(object : Callback<ProfileResponse> {
+                override fun onResponse(call: Call<ProfileResponse>, response: Response<ProfileResponse>) {
+                    if (response.isSuccessful && response.body() != null) {
+                        val profileData = response.body()!!
+                        val nickname = profileData.nickname
+                        
+                        if (nickname.isNotBlank()) {
+                            // 닉네임으로 업데이트
+                            updatedUsers[index] = user.copy(username = nickname)
+                            Log.d(TAG, "사용자 닉네임 업데이트 성공 - userId: $userId, nickname: '$nickname'")
+                        } else {
+                            Log.w(TAG, "닉네임이 비어있음 - userId: $userId")
+                        }
+                    } else {
+                        Log.e(TAG, "사용자 프로필 조회 실패 - userId: $userId, code: ${response.code()}")
+                    }
+                    
+                    completedRequests++
+                    if (completedRequests == totalRequests) {
+                        callback(updatedUsers)
+                    }
+                }
+                
+                override fun onFailure(call: Call<ProfileResponse>, t: Throwable) {
+                    Log.e(TAG, "사용자 프로필 조회 네트워크 오류 - userId: $userId", t)
+                    
+                    completedRequests++
+                    if (completedRequests == totalRequests) {
+                        callback(updatedUsers)
+                    }
+                }
+            })
+        }
     }
 
     /**
@@ -376,6 +446,9 @@ class FollowListActivity : AppCompatActivity() {
                             followingCount = maxOf(0, followingCount - 1)
                             setupTabText()
                         }
+                        
+                        // 브로드캐스트 전송으로 다른 화면에 알림
+                        sendFollowUpdateBroadcast(userId, false)
                     } else {
                         Log.w(TAG, "언팔로우 실패: ${unfollowResponse.message}")
                         Toast.makeText(this@FollowListActivity, "팔로우 취소에 실패했습니다.", Toast.LENGTH_SHORT).show()
@@ -428,6 +501,9 @@ class FollowListActivity : AppCompatActivity() {
                             setupTabText()
                         }
                         
+                        // 브로드캐스트 전송으로 다른 화면에 알림
+                        sendFollowUpdateBroadcast(userId, isFollowing)
+                        
                         // 팔로우 성공 후 페이지 업데이트 (최신 상태 반영)
                         refreshCurrentTab()
                     } else {
@@ -469,5 +545,16 @@ class FollowListActivity : AppCompatActivity() {
             // 어댑터에 변경사항 알림하여 원래 상태로 되돌림
             adapter.notifyItemChanged(position)
         }
+    }
+
+    /**
+     * 팔로우 상태 변경을 다른 화면에 알리는 브로드캐스트 전송
+     */
+    private fun sendFollowUpdateBroadcast(userId: Int, isFollowing: Boolean) {
+        val intent = Intent("com.example.travelonna.FOLLOW_UPDATED")
+        intent.putExtra("user_id", userId)
+        intent.putExtra("is_following", isFollowing)
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
+        Log.d(TAG, "팔로우 상태 변경 브로드캐스트 전송 - userId: $userId, isFollowing: $isFollowing")
     }
 } 

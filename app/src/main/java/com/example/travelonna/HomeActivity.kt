@@ -10,6 +10,8 @@ import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -22,40 +24,75 @@ import com.example.travelonna.api.RetrofitClient
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+import com.example.travelonna.util.CustomToast
 
-class HomeActivity : AppCompatActivity() {
+class HomeActivity : BaseActivity() {
     
     companion object {
         private const val TAG = "HomeActivity"
         const val REQUEST_POST_DETAIL = 1001
+        private const val DEFAULT_PAGE_SIZE = 50
     }
     
     private lateinit var recommendationAdapter: RecommendationAdapter
     private lateinit var progressBar: ProgressBar
     private lateinit var recyclerView: RecyclerView
     private lateinit var recommendationTitle: TextView
+    private lateinit var swipeRefreshLayout: SwipeRefreshLayout
+    private lateinit var postDetailLauncher: ActivityResultLauncher<Intent>
+    
+    private var currentPage = 1
+    private var isLoading = false
+    private var hasNextPage = true
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_home)
         
+        // 하단 네비게이션 바 설정
+        setupBottomNavBar(R.id.navHome)
+        
+        // ActivityResultLauncher 초기화
+        setupActivityResultLauncher()
+        
         // 뷰 초기화
         initViews()
         
-        // 검색 아이콘 클릭 리스너 설정
-        findViewById<ImageView>(R.id.searchIcon).setOnClickListener {
-            val intent = Intent(this, SearchActivity::class.java)
+        // SwipeRefreshLayout 초기화
+        swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout)
+        swipeRefreshLayout.setOnRefreshListener {
+            resetPagination()
+            loadRecommendations()
+        }
+        
+        // 기록 작성 아이콘 클릭 리스너 설정
+        findViewById<ImageView>(R.id.writeIcon).setOnClickListener {
+            val intent = Intent(this, LogActivity::class.java)
+            intent.putExtra("from_write_memory", true)  // 기록작성 모드임을 알림
             startActivity(intent)
         }
         
         // RecyclerView 설정
         setupRecyclerView()
         
-        // 추천 데이터 존재 여부 먼저 확인
-        checkRecommendationsExist()
-        
-        // 추천 개수 로드
-        loadRecommendationCount()
+        // 초기 데이터 로드
+        loadRecommendations()
+    }
+    
+    private fun setupActivityResultLauncher() {
+        postDetailLauncher = registerForActivityResult(
+            ActivityResultContracts.StartActivityForResult()
+        ) { result ->
+            if (result.resultCode == RESULT_OK) {
+                val needsRefresh = result.data?.getBooleanExtra(PostDetailActivity.RESULT_REFRESH_NEEDED, false) ?: false
+                if (needsRefresh) {
+                    Log.d(TAG, "PostDetail returned with refresh needed, reloading recommendations")
+                    resetPagination()
+                    loadRecommendations()
+                }
+            }
+        }
     }
     
     private fun initViews() {
@@ -68,65 +105,50 @@ class HomeActivity : AppCompatActivity() {
     }
     
     private fun setupRecyclerView() {
+        recyclerView = findViewById(R.id.postsRecyclerView)
         recyclerView.layoutManager = LinearLayoutManager(this)
-        recyclerView.setHasFixedSize(true)
+        recommendationAdapter = RecommendationAdapter()
         
-        // 초기에는 빈 어댑터로 설정
-        recommendationAdapter = RecommendationAdapter(mutableListOf())
-        recyclerView.adapter = recommendationAdapter
-    }
-    
-    private fun checkRecommendationsExist() {
-        val userId = RetrofitClient.getUserId()
-        
-        if (userId == 0) {
-            Log.w(TAG, "User ID not found, showing empty state")
-            showEmptyState()
-            return
-        }
-        
-        Log.d(TAG, "Checking if recommendations exist for user: $userId")
-        
-        // 로딩 표시
-        progressBar.visibility = View.VISIBLE
-        
-        RetrofitClient.apiService.checkRecommendationExists(userId, "log").enqueue(object : Callback<RecommendationExistsResponse> {
-            override fun onResponse(call: Call<RecommendationExistsResponse>, response: Response<RecommendationExistsResponse>) {
-                if (response.isSuccessful && response.body() != null) {
-                    val existsResponse = response.body()!!
-                    
-                    if (existsResponse.success) {
-                        if (existsResponse.data) {
-                            // 추천 데이터가 존재하는 경우 - 추천 목록 로드 (로딩은 loadRecommendations에서 관리)
-                            Log.d(TAG, "Recommendations exist, loading recommendations...")
-                            loadRecommendations()
-                        } else {
-                            // 추천 데이터가 존재하지 않는 경우
-                            progressBar.visibility = View.GONE
-                            Log.d(TAG, "No recommendations exist for user")
-                            showEmptyState()
-                        }
-                    } else {
-                        progressBar.visibility = View.GONE
-                        Log.w(TAG, "Failed to check recommendation existence: ${existsResponse.message}")
-                        // API 확인 실패 시 빈 상태 표시
-                        showEmptyState()
-                    }
-                } else {
-                    progressBar.visibility = View.GONE
-                    Log.e(TAG, "Failed to check recommendation existence: ${response.code()}")
-                    // HTTP 에러 시 빈 상태 표시
-                    showEmptyState()
-                }
-            }
-            
-            override fun onFailure(call: Call<RecommendationExistsResponse>, t: Throwable) {
-                progressBar.visibility = View.GONE
-                Log.e(TAG, "Network error while checking recommendation existence", t)
-                // 네트워크 에러 시 빈 상태 표시
-                showEmptyState()
+        // PostDetailActivity로 이동할 때 ActivityResultLauncher 사용
+        recommendationAdapter.setOnPostClickListener(object : RecommendationAdapter.OnPostClickListener {
+            override fun onPostClick(intent: Intent) {
+                postDetailLauncher.launch(intent)
             }
         })
+        
+        recyclerView.adapter = recommendationAdapter
+        
+        // 스크롤 리스너 추가
+        recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                super.onScrolled(recyclerView, dx, dy)
+                
+                val layoutManager = recyclerView.layoutManager as LinearLayoutManager
+                val visibleItemCount = layoutManager.childCount
+                val totalItemCount = layoutManager.itemCount
+                val firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition()
+                
+                if (!isLoading && hasNextPage) {
+                    if ((visibleItemCount + firstVisibleItemPosition) >= totalItemCount
+                        && firstVisibleItemPosition >= 0) {
+                        loadNextPage()
+                    }
+                }
+            }
+        })
+    }
+    
+    private fun resetPagination() {
+        currentPage = 1
+        hasNextPage = true
+        recommendationAdapter.updateData(emptyList())
+    }
+    
+    private fun loadNextPage() {
+        if (!isLoading && hasNextPage) {
+            currentPage++
+            loadRecommendations()
+        }
     }
     
     private fun loadRecommendations() {
@@ -135,76 +157,69 @@ class HomeActivity : AppCompatActivity() {
         if (userId == 0) {
             Log.w(TAG, "User ID not found, showing empty state")
             showEmptyState()
+            swipeRefreshLayout.isRefreshing = false
             return
         }
         
-        Log.d(TAG, "Loading recommendations for user: $userId")
+        if (isLoading) return
         
-        // 로딩 표시
-        progressBar.visibility = View.VISIBLE
+        isLoading = true
+        Log.d(TAG, "Loading recommendations for user: $userId (page=$currentPage)")
         
-        val request = RecommendationRequest(
+        // 첫 페이지 로드시에만 프로그레스바 표시
+        if (currentPage == 1) {
+            progressBar.visibility = View.VISIBLE
+        }
+        
+        RetrofitClient.apiService.getRecommendations(
             userId = userId,
-            recType = "log",
-            recLimit = 20
-        )
-        
-        RetrofitClient.apiService.getRecommendations(request).enqueue(object : Callback<RecommendationApiResponse> {
+            type = "log",
+            page = currentPage,
+            size = DEFAULT_PAGE_SIZE
+        ).enqueue(object : Callback<RecommendationApiResponse> {
             override fun onResponse(call: Call<RecommendationApiResponse>, response: Response<RecommendationApiResponse>) {
+                isLoading = false
                 progressBar.visibility = View.GONE
+                swipeRefreshLayout.isRefreshing = false
                 
                 if (response.isSuccessful && response.body() != null) {
                     val apiResponse = response.body()!!
                     
                     if (apiResponse.success && apiResponse.data != null) {
-                        // 성공적으로 추천 데이터를 받은 경우
-                        Log.d(TAG, "Recommendations loaded: ${apiResponse.data.recommendations.size} items")
-                        recommendationAdapter.updateData(apiResponse.data.recommendations)
+                        val recommendations = apiResponse.data.recommendations
+                        val pageInfo = apiResponse.data.pageInfo
                         
-                        if (apiResponse.data.recommendations.isEmpty()) {
+                        Log.d(TAG, "Recommendations loaded: ${recommendations.size} items (page ${pageInfo.currentPage}/${pageInfo.totalPages})")
+                        
+                        if (currentPage == 1) {
+                            recommendationAdapter.updateData(recommendations)
+                        } else {
+                            recommendationAdapter.appendData(recommendations)
+                        }
+                        
+                        hasNextPage = pageInfo.hasNext
+                        
+                        if (recommendations.isEmpty() && currentPage == 1) {
                             showEmptyState()
                         }
+                        
+                        // 추천 개수 업데이트
+                        updateRecommendationTitle(pageInfo.totalElements)
                     } else {
-                        // API는 성공했지만 비즈니스 로직 실패
                         Log.w(TAG, "API success but business logic failed: ${apiResponse.message}")
                         handleApiError(response.code(), apiResponse.message)
                     }
                 } else {
-                    // HTTP 에러 응답 처리
-                    val errorMessage = when (response.code()) {
-                        400 -> {
-                            Log.e(TAG, "Bad request: Invalid recommendation type or parameters")
-                            "잘못된 요청입니다. 지원하지 않는 추천 타입이거나 잘못된 매개변수입니다."
-                        }
-                        404 -> {
-                            Log.w(TAG, "No recommendations found for user")
-                            "추천 게시물을 찾을 수 없습니다."
-                        }
-                        else -> {
-                            Log.e(TAG, "Failed to load recommendations: ${response.code()}")
-                            "추천 게시물을 불러올 수 없습니다."
-                        }
-                    }
-                    
-                    Toast.makeText(this@HomeActivity, errorMessage, Toast.LENGTH_SHORT).show()
-                    
-                    // 에러 응답 body도 확인해보기
-                    try {
-                        val errorBody = response.errorBody()?.string()
-                        Log.d(TAG, "Error response body: $errorBody")
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Failed to read error body", e)
-                    }
-                    
-                    // 모든 에러 상황에서 빈 상태 표시
-                    showEmptyState()
+                    handleApiError(response.code(), "Failed to load recommendations")
                 }
             }
             
             override fun onFailure(call: Call<RecommendationApiResponse>, t: Throwable) {
+                isLoading = false
                 progressBar.visibility = View.GONE
+                swipeRefreshLayout.isRefreshing = false
                 Log.e(TAG, "Network error while loading recommendations", t)
-                Toast.makeText(this@HomeActivity, "네트워크 오류가 발생했습니다.", Toast.LENGTH_SHORT).show()
+                CustomToast.error(this@HomeActivity, "네트워크 오류가 발생했습니다.")
                 showEmptyState()
             }
         })
@@ -247,12 +262,7 @@ class HomeActivity : AppCompatActivity() {
     }
     
     private fun updateRecommendationTitle(count: Int?) {
-        val title = if (count != null) {
-            "추천 게시물 ($count)"
-        } else {
-            "추천 게시물"
-        }
-        recommendationTitle.text = title
+        recommendationTitle.text = "추천 게시물"
     }
     
     private fun handleApiError(httpCode: Int, message: String) {
@@ -262,7 +272,7 @@ class HomeActivity : AppCompatActivity() {
             else -> "오류가 발생했습니다: $message"
         }
         
-        Toast.makeText(this, userMessage, Toast.LENGTH_LONG).show()
+        CustomToast.error(this, userMessage)
         
         // 모든 에러 상황에서 빈 상태 표시
         showEmptyState()
@@ -275,6 +285,12 @@ class HomeActivity : AppCompatActivity() {
         recommendationAdapter.updateData(emptyList())
         
         // 사용자에게 알림 (한 번만 표시)
-        Toast.makeText(this, "아직 추천할 게시물이 없습니다.", Toast.LENGTH_SHORT).show()
+        CustomToast.info(this, "아직 추천할 게시물이 없습니다.")
+    }
+    
+
+
+    private fun updateRecommendationCount(count: Int) {
+        recommendationTitle.text = "추천 게시물"  // 숫자 제거
     }
 } 

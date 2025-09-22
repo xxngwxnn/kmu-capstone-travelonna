@@ -35,7 +35,10 @@ data class RecommendationResponse(
     val itemType: String,
     
     @SerializedName("recommendations")
-    val recommendations: List<RecommendationItem>
+    val recommendations: List<RecommendationItem>,
+    
+    @SerializedName("pageInfo")
+    val pageInfo: PageInfo
 )
 
 // 추천 개수 조회 응답 모델
@@ -60,18 +63,6 @@ data class RecommendationExistsResponse(
     
     @SerializedName("data")
     val data: Boolean
-)
-
-// 좋아요 토글 응답 모델
-data class LikeToggleResponse(
-    @SerializedName("success")
-    val success: Boolean,
-    
-    @SerializedName("message")
-    val message: String,
-    
-    @SerializedName("data")
-    val data: Boolean // true면 좋아요 추가, false면 좋아요 제거
 )
 
 // 여행기록 상세 조회 응답 모델
@@ -232,11 +223,8 @@ data class CommentData(
 
 // 댓글 생성 요청 모델
 data class CreateCommentRequest(
-    @SerializedName("comment")
     val comment: String,
-    
-    @SerializedName("parentId")
-    val parentId: Int? = null
+    val parentId: Int? = null // null이면 JSON에 포함되지 않음
 )
 
 // 댓글 생성 에러 응답 모델 (400, 404의 경우)
@@ -273,4 +261,31 @@ data class DeleteCommentResponse(
     
     @SerializedName("data")
     val data: Map<String, Any> = emptyMap() // 빈 객체
+)
+
+// 페이지네이션 정보 모델
+data class PageInfo(
+    @SerializedName("currentPage")
+    val currentPage: Int,
+    
+    @SerializedName("pageSize")
+    val pageSize: Int,
+    
+    @SerializedName("totalElements")
+    val totalElements: Int,
+    
+    @SerializedName("totalPages")
+    val totalPages: Int,
+    
+    @SerializedName("hasNext")
+    val hasNext: Boolean,
+    
+    @SerializedName("hasPrevious")
+    val hasPrevious: Boolean,
+    
+    @SerializedName("isFirst")
+    val isFirst: Boolean,
+    
+    @SerializedName("isLast")
+    val isLast: Boolean
 ) 

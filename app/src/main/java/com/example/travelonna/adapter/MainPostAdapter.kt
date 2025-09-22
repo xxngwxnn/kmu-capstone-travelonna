@@ -18,8 +18,6 @@ class MainPostAdapter(private var posts: List<Post>) :
     class MainPostViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val postImage: ImageView = itemView.findViewById(R.id.postImage)
         val userName: TextView = itemView.findViewById(R.id.userName)
-        val followText: TextView = itemView.findViewById(R.id.followText)
-        val followToggle: CustomToggleButton = itemView.findViewById(R.id.followToggle)
         val description: TextView = itemView.findViewById(R.id.description)
         val date: TextView = itemView.findViewById(R.id.date)
         val likeIcon: ImageView = itemView.findViewById(R.id.likeIcon)
@@ -55,9 +53,6 @@ class MainPostAdapter(private var posts: List<Post>) :
         // 댓글 개수 설정
         holder.commentCount.text = post.commentCount.toString()
         
-        // 팔로우 상태에 따라 토글과 텍스트 UI 업데이트
-        updateFollowStatus(holder, post.isFollowing)
-        
         // 좋아요 상태에 따라 아이콘 업데이트
         updateLikeStatus(holder, post.isLiked)
         
@@ -71,36 +66,8 @@ class MainPostAdapter(private var posts: List<Post>) :
         // holder.commentIcon.setOnClickListener {
         //     // TODO: PostDetailActivity 구현 후 활성화
         // }
-        
-        // 팔로우 토글 클릭 이벤트
-        holder.followToggle.setOnCheckedChangeListener { isChecked ->
-            PostManager.updateFollowStatus(post.id, isChecked)
-        }
-        
-        // 게시물 클릭 이벤트 - 일단 비활성화
-        // val postClickListener = View.OnClickListener {
-        //     // TODO: PostDetailActivity 구현 후 활성화
-        // }
-        
-        // 게시물의 여러 영역에 클릭 리스너 설정 - 일단 비활성화
-        // holder.itemView.setOnClickListener(postClickListener)
-        // holder.postImage.setOnClickListener(postClickListener)
-        // holder.userName.setOnClickListener(postClickListener)
-        // holder.description.setOnClickListener(postClickListener)
-        // holder.date.setOnClickListener(postClickListener)
     }
 
-    private fun updateFollowStatus(holder: MainPostViewHolder, isFollowing: Boolean) {
-        holder.followToggle.setChecked(isFollowing)
-        if (isFollowing) {
-            holder.followText.text = "팔로우 중"
-            holder.followText.setTextColor(holder.itemView.context.getColor(R.color.blue))
-        } else {
-            holder.followText.text = "팔로우"
-            holder.followText.setTextColor(holder.itemView.context.getColor(R.color.gray_text))
-        }
-    }
-    
     private fun updateLikeStatus(holder: MainPostViewHolder, isLiked: Boolean) {
         if (isLiked) {
             holder.likeIcon.setImageResource(R.drawable.ic_like_filled)

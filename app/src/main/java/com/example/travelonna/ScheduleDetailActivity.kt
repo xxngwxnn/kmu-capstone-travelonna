@@ -775,13 +775,17 @@ class ScheduleDetailActivity : AppCompatActivity() {
                 // API에서 받은 장소 목록을 날짜별로 분류
                 val placesByDay = detail.places.groupBy { it.day }
                 
-                // 각 날짜별 장소 목록 저장
-                for (dayIndex in 1..dayCount) {
+                Log.d("DayPagerAdapter", "Places grouped by day: $placesByDay")
+                
+                // 각 날짜별 장소 목록 저장 (day가 0부터 시작하므로 0부터 처리)
+                for (dayIndex in 0 until dayCount) {
                     val places = placesByDay[dayIndex] ?: listOf()
+                    
+                    Log.d("DayPagerAdapter", "Day $dayIndex has ${places.size} places")
                     
                     // PlaceItem으로 변환
                     val placeItems = places.map { place ->
-                        Log.d("DayPagerAdapter", "Creating PlaceItem - name: ${place.name}, id: ${place.id}, googleId: ${place.googleId}")
+                        Log.d("DayPagerAdapter", "Creating PlaceItem - name: ${place.name}, id: ${place.id}, googleId: ${place.googleId}, day: ${place.day}")
                         
                         PlaceItem(
                             name = place.name,
@@ -795,8 +799,11 @@ class ScheduleDetailActivity : AppCompatActivity() {
                         )
                     }
                     
-                    dayPlaces[dayIndex - 1] = placeItems
+                    dayPlaces[dayIndex] = placeItems
+                    Log.d("DayPagerAdapter", "Assigned ${placeItems.size} places to dayIndex $dayIndex")
                 }
+                
+                Log.d("DayPagerAdapter", "Final dayPlaces map: ${dayPlaces.keys}")
                 
                 // 어댑터 갱신
                 notifyDataSetChanged()

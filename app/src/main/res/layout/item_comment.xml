@@ -43,4 +43,14 @@
             android:textColor="#888888"
             android:textSize="12sp" />
     </LinearLayout>
+
+    <ImageView
+        android:id="@+id/commentDeleteButton"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:layout_gravity="center_vertical"
+        android:layout_marginStart="8dp"
+        android:src="@drawable/ic_delete"
+        android:contentDescription="@string/delete_comment"
+        android:visibility="gone" />
 </LinearLayout> 

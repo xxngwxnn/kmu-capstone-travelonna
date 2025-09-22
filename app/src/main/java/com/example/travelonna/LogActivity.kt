@@ -148,6 +148,10 @@ class LogActivity : AppCompatActivity() {
         // RecyclerView 설정
         recyclerView.layoutManager = LinearLayoutManager(this)
         
+        // 초기 빈 어댑터 설정
+        logAdapter = LogAdapter(emptyList())
+        recyclerView.adapter = logAdapter
+        
         // API에서 데이터 가져오기
         fetchTravelPlans()
     }
@@ -167,8 +171,11 @@ class LogActivity : AppCompatActivity() {
                     
                     if (planResponse != null && planResponse.success) {
                         // API 응답을 TravelLog 객체로 변환
-                        allTravelLogs = convertPlansToTravelLogs(planResponse.data)
                         Log.d("LogActivity", "Received ${planResponse.data?.size ?: 0} plans from API")
+                        Log.d("LogActivity", "Raw plan data: ${planResponse.data}")
+                        
+                        allTravelLogs = convertPlansToTravelLogs(planResponse.data)
+                        Log.d("LogActivity", "Converted to ${allTravelLogs.size} travel logs")
                         
                         // 리스트 업데이트
                         updateAdapterWithLogs(allTravelLogs)
@@ -201,8 +208,19 @@ class LogActivity : AppCompatActivity() {
     
     // Plan 객체를 TravelLog 객체로 변환
     private fun convertPlansToTravelLogs(plans: List<PlanData>?): List<TravelLog> {
-        if (plans.isNullOrEmpty()) return emptyList()
+        if (plans.isNullOrEmpty()) {
+            Log.d(TAG, "Plans list is null or empty")
+            return emptyList()
+        }
+        
         val currentDate = Calendar.getInstance().time
+        
+        // Intent로부터 기록작성 모드인지 확인
+        val isFromWriteMemory = intent.getBooleanExtra("from_write_memory", false)
+        
+        Log.d(TAG, "현재 날짜: ${displayDateFormat.format(currentDate)}")
+        Log.d(TAG, "기록작성 모드: $isFromWriteMemory")
+        Log.d(TAG, "전체 일정 수: ${plans.size}")
         
         return plans
             .filter { plan ->
@@ -211,10 +229,25 @@ class LogActivity : AppCompatActivity() {
                     val startDate = apiDateFormat.parse(plan.startDate)
                     val endDate = apiDateFormat.parse(plan.endDate)
                     
-                    // 진행 중이거나 완료된 여행만 포함
-                    // (시작일이 현재 이전이거나 같고, 종료일이 현재 이전이거나 같은 경우)
-                    startDate != null && endDate != null && 
-                    (startDate.before(currentDate) || startDate == currentDate)
+                    Log.d(TAG, "일정 확인: ${plan.title} (${plan.startDate} ~ ${plan.endDate})")
+                    Log.d(TAG, "  - 시작일 파싱: ${startDate?.let { displayDateFormat.format(it) }}")
+                    Log.d(TAG, "  - 종료일 파싱: ${endDate?.let { displayDateFormat.format(it) }}")
+                    
+                    val result = if (isFromWriteMemory) {
+                        // 기록작성 모드: 완료된 여행만 포함 (종료일이 현재 이전인 경우)
+                        val isCompleted = startDate != null && endDate != null && endDate.before(currentDate)
+                        Log.d(TAG, "  - 완료 여부: $isCompleted")
+                        isCompleted
+                    } else {
+                        // 일반 모드: 진행 중이거나 완료된 여행만 포함
+                        val isStartedOrCompleted = startDate != null && endDate != null && 
+                            (startDate.before(currentDate) || startDate == currentDate)
+                        Log.d(TAG, "  - 시작됨/완료됨 여부: $isStartedOrCompleted")
+                        isStartedOrCompleted
+                    }
+                    
+                    Log.d(TAG, "  - 필터 결과: $result")
+                    result
                 } catch (e: Exception) {
                     Log.e(TAG, "날짜 파싱 오류: ${e.message}")
                     false
@@ -260,13 +293,37 @@ class LogActivity : AppCompatActivity() {
     
     // 어댑터 업데이트
     private fun updateAdapterWithLogs(logs: List<TravelLog>) {
+        val isFromWriteMemory = intent.getBooleanExtra("from_write_memory", false)
+        
+        Log.d(TAG, "어댑터 업데이트: ${logs.size}개 항목")
+        
         if (logs.isEmpty()) {
-            // 진행 중이거나 완료된 여행이 없을 경우 안내 메시지 표시
-            Toast.makeText(this, "진행 중이거나 완료된 여행이 없습니다", Toast.LENGTH_SHORT).show()
+            // 빈 목록에 대한 안내 메시지
+            val message = if (isFromWriteMemory) {
+                "기록을 작성할 수 있는 완료된 여행이 없습니다"
+            } else {
+                "진행 중이거나 완료된 여행이 없습니다"
+            }
+            Log.d(TAG, "빈 목록 - 메시지: $message")
+            
+            // API 호출이 완료된 후에만 Toast 표시 (샘플 데이터 사용 시에는 Toast 표시 안함)
+            // fetchTravelPlans 중에 호출되는 경우는 Toast 표시하지 않음
+        } else {
+            Log.d(TAG, "여행 목록:")
+            logs.forEachIndexed { index, log ->
+                Log.d(TAG, "  $index: ${log.title} (${log.date}) - ${log.status}")
+            }
         }
         
-        logAdapter = LogAdapter(logs)
-        recyclerView.adapter = logAdapter
+        // 기존 어댑터가 있으면 데이터만 업데이트, 없으면 새로 생성
+        if (::logAdapter.isInitialized) {
+            // 어댑터의 데이터 업데이트
+            logAdapter.updateLogs(logs)
+        } else {
+            // 새 어댑터 생성
+            logAdapter = LogAdapter(logs)
+            recyclerView.adapter = logAdapter
+        }
     }
 
     // 최근 날짜순으로 정렬
@@ -377,9 +434,9 @@ class LogActivity : AppCompatActivity() {
                 "$date1Start - $date1End", 
                 "그룹",
                 listOf(
-                    TravelPlace("성산일출봉", "제주특별자치도 서귀포시 성산읍", "09:00 - 11:00"),
-                    TravelPlace("우도", "제주특별자치도 제주시 우도면", "12:00 - 15:00"),
-                    TravelPlace("만장굴", "제주특별자치도 제주시 구좌읍", "16:00 - 18:00")
+                    TravelPlace(id = 1, name = "성산일출봉", address = "제주특별자치도 서귀포시 성산읍", visitDate = "09:00 - 11:00"),
+                    TravelPlace(id = 2, name = "우도", address = "제주특별자치도 제주시 우도면", visitDate = "12:00 - 15:00"),
+                    TravelPlace(id = 3, name = "만장굴", address = "제주특별자치도 제주시 구좌읍", visitDate = "16:00 - 18:00")
                 ),
                 planId = 1
             ),
@@ -388,8 +445,8 @@ class LogActivity : AppCompatActivity() {
                 "$date2Start - $date2End", 
                 "개인",
                 listOf(
-                    TravelPlace("해운대", "부산광역시 해운대구", "10:00 - 13:00"),
-                    TravelPlace("감천문화마을", "부산광역시 사하구", "14:00 - 16:00")
+                    TravelPlace(id = 4, name = "해운대", address = "부산광역시 해운대구", visitDate = "10:00 - 13:00"),
+                    TravelPlace(id = 5, name = "감천문화마을", address = "부산광역시 사하구", visitDate = "14:00 - 16:00")
                 ),
                 planId = 2
             ),
@@ -398,9 +455,9 @@ class LogActivity : AppCompatActivity() {
                 "$date3Start - $date3End", 
                 "그룹",
                 listOf(
-                    TravelPlace("양양 서핑", "강원도 양양군", "09:00 - 12:00"),
-                    TravelPlace("속초 해변", "강원도 속초시", "13:00 - 15:00"),
-                    TravelPlace("설악산", "강원도 속초시", "16:00 - 18:00")
+                    TravelPlace(id = 6, name = "양양 서핑", address = "강원도 양양군", visitDate = "09:00 - 12:00"),
+                    TravelPlace(id = 7, name = "속초 해변", address = "강원도 속초시", visitDate = "13:00 - 15:00"),
+                    TravelPlace(id = 8, name = "설악산", address = "강원도 속초시", visitDate = "16:00 - 18:00")
                 ),
                 planId = 3
             ),
@@ -409,8 +466,8 @@ class LogActivity : AppCompatActivity() {
                 "$date4Start - $date4End", 
                 "개인",
                 listOf(
-                    TravelPlace("경복궁", "서울특별시 종로구", "09:00 - 12:00"),
-                    TravelPlace("남산타워", "서울특별시 용산구", "14:00 - 16:00")
+                    TravelPlace(id = 9, name = "경복궁", address = "서울특별시 종로구", visitDate = "09:00 - 12:00"),
+                    TravelPlace(id = 10, name = "남산타워", address = "서울특별시 용산구", visitDate = "14:00 - 16:00")
                 ),
                 planId = 4
             )

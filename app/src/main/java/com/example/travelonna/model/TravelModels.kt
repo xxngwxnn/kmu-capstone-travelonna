@@ -2,9 +2,11 @@ package com.example.travelonna.model
 
 // 여행 장소 데이터 클래스
 data class TravelPlace(
+    val id: Int = 0,  // 장소 ID 추가
     val name: String,
     val address: String,
-    val visitTime: String,
+    val visitDate: String,
+    val dayVisit: Int = 1,  // 방문 일차 (기본값: 1일차)
     val isLocked: Boolean = false
 )
 

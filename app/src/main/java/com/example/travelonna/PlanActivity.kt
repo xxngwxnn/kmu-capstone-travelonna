@@ -43,6 +43,9 @@ class PlanActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_plan)
+        
+        // 하단 네비게이션 바 설정
+        setupBottomNavBar(R.id.navPlan)
 
         // 뒤로가기 버튼 설정
         val backButton = findViewById<ImageButton>(R.id.backButton)
@@ -56,18 +59,6 @@ class PlanActivity : AppCompatActivity() {
             // 일정 옵션 다이얼로그 표시
             showScheduleOptionsDialog()
         }
-
-        // 추천 장소 데이터 설정
-        val recommendPlaces = listOf(
-            PlaceRecommendItem(R.drawable.dummy_place_1, "장소 이름"),
-            PlaceRecommendItem(R.drawable.dummy_place_1, "장소 이름"),
-            PlaceRecommendItem(R.drawable.dummy_place_1, "장소 이름")
-        )
-
-        // 추천 장소 RecyclerView 설정
-        val placeRecommendRecyclerView = findViewById<RecyclerView>(R.id.placeRecommendRecyclerView)
-        placeRecommendRecyclerView.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
-        placeRecommendRecyclerView.adapter = PlaceRecommendAdapter(recommendPlaces)
 
         // 일정 목록 RecyclerView 설정
         scheduleRecyclerView = findViewById<RecyclerView>(R.id.scheduleRecyclerView)
@@ -442,5 +433,34 @@ class PlanActivity : AppCompatActivity() {
                     Toast.makeText(this@PlanActivity, "네트워크 오류: 그룹 참여에 실패했습니다", Toast.LENGTH_SHORT).show()
                 }
             })
+    }
+
+    // 하단 네비게이션 바 클릭 및 선택 상태 관리 함수 추가
+    private fun setupBottomNavBar(selectedId: Int) {
+        val navHome = findViewById<ImageButton>(R.id.navHome)
+        val navMap = findViewById<ImageButton>(R.id.navMap)
+        val navPlan = findViewById<ImageButton>(R.id.navPlan)
+        val navSearch = findViewById<ImageButton>(R.id.navSearch)
+        val navProfile = findViewById<ImageButton>(R.id.navProfile)
+
+        val navButtons = listOf(navHome, navMap, navPlan, navSearch, navProfile)
+        navButtons.forEach { it.isSelected = false }
+        findViewById<ImageButton>(selectedId).isSelected = true
+
+        navHome.setOnClickListener {
+            if (!it.isSelected) startActivity(Intent(this, HomeActivity::class.java))
+        }
+        navMap.setOnClickListener {
+            if (!it.isSelected) startActivity(Intent(this, MyMapActivity::class.java))
+        }
+        navPlan.setOnClickListener {
+            if (!it.isSelected) startActivity(Intent(this, PlanActivity::class.java))
+        }
+        navSearch.setOnClickListener {
+            if (!it.isSelected) startActivity(Intent(this, SearchActivity::class.java))
+        }
+        navProfile.setOnClickListener {
+            if (!it.isSelected) startActivity(Intent(this, ProfileActivity::class.java))
+        }
     }
 }

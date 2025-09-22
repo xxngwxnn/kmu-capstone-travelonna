@@ -1,6 +1,7 @@
 package com.example.travelonna
 
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -10,10 +11,13 @@ import android.view.View
 import android.widget.EditText
 import android.widget.HorizontalScrollView
 import android.widget.ImageView
+import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -22,13 +26,14 @@ import com.example.travelonna.adapter.AccountSearchAdapter
 import com.example.travelonna.adapter.PlaceAdapter
 import com.example.travelonna.api.RetrofitClient
 import com.example.travelonna.api.SearchResponse
+import com.example.travelonna.api.FollowStatusResponse
 import com.example.travelonna.model.Place
 import com.example.travelonna.model.Post
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 
-class SearchActivity : AppCompatActivity() {
+class SearchActivity : BaseActivity() {
 
     companion object {
         private const val TAG = "SearchActivity"
@@ -66,15 +71,47 @@ class SearchActivity : AppCompatActivity() {
     private val RECENT_SEARCHES_KEY = "recent_searches"
     private val MAX_RECENT_SEARCHES = 5
     
-    private val postAdapter = AccountSearchAdapter(listOf())
-    private val placeAdapter = PlaceAdapter(listOf())
+    private lateinit var postAdapter: AccountSearchAdapter
+    private lateinit var placeAdapter: PlaceAdapter
+    private lateinit var postDetailLauncher: ActivityResultLauncher<Intent>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_search)
-
+        
+        // 하단 네비게이션 바 설정
+        setupBottomNavBar(R.id.navSearch)
+        
+        // ActivityResultLauncher 초기화
+        setupActivityResultLauncher()
+        
         // 뷰 초기화
         initViews()
+        
+        // 어댑터 초기화 (클릭 리스너 포함)
+        postAdapter = AccountSearchAdapter(listOf()) { post ->
+            if (post.date == "사용자") {
+                // 유저 로그 목록 화면으로 이동
+                val intent = Intent(this, UserLogListActivity::class.java)
+                intent.putExtra(UserLogListActivity.EXTRA_USER_ID, post.id)
+                startActivity(intent)
+            } else {
+                // 로그 상세로 이동
+                if (post.id <= 0) {
+                    Toast.makeText(this, "유효하지 않은 게시글입니다.", Toast.LENGTH_SHORT).show()
+                } else {
+                    Log.d(TAG, "Opening PostDetailActivity with logId: ${post.id}")
+                    val intent = Intent(this, PostDetailActivity::class.java)
+                    intent.putExtra("EXTRA_POST_ID", post.id)
+                    postDetailLauncher.launch(intent)
+                }
+            }
+        }
+        placeAdapter = PlaceAdapter(listOf()) { place ->
+            val intent = Intent(this, PlacePostListActivity::class.java)
+            intent.putExtra("placeId", place.id)
+            startActivity(intent)
+        }
         
         // 리스너 설정
         setupListeners()
@@ -84,6 +121,23 @@ class SearchActivity : AppCompatActivity() {
         
         // 초기 상태 설정
         showInitialState()
+    }
+    
+    private fun setupActivityResultLauncher() {
+        postDetailLauncher = registerForActivityResult(
+            ActivityResultContracts.StartActivityForResult()
+        ) { result ->
+            if (result.resultCode == RESULT_OK) {
+                val needsRefresh = result.data?.getBooleanExtra(PostDetailActivity.RESULT_REFRESH_NEEDED, false) ?: false
+                if (needsRefresh) {
+                    Log.d(TAG, "PostDetail returned with refresh needed, performing search again")
+                    val currentQuery = searchEditText.text.toString().trim()
+                    if (currentQuery.isNotEmpty()) {
+                        performSearch(currentQuery)
+                    }
+                }
+            }
+        }
     }
     
     private fun initViews() {
@@ -122,21 +176,15 @@ class SearchActivity : AppCompatActivity() {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
 
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                if (s.isNullOrEmpty()) {
-                    // 검색창이 비어있을 때 즉시 초기 상태로 복귀
+                if (s.isNullOrEmpty() || s.length < 2) {
+                    // 검색창이 비어있거나 2글자 미만일 때 즉시 초기 상태로 복귀
                     clearSearchResults()
                     showInitialState()
                     return
                 }
                 
-                if (s.length >= 2) {
-                    // 검색창에 2글자 이상 입력 시 검색 시작
-                    performSearch(s.toString())
-                } else {
-                    // 2글자 미만일 때는 즉시 초기 상태로 복귀
-                    clearSearchResults()
-                    showInitialState()
-                }
+                // 검색창에 2글자 이상 입력 시 검색 시작
+                performSearch(s.toString())
             }
 
             override fun afterTextChanged(s: Editable?) {}
@@ -287,48 +335,70 @@ class SearchActivity : AppCompatActivity() {
                 setCurrentTab(SearchType.PLACE)
                 showNoResults(places.isEmpty())
                 
+                // 검색 결과가 있을 때 placeRecyclerView를 보이게 설정
+                if (places.isNotEmpty()) {
+                    placeRecyclerView.visibility = View.VISIBLE
+                }
+                
                 Log.d(TAG, "Places found: ${places.size}")
             }
             
             SearchType.ACCOUNT -> {
-                // 사용자 및 로그 검색 결과 처리
                 val posts = mutableListOf<Post>()
-                
+
                 // 사용자 검색 결과를 Post로 변환
                 data.users.forEach { user ->
+                    val displayName = if (user.nickname.isNotBlank()) {
+                        user.nickname
+                    } else {
+                        "사용자_${user.userId}" // nickname이 비어있으면 fallback
+                    }
+                    
+                    Log.d(TAG, "사용자 검색 결과 - userId: ${user.userId}, nickname: '${user.nickname}', displayName: '$displayName'")
+                    
                     posts.add(Post(
                         id = user.userId.toLong(),
-                        userName = user.nickname,
-                        isFollowing = false,
-                        description = user.introduction,
-                        imageResource = R.drawable.default_profile, // 기본 프로필 이미지
-                        date = "사용자", // 사용자의 경우 날짜 대신 "사용자" 표시
+                        userName = displayName,
+                        isFollowing = false, // 기본값으로 설정, 이후 실제 상태를 조회
+                        description = user.introduction ?: "",
+                        imageResource = R.drawable.default_profile,
+                        date = "사용자",
                         likeCount = 0,
                         commentCount = 0,
                         isLiked = false
                     ))
                 }
                 
-                // 로그 검색 결과를 Post로 변환
-                data.logs.forEach { log ->
-                    posts.add(Post(
-                        id = log.logId.toLong(),
-                        userName = log.userName,
-                        isFollowing = false,
-                        description = log.comment,
-                        imageResource = R.drawable.placeholder_image, // 기본 이미지
-                        date = log.createdAt.substring(0, 10), // 날짜 부분만 추출 (YYYY-MM-DD)
-                        likeCount = log.likeCount,
-                        commentCount = 0,
-                        isLiked = false
-                    ))
+                // 각 사용자의 실제 팔로우 상태 조회
+                loadFollowStatusForUsers(posts.filter { it.date == "사용자" })
+
+                // users가 있을 때만 logs도 추가
+                if (data.users.isNotEmpty()) {
+                    data.logs.forEach { log ->
+                        val logId = log.logId
+                        if (logId != null && logId > 0) {
+                            Log.d(TAG, "Processing log: id=$logId, userName=${log.userName}, comment=${log.comment}, createdAt=${log.createdAt}")
+                            posts.add(Post(
+                                id = logId.toLong(),
+                                userName = log.userName ?: "",
+                                isFollowing = false,
+                                description = log.comment ?: "",
+                                imageResource = R.drawable.placeholder_image,
+                                date = if (!log.createdAt.isNullOrEmpty() && log.createdAt.length >= 10) log.createdAt.substring(0, 10) else "",
+                                likeCount = log.likeCount ?: 0,
+                                commentCount = 0,
+                                isLiked = false
+                            ))
+                        } else {
+                            Log.w(TAG, "Skipping log with invalid id: $logId")
+                        }
+                    }
                 }
-                
+
                 postAdapter.updateData(posts)
                 setCurrentTab(SearchType.ACCOUNT)
                 showNoResults(posts.isEmpty())
-                
-                Log.d(TAG, "Users found: ${data.users.size}, Logs found: ${data.logs.size}")
+                Log.d(TAG, "Users found: ${data.users.size}, Logs found: ${data.logs.size}, Valid logs added: ${posts.size - data.users.size}")
             }
         }
     }
@@ -517,6 +587,54 @@ class SearchActivity : AppCompatActivity() {
             
             horizontalScrollView.addView(horizontalLayout)
             recentSearchesContainer.addView(horizontalScrollView)
+        }
+    }
+
+
+
+    /**
+     * 검색된 사용자들의 실제 팔로우 상태를 서버에서 조회
+     */
+    private fun loadFollowStatusForUsers(userPosts: List<Post>) {
+        userPosts.forEach { post ->
+            val userId = post.id.toInt()
+            
+            // 자기 자신은 팔로우 상태 조회하지 않음
+            val currentUserId = RetrofitClient.getUserId()
+            if (currentUserId == userId) {
+                return@forEach
+            }
+            
+            Log.d(TAG, "팔로우 상태 조회 시작 - userId: $userId")
+            RetrofitClient.apiService.getFollowStatus(userId).enqueue(object : Callback<FollowStatusResponse> {
+                override fun onResponse(call: Call<FollowStatusResponse>, response: Response<FollowStatusResponse>) {
+                    if (response.isSuccessful && response.body() != null) {
+                        val statusResponse = response.body()!!
+                        
+                        if (statusResponse.success && statusResponse.data != null) {
+                            val isFollowing = statusResponse.data.isFollowing
+                            Log.d(TAG, "팔로우 상태 조회 성공 - userId: $userId, isFollowing: $isFollowing")
+                            
+                            // Post 객체의 팔로우 상태 업데이트
+                            post.isFollowing = isFollowing
+                            
+                                                         // 어댑터에 변경사항 알림
+                             val position = postAdapter.getPosts().indexOf(post)
+                             if (position >= 0) {
+                                 postAdapter.notifyItemChanged(position)
+                             }
+                        } else {
+                            Log.w(TAG, "팔로우 상태 조회 실패 - userId: $userId, message: ${statusResponse.message}")
+                        }
+                    } else {
+                        Log.e(TAG, "팔로우 상태 조회 HTTP 오류 - userId: $userId, code: ${response.code()}")
+                    }
+                }
+                
+                override fun onFailure(call: Call<FollowStatusResponse>, t: Throwable) {
+                    Log.e(TAG, "팔로우 상태 조회 네트워크 오류 - userId: $userId", t)
+                }
+            })
         }
     }
 } 

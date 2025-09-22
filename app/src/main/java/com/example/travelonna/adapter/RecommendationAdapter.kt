@@ -1,6 +1,7 @@
 package com.example.travelonna.adapter
 
 import android.content.Intent
+import android.content.Context
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -31,14 +32,17 @@ import retrofit2.Callback
 import retrofit2.Response
 import java.text.SimpleDateFormat
 import java.util.*
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 
-class RecommendationAdapter(
-    private var recommendations: MutableList<RecommendationItem> = mutableListOf()
-) : RecyclerView.Adapter<RecommendationAdapter.RecommendationViewHolder>() {
+class RecommendationAdapter : RecyclerView.Adapter<RecommendationAdapter.RecommendationViewHolder>() {
 
-    companion object {
-        private const val TAG = "RecommendationAdapter"
+    interface OnPostClickListener {
+        fun onPostClick(intent: Intent)
     }
+
+    private val TAG = "RecommendationAdapter"
+    private val items = mutableListOf<RecommendationItem>()
+    private var onPostClickListener: OnPostClickListener? = null
     
     // 상세 정보를 캐시하기 위한 Map
     private val logDetailCache = mutableMapOf<Int, LogDetailData>()
@@ -52,8 +56,8 @@ class RecommendationAdapter(
         val likeCount: TextView = itemView.findViewById(R.id.likeCount)
         val commentIcon: ImageView = itemView.findViewById(R.id.commentIcon)
         val commentCount: TextView = itemView.findViewById(R.id.commentCount)
-        val followText: TextView = itemView.findViewById(R.id.followText)
-        val followToggle: CustomToggleButton = itemView.findViewById(R.id.followToggle)
+        // val followText: TextView = itemView.findViewById(R.id.followText)
+        // val followToggle: CustomToggleButton = itemView.findViewById(R.id.followToggle)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecommendationViewHolder {
@@ -63,14 +67,37 @@ class RecommendationAdapter(
     }
 
     override fun onBindViewHolder(holder: RecommendationViewHolder, position: Int) {
-        val recommendation = recommendations[position]
-        
+        val item = items[position]
+        bind(item, holder)
+    }
+
+    override fun getItemCount() = items.size
+
+    fun updateData(newItems: List<RecommendationItem>) {
+        items.clear()
+        items.addAll(newItems)
+        // 새로운 데이터로 업데이트할 때 캐시 클리어
+        logDetailCache.clear()
+        notifyDataSetChanged()
+    }
+    
+    fun appendData(newItems: List<RecommendationItem>) {
+        val startPosition = items.size
+        items.addAll(newItems)
+        notifyItemRangeInserted(startPosition, newItems.size)
+    }
+    
+    fun setOnPostClickListener(listener: OnPostClickListener) {
+        this.onPostClickListener = listener
+    }
+
+    private fun bind(item: RecommendationItem, holder: RecommendationViewHolder) {
         // 기본 정보 먼저 설정
-        holder.postDescription.text = recommendation.comment
-        holder.postDate.text = formatDate(recommendation.createdAt)
+        holder.postDescription.text = item.comment
+        holder.postDate.text = formatDate(item.createdAt)
         
         // 캐시된 상세 정보가 있으면 이미지 설정, 없으면 기본적으로 숨김
-        val cachedDetail = logDetailCache[recommendation.logId]
+        val cachedDetail = logDetailCache[item.logId]
         val hasImage = cachedDetail?.imageUrls?.isNotEmpty() == true
         
         if (hasImage) {
@@ -87,13 +114,13 @@ class RecommendationAdapter(
             bindDetailData(holder, cachedDetail)
         } else {
             // 기본값으로 먼저 설정 - 추천 데이터의 정보 활용
-            holder.userName.text = "User_${recommendation.userId}"
+            holder.userName.text = "User_${item.userId}"
             holder.likeCount.text = "-"  // 로딩 중 표시를 위해 "-" 사용
             holder.commentCount.text = "-"  // 로딩 중 표시를 위해 "-" 사용
             updateLikeUI(holder, false)
             
             // API 호출해서 실제 데이터 가져오기
-            loadLogDetail(recommendation.logId, holder, recommendation)
+            loadLogDetail(item.logId, holder, item)
         }
         
         // 게시물 클릭 시 PostDetailActivity로 이동 (실제 데이터 사용)
@@ -101,7 +128,7 @@ class RecommendationAdapter(
             val context = holder.itemView.context
             
             // RecommendationItem을 Post로 변환
-            val post = convertRecommendationToPost(recommendation, cachedDetail)
+            val post = convertRecommendationToPost(item, cachedDetail)
             
             // PostManager에 게시물 등록 (이미 있다면 업데이트)
             PostManager.updatePost(post)
@@ -111,9 +138,9 @@ class RecommendationAdapter(
                 putExtra(PostDetailActivity.EXTRA_POST_ID, post.id)
             }
             
-            // Activity 컨텍스트인 경우 startActivityForResult 사용
-            if (context is HomeActivity) {
-                context.startActivityForResult(intent, HomeActivity.REQUEST_POST_DETAIL)
+            // 콜백이 설정되어 있으면 콜백 사용, 아니면 기본 방식
+            if (onPostClickListener != null) {
+                onPostClickListener?.onPostClick(intent)
             } else {
                 context.startActivity(intent)
             }
@@ -121,7 +148,7 @@ class RecommendationAdapter(
         
         // 좋아요 버튼 클릭 리스너 - 실제 API 호출
         holder.likeIcon.setOnClickListener {
-            toggleLike(recommendation.logId, holder)
+            toggleLike(item.logId, holder)
         }
         
         // 댓글 버튼 클릭 리스너
@@ -129,7 +156,7 @@ class RecommendationAdapter(
             val context = holder.itemView.context
             
             // RecommendationItem을 Post로 변환
-            val post = convertRecommendationToPost(recommendation, cachedDetail)
+            val post = convertRecommendationToPost(item, cachedDetail)
             
             // PostManager에 게시물 등록
             PostManager.updatePost(post)
@@ -140,31 +167,17 @@ class RecommendationAdapter(
                 putExtra("SCROLL_TO_COMMENTS", true)
             }
             
-            // Activity 컨텍스트인 경우 startActivityForResult 사용
-            if (context is HomeActivity) {
-                context.startActivityForResult(intent, HomeActivity.REQUEST_POST_DETAIL)
+            // 콜백이 설정되어 있으면 콜백 사용, 아니면 기본 방식
+            if (onPostClickListener != null) {
+                onPostClickListener?.onPostClick(intent)
             } else {
                 context.startActivity(intent)
             }
         }
         
-        // 팔로우 토글 설정
-        setupFollowToggle(holder, recommendation)
+        // 팔로우 토글/텍스트는 item_post.xml에 없으므로 무시
     }
 
-    override fun getItemCount(): Int = recommendations.size
-
-    fun updateData(newRecommendations: List<RecommendationItem>) {
-        recommendations.clear()
-        recommendations.addAll(newRecommendations)
-        // 새로운 데이터로 업데이트할 때 캐시 클리어
-        logDetailCache.clear()
-        notifyDataSetChanged()
-    }
-    
-    /**
-     * 여행기록 상세 정보 로드
-     */
     private fun loadLogDetail(logId: Int, holder: RecommendationViewHolder, recommendation: RecommendationItem) {
         Log.d(TAG, "Starting to load log detail for logId: $logId")
         RetrofitClient.apiService.getLogDetail(logId).enqueue(object : Callback<LogDetailApiResponse> {
@@ -312,47 +325,30 @@ class RecommendationAdapter(
         // API 호출
         RetrofitClient.apiService.toggleLogLike(logId).enqueue(object : Callback<LikeToggleResponse> {
             override fun onResponse(call: Call<LikeToggleResponse>, response: Response<LikeToggleResponse>) {
-                if (response.isSuccessful && response.body() != null) {
-                    val likeResponse = response.body()!!
-                    
-                    if (likeResponse.success) {
-                        // API 응답에 따라 UI 상태 확정
-                        val isLiked = likeResponse.data
-                        Log.d(TAG, "Like toggle successful. Current state: $isLiked")
-                        
-                        updateLikeUI(holder, isLiked)
-                        
-                        // 좋아요 수 업데이트 - 캐시에서 현재 값을 가져오거나 기본값 사용
-                        val cachedDetail = logDetailCache[logId]
-                        val currentCount = cachedDetail?.likeCount ?: 0
-                        val newCount = if (isLiked) currentCount + 1 else maxOf(0, currentCount - 1)
-                        holder.likeCount.text = newCount.toString()
-                        
-                        // 캐시 업데이트
-                        logDetailCache[logId]?.let { cachedDetail ->
-                            val updatedDetail = cachedDetail.copy(
-                                isLiked = isLiked,
-                                likeCount = newCount
-                            )
-                            logDetailCache[logId] = updatedDetail
+                if (response.isSuccessful) {
+                    response.body()?.let { likeResponse ->
+                        val position = holder.adapterPosition
+                        if (position != RecyclerView.NO_POSITION) {
+                            val isLiked = likeResponse.data
+                            // 캐시 업데이트
+                            logDetailCache[logId]?.let { cachedDetail ->
+                                val currentCount = cachedDetail.likeCount
+                                val newCount = if (isLiked) currentCount + 1 else maxOf(0, currentCount - 1)
+                                val updatedDetail = cachedDetail.copy(
+                                    isLiked = isLiked,
+                                    likeCount = newCount
+                                )
+                                logDetailCache[logId] = updatedDetail
+                            }
+                            // UI 업데이트
+                            updateLikeUI(holder, isLiked)
+                            val currentCount = holder.likeCount.text.toString().toIntOrNull() ?: 0
+                            val newCount = if (isLiked) currentCount + 1 else maxOf(0, currentCount - 1)
+                            holder.likeCount.text = newCount.toString()
                         }
-                        
-                    } else {
-                        // API 실패 시 원래 상태로 되돌리기
-                        Log.w(TAG, "Like toggle failed: ${likeResponse.message}")
-                        updateLikeUI(holder, isCurrentlyLiked)
-                        Toast.makeText(holder.itemView.context, "좋아요 처리에 실패했습니다.", Toast.LENGTH_SHORT).show()
                     }
                 } else {
-                    // HTTP 에러 시 원래 상태로 되돌리기
-                    Log.e(TAG, "Like toggle HTTP error: ${response.code()}")
-                    updateLikeUI(holder, isCurrentlyLiked)
-                    
-                    val errorMessage = when (response.code()) {
-                        404 -> "게시물을 찾을 수 없습니다."
-                        else -> "좋아요 처리에 실패했습니다."
-                    }
-                    Toast.makeText(holder.itemView.context, errorMessage, Toast.LENGTH_SHORT).show()
+                    Toast.makeText(holder.itemView.context, "좋아요 처리 중 오류가 발생했습니다.", Toast.LENGTH_SHORT).show()
                 }
             }
             
@@ -500,11 +496,11 @@ class RecommendationAdapter(
      */
     private fun updateFollowStatusUI(holder: RecommendationViewHolder, isFollowing: Boolean) {
         if (isFollowing) {
-            holder.followText.text = "팔로잉"
-            holder.followText.setTextColor(holder.itemView.context.getColor(R.color.blue))
+            // holder.followText.text = "팔로잉"
+            // holder.followText.setTextColor(holder.itemView.context.getColor(R.color.blue))
         } else {
-            holder.followText.text = "팔로우"
-            holder.followText.setTextColor(holder.itemView.context.getColor(R.color.gray_text))
+            // holder.followText.text = "팔로우"
+            // holder.followText.setTextColor(holder.itemView.context.getColor(R.color.gray_text))
         }
     }
     
@@ -528,11 +524,11 @@ class RecommendationAdapter(
         val currentUserId = RetrofitClient.getUserId()
         if (currentUserId == recommendation.userId) {
             // 자기 자신의 게시물이면 팔로우 버튼 숨기기
-            holder.followToggle.visibility = View.GONE
+            // holder.followToggle.visibility = View.GONE
             return
         }
         
-        holder.followToggle.visibility = View.VISIBLE
+        // holder.followToggle.visibility = View.VISIBLE
         
         // PostManager에서 현재 팔로우 상태 먼저 확인
         val postId = recommendation.logId.toLong()
@@ -541,11 +537,11 @@ class RecommendationAdapter(
         if (existingPost != null) {
             // PostManager에 이미 게시물이 있으면 그 상태를 우선 사용
             Log.d(TAG, "Found existing post in PostManager for logId: $postId, follow status: ${existingPost.isFollowing}")
-            holder.followToggle.setChecked(existingPost.isFollowing)
+            // holder.followToggle.setChecked(existingPost.isFollowing)
             updateFollowStatusUI(holder, existingPost.isFollowing)
         } else {
             // PostManager에 없으면 기본값으로 설정
-            holder.followToggle.setChecked(false)
+            // holder.followToggle.setChecked(false)
             updateFollowStatusUI(holder, false)
         }
         
@@ -553,9 +549,9 @@ class RecommendationAdapter(
         loadFollowStatus(holder, recommendation)
         
         // 팔로우 토글 리스너 설정
-        holder.followToggle.setOnCheckedChangeListener { isChecked ->
-            toggleFollow(holder, recommendation, isChecked)
-        }
+        // holder.followToggle.setOnCheckedChangeListener { isChecked ->
+        //     toggleFollow(holder, recommendation, isChecked)
+        // }
     }
     
     /**
@@ -582,6 +578,9 @@ class RecommendationAdapter(
                             
                             // UI 업데이트
                             updateFollowStatusUI(holder, isFollowing)
+                            
+                            // 브로드캐스트 전송으로 다른 화면에 알림
+                            sendFollowUpdateBroadcast(holder.itemView.context, recommendation.userId, isFollowing)
                             
                             Toast.makeText(holder.itemView.context, "팔로우했습니다.", Toast.LENGTH_SHORT).show()
                         } else {
@@ -617,6 +616,9 @@ class RecommendationAdapter(
                             
                             // UI 업데이트
                             updateFollowStatusUI(holder, false)
+                            
+                            // 브로드캐스트 전송으로 다른 화면에 알림
+                            sendFollowUpdateBroadcast(holder.itemView.context, recommendation.userId, false)
                             
                             Toast.makeText(holder.itemView.context, "언팔로우했습니다.", Toast.LENGTH_SHORT).show()
                         } else {
@@ -667,12 +669,12 @@ class RecommendationAdapter(
                             Log.d(TAG, "Follow status mismatch detected for userId ${recommendation.userId}, updating to server status: $serverFollowStatus")
                             
                             // UI 업데이트 (리스너 제거 후 설정하여 무한 루프 방지)
-                            holder.followToggle.setOnCheckedChangeListener { }
-                            holder.followToggle.setChecked(serverFollowStatus)
-                            updateFollowStatusUI(holder, serverFollowStatus)
-                            holder.followToggle.setOnCheckedChangeListener { isChecked ->
-                                toggleFollow(holder, recommendation, isChecked)
-                            }
+                            // holder.followToggle.setOnCheckedChangeListener { }
+                            // holder.followToggle.setChecked(serverFollowStatus)
+                            // updateFollowStatusUI(holder, serverFollowStatus)
+                            // holder.followToggle.setOnCheckedChangeListener { isChecked ->
+                            //     toggleFollow(holder, recommendation, isChecked)
+                            // }
                             
                             // PostManager에 팔로우 상태 업데이트
                             updateFollowStatusInPostManager(recommendation, serverFollowStatus)
@@ -697,8 +699,19 @@ class RecommendationAdapter(
      * 팔로우 토글 상태 되돌리기
      */
     private fun revertFollowToggle(holder: RecommendationViewHolder, originalState: Boolean) {
-        holder.followToggle.setOnCheckedChangeListener { }
-        holder.followToggle.setChecked(originalState)
+        // holder.followToggle.setOnCheckedChangeListener { }
+        // holder.followToggle.setChecked(originalState)
         // 리스너를 다시 설정해야 하지만, 여기서는 position 정보가 없으므로 일시적으로 제거
+    }
+
+    /**
+     * 팔로우 상태 변경을 다른 화면에 알리는 브로드캐스트 전송
+     */
+    private fun sendFollowUpdateBroadcast(context: Context, userId: Int, isFollowing: Boolean) {
+        val intent = Intent("com.example.travelonna.FOLLOW_UPDATED")
+        intent.putExtra("user_id", userId)
+        intent.putExtra("is_following", isFollowing)
+        LocalBroadcastManager.getInstance(context).sendBroadcast(intent)
+        Log.d(TAG, "팔로우 상태 변경 브로드캐스트 전송 - userId: $userId, isFollowing: $isFollowing")
     }
 } 

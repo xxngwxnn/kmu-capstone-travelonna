@@ -1,5 +1,7 @@
 package com.example.travelonna.api
 
+import com.google.gson.annotations.SerializedName
+
 data class FollowResponse(
     val success: Boolean,
     val message: String,
@@ -7,7 +9,10 @@ data class FollowResponse(
 )
 
 data class FollowData(
-    val isFollowing: Boolean,
-    val followerId: Int,
-    val followingId: Int
+    val id: Int,
+    val fromUser: Int,
+    val toUser: Int,
+    val profileId: Int,
+    @SerializedName("following")
+    val isFollowing: Boolean
 ) 

@@ -11,6 +11,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.travelonna.R
 import com.example.travelonna.model.User
 import com.example.travelonna.view.CustomToggleButton
+import com.example.travelonna.util.ImageUtils
 
 class FollowAdapter(
     private val users: List<User>,
@@ -35,9 +36,8 @@ class FollowAdapter(
         
         holder.username.text = user.username
         
-        // 프로필 이미지 설정
-        // 실제 앱에서는 Glide나 Picasso 같은 이미지 로딩 라이브러리를 사용할 수 있습니다
-        holder.profileImage.setImageResource(R.drawable.ic_place_holder)
+        // 프로필 이미지 설정 - ImageUtils 사용
+        ImageUtils.loadProfileImage(holder.profileImage, user.profileImageUrl)
         
         // 팔로우 상태에 따라 텍스트와 색상 변경
         updateFollowStatus(holder, user.isFollowing)

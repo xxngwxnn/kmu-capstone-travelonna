@@ -9,7 +9,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.travelonna.R
 import com.example.travelonna.model.Place
 
-class PlaceAdapter(private var places: List<Place>) : 
+class PlaceAdapter(private var places: List<Place>, private val onItemClick: (Place) -> Unit) : 
     RecyclerView.Adapter<PlaceAdapter.PlaceViewHolder>() {
 
     class PlaceViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -42,6 +42,7 @@ class PlaceAdapter(private var places: List<Place>) :
         // 거리가 있는 경우 표시
         holder.distanceTextView.text = place.distance
         holder.distanceTextView.visibility = if (place.distance.isNullOrEmpty()) View.GONE else View.VISIBLE
+        holder.itemView.setOnClickListener { onItemClick(place) }
     }
 
     override fun getItemCount(): Int = places.size

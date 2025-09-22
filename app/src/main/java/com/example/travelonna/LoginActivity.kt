@@ -272,7 +272,7 @@ class LoginActivity : AppCompatActivity() {
                         checkUserProfile(userId)
                     } ?: run {
                         Log.e(TAG, "User ID is null, cannot check profile")
-                        navigateToPlanActivity()
+                        navigateToHomeActivity()
                     }
                 } else {
                     Log.e(TAG, "Error!")
@@ -340,9 +340,9 @@ class LoginActivity : AppCompatActivity() {
                 
                 when (response.code()) {
                     200 -> {
-                        // Profile exists, navigate to PlanActivity
-                        Log.d(TAG, "User profile exists, navigating to PlanActivity")
-                        navigateToPlanActivity()
+                        // Profile exists, navigate to HomeActivity
+                        Log.d(TAG, "User profile exists, navigating to HomeActivity")
+                        navigateToHomeActivity()
                     }
                     204 -> {
                         // 204 indicates profile doesn't exist
@@ -355,7 +355,7 @@ class LoginActivity : AppCompatActivity() {
                         Log.e(TAG, "Error checking profile: ${response.code()}, ${response.message()}")
                         Log.e(TAG, "Error body: ${response.errorBody()?.string()}")
                         // Navigate to plan activity anyway as fallback
-                        navigateToPlanActivity()
+                        navigateToHomeActivity()
                     }
                 }
             }
@@ -363,14 +363,14 @@ class LoginActivity : AppCompatActivity() {
             override fun onFailure(call: Call<ProfileResponse>, t: Throwable) {
                 Log.e(TAG, "Network error when checking profile", t)
                 // Navigate to plan activity as fallback
-                navigateToPlanActivity()
+                navigateToHomeActivity()
             }
         })
     }
     
-    // Helper method to navigate to PlanActivity
-    private fun navigateToPlanActivity() {
-        val intent = Intent(this@LoginActivity, PlanActivity::class.java)
+    // Helper method to navigate to HomeActivity
+    private fun navigateToHomeActivity() {
+        val intent = Intent(this@LoginActivity, HomeActivity::class.java)
         startActivity(intent)
         finish()
     }

@@ -44,8 +44,8 @@ class StartActivity : AppCompatActivity() {
 
         // Set click listener for the start button
         startButton.setOnClickListener {
-            // Navigate to MainActivity (navigator screen) instead of LoginActivity
-            val intent = Intent(this, MainActivity::class.java)
+            // Navigate to LoginActivity for first-time login
+            val intent = Intent(this, LoginActivity::class.java)
             startActivity(intent)
             finish() // Close this activity so user can't go back to splash screen
         }

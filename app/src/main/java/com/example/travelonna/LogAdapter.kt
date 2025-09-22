@@ -10,7 +10,7 @@ import com.example.travelonna.model.TravelLog
 import com.example.travelonna.model.TravelPlace
 
 // RecyclerView 어댑터
-class LogAdapter(private val logs: List<TravelLog>) : 
+class LogAdapter(private var logs: List<TravelLog>) : 
     RecyclerView.Adapter<LogAdapter.LogViewHolder>() {
 
     class LogViewHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -56,7 +56,7 @@ class LogAdapter(private val logs: List<TravelLog>) :
                 log.places.forEachIndexed { index, place ->
                     putExtra("PLACE_NAME_$index", place.name)
                     putExtra("PLACE_ADDRESS_$index", place.address)
-                    putExtra("PLACE_TIME_$index", place.visitTime)
+                    putExtra("PLACE_TIME_$index", place.visitDate)
                 }
             }
             holder.itemView.context.startActivity(intent)
@@ -64,4 +64,10 @@ class LogAdapter(private val logs: List<TravelLog>) :
     }
 
     override fun getItemCount() = logs.size
+    
+    // 데이터 업데이트 메서드
+    fun updateLogs(newLogs: List<TravelLog>) {
+        logs = newLogs
+        notifyDataSetChanged()
+    }
 } 

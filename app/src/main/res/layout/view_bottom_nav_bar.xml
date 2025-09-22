@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="100dp">
+
+    <!-- 상단 구분선 -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#222222"
+        android:layout_gravity="top" />
+
+    <!-- 하얀 박스 배경 -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="100dp"
+        android:background="#FFFFFF" />
+
+    <!-- 아이콘들 -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:minHeight="100dp">
+
+        <ImageButton
+            android:id="@+id/navHome"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:background="@android:color/transparent"
+            android:src="@drawable/ic_nav_home_selector"
+            android:contentDescription="홈"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/navMap" />
+
+        <ImageButton
+            android:id="@+id/navMap"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:background="@android:color/transparent"
+            android:src="@drawable/ic_nav_map_selector"
+            android:contentDescription="나만의 지도"
+            app:layout_constraintStart_toEndOf="@id/navHome"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/navPlan" />
+
+        <ImageButton
+            android:id="@+id/navPlan"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:background="@android:color/transparent"
+            android:src="@drawable/ic_nav_plan_selector"
+            android:contentDescription="일정생성"
+            app:layout_constraintStart_toEndOf="@id/navMap"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/navSearch" />
+
+        <ImageButton
+            android:id="@+id/navSearch"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:background="@android:color/transparent"
+            android:src="@drawable/ic_nav_search_selector"
+            android:contentDescription="검색"
+            app:layout_constraintStart_toEndOf="@id/navPlan"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/navProfile" />
+
+        <ImageButton
+            android:id="@+id/navProfile"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:background="@android:color/transparent"
+            android:src="@drawable/ic_nav_profile_selector"
+            android:contentDescription="프로필"
+            app:layout_constraintStart_toEndOf="@id/navSearch"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</FrameLayout> 

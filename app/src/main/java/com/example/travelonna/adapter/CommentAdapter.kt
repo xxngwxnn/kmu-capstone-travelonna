@@ -1,14 +1,17 @@
 package com.example.travelonna.adapter
 
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.travelonna.R
 import com.example.travelonna.api.CommentData
 import java.text.SimpleDateFormat
 import java.util.*
+import java.text.ParseException
 
 class CommentAdapter(
     private var comments: MutableList<CommentData>,
@@ -24,6 +27,7 @@ class CommentAdapter(
         val userName: TextView = itemView.findViewById(R.id.commentUserName)
         val content: TextView = itemView.findViewById(R.id.commentContent)
         val timestamp: TextView = itemView.findViewById(R.id.commentTimestamp)
+        val deleteButton: ImageView = itemView.findViewById(R.id.commentDeleteButton)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CommentViewHolder {
@@ -42,9 +46,19 @@ class CommentAdapter(
         val timeAgo = getTimeAgo(comment.createdAt)
         holder.timestamp.text = timeAgo
         
+        // 현재 로그인한 사용자 ID와 댓글 작성자 ID 비교
+        val currentUserId = com.example.travelonna.api.RetrofitClient.getUserId()
+        if (comment.userId == currentUserId) {
+            holder.deleteButton.visibility = View.VISIBLE
+            holder.deleteButton.setOnClickListener {
+                listener.onDeleteComment(comment, position)
+            }
+        } else {
+            holder.deleteButton.visibility = View.GONE
+        }
+        
         // 롱클릭으로 수정/삭제 메뉴 표시 (본인 댓글만)
         holder.itemView.setOnLongClickListener {
-            // TODO: 현재 사용자 ID와 댓글 작성자 ID 비교 후 메뉴 표시
             false
         }
     }
@@ -76,26 +90,45 @@ class CommentAdapter(
         }
     }
 
-    private fun getTimeAgo(createdAt: String): String {
-        return try {
-            val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
-            val date = inputFormat.parse(createdAt)
-            val timestamp = date?.time ?: return createdAt
-            
-            val now = System.currentTimeMillis()
-            val diff = now - timestamp
-            
-            when {
-                diff < 60 * 1000 -> "방금 전"
-                diff < 60 * 60 * 1000 -> "${diff / (60 * 1000)}분 전"
-                diff < 24 * 60 * 60 * 1000 -> "${diff / (60 * 60 * 1000)}시간 전"
-                else -> {
-                    val sdf = SimpleDateFormat("MM.dd", Locale.getDefault())
-                    sdf.format(Date(timestamp))
+    private fun getTimeAgo(createdAt: String?): String {
+        if (createdAt == null || createdAt.isEmpty()) {
+            return "방금 전"
+        }
+        try {
+            val date = try {
+                // 첫 번째 형식 시도: yyyy-MM-dd'T'HH:mm:ss.SSSSSSSSS'Z'
+                val sdf1 = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSSSSS'Z'", Locale.getDefault())
+                sdf1.timeZone = TimeZone.getTimeZone("UTC")
+                sdf1.parse(createdAt)
+            } catch (e: ParseException) {
+                try {
+                    // 두 번째 형식 시도: yyyy-MM-dd'T'HH:mm:ss
+                    val sdf2 = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
+                    sdf2.timeZone = TimeZone.getTimeZone("UTC")
+                    sdf2.parse(createdAt)
+                } catch (e: ParseException) {
+                    // 세 번째 형식 시도: yyyy-MM-dd'T'HH:mm:ss.SSS'Z'
+                    val sdf3 = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault())
+                    sdf3.timeZone = TimeZone.getTimeZone("UTC")
+                    sdf3.parse(createdAt)
                 }
             }
+
+            val now = System.currentTimeMillis()
+            val diff = now - (date?.time ?: 0)
+            val seconds = diff / 1000
+            val minutes = seconds / 60
+            val hours = minutes / 60
+            val days = hours / 24
+            return when {
+                days > 0 -> "${days}일 전"
+                hours > 0 -> "${hours}시간 전"
+                minutes > 0 -> "${minutes}분 전"
+                else -> "방금 전"
+            }
         } catch (e: Exception) {
-            createdAt.substring(0, 10).replace("-", ".")
+            Log.e("CommentAdapter", "Error parsing date: $createdAt", e)
+            return "방금 전"
         }
     }
 } 

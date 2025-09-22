@@ -39,7 +39,7 @@ interface ApiService {
     @GET("api/v1/plans")
     fun getPlans(@Header("Authorization") authorization: String): Call<PlanListResponse>
     
-    @GET("api/v1/logs/{logId}/detail")
+    @GET("api/v1/logs/{logId}")
     fun getLogDetail(@Path("logId") logId: Int): Call<LogDetailApiResponse>
     
     @GET("api/v1/groups/my")
@@ -113,24 +113,29 @@ interface ApiService {
     fun getPlaceDetail(@Path("placeId") placeId: Int): Call<PlaceDetailResponse>
     
     @POST("api/v1/logs")
-    fun createTravelLog(@Body request: TravelLogCreateRequest): Call<TravelLogResponse>
+    fun createTravelLog(@Body request: TravelLogCreateRequest): Call<TravelLogCreateResponse>
     
-    @GET("api/v1/logs/place/{placeId}")
+    @GET("api/v1/logs/places/{placeId}")
     fun getTravelLogsByPlace(@Path("placeId") placeId: Int): Call<TravelLogListResponse>
     
     @PUT("api/v1/logs/{logId}")
     fun updateTravelLog(@Path("logId") logId: Int, @Body request: TravelLogUpdateRequest): Call<TravelLogResponse>
     
-    @GET("api/v1/logs/user/{userId}")
-    fun getTravelLogsByUser(@Path("userId") userId: Int): Call<TravelLogListResponse>
+    @GET("api/v1/logs/plans/{planId}")
+    fun getTravelLogsByPlan(@Path("planId") planId: Int): Call<TravelLogListResponse>
     
     // Plan update endpoint
     @PUT("api/v1/plans/{planId}")
     fun updatePlan(@Path("planId") planId: Int, @Body request: PlanUpdateRequest): Call<PlanResponse>
     
     // Recommendation endpoints
-    @POST("api/v1/recommendations")
-    fun getRecommendations(@Body request: RecommendationRequest): Call<RecommendationApiResponse>
+    @GET("api/v1/recommendations")
+    fun getRecommendations(
+        @Query("userId") userId: Int,
+        @Query("type") type: String = "log",
+        @Query("page") page: Int = 1,
+        @Query("size") size: Int = 20
+    ): Call<RecommendationApiResponse>
     
     @GET("api/v1/recommendations/exists")
     fun checkRecommendationExists(@Query("userId") userId: Int, @Query("recType") recType: String): Call<RecommendationExistsResponse>
@@ -139,7 +144,7 @@ interface ApiService {
     fun getRecommendationCount(@Query("userId") userId: Int, @Query("recType") recType: String): Call<RecommendationCountResponse>
     
     // Like endpoints
-    @POST("api/v1/logs/{logId}/like")
+    @POST("api/v1/logs/{logId}/likes")
     fun toggleLogLike(@Path("logId") logId: Int): Call<LikeToggleResponse>
     
     // Follow endpoints
@@ -153,16 +158,16 @@ interface ApiService {
     fun getFollowStatus(@Path("userId") userId: Int): Call<FollowStatusResponse>
     
     // Comment endpoints
-    @GET("api/v1/logs/{logId}/comments")
+    @GET("api/logs/{logId}/comments")
     fun getLogComments(@Path("logId") logId: Int): Call<CommentsResponse>
     
-    @POST("api/v1/logs/{logId}/comments")
+    @POST("api/logs/{logId}/comments")
     fun createComment(@Path("logId") logId: Int, @Body request: CreateCommentRequest): Call<CommentData>
     
-    @PUT("api/v1/comments/{commentId}")
+    @PUT("api/logs/comments/{commentId}")
     fun updateComment(@Path("commentId") commentId: Int, @Body request: CreateCommentRequest): Call<UpdateCommentResponse>
     
-    @DELETE("api/v1/comments/{commentId}")
+    @DELETE("api/logs/comments/{commentId}")
     fun deleteComment(@Path("commentId") commentId: Int): Call<DeleteCommentResponse>
     
     // User logs endpoints

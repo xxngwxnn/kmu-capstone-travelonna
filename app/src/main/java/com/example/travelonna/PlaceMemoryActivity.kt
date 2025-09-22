@@ -1,7 +1,10 @@
 package com.example.travelonna
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -12,7 +15,10 @@ import android.widget.TextView
 import android.widget.Toast
 import android.widget.RelativeLayout
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import android.util.Log
 import com.example.travelonna.api.BasicResponse
 import com.example.travelonna.api.PlaceCreateRequest
@@ -24,6 +30,7 @@ import com.example.travelonna.api.TravelLogResponse
 import com.example.travelonna.api.TravelLogCreateRequest
 import com.example.travelonna.api.TravelLogUpdateRequest
 import com.example.travelonna.api.TravelLogListResponse
+import com.example.travelonna.api.TravelLogCreateResponse
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -46,6 +53,7 @@ import com.google.gson.GsonBuilder
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import com.example.travelonna.util.CustomToast
 
 class PlaceMemoryActivity : AppCompatActivity() {
 
@@ -81,6 +89,11 @@ class PlaceMemoryActivity : AppCompatActivity() {
     private var existingComment = ""
     private var existingImageUrls: List<String> = emptyList()
     
+    // 권한 요청 코드
+    companion object {
+        private const val STORAGE_PERMISSION_REQUEST_CODE = 1003
+    }
+    
     // 이미지 선택을 위한 ActivityResultLauncher 선언
     private val pickImage = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri?.let {
@@ -101,9 +114,9 @@ class PlaceMemoryActivity : AppCompatActivity() {
                     android.provider.MediaStore.Images.Media.getBitmap(contentResolver, it)
                 )
                 
-                Toast.makeText(this, "이미지가 선택되었습니다", Toast.LENGTH_SHORT).show()
+                CustomToast.success(this, "이미지가 선택되었습니다")
             } catch (e: Exception) {
-                Toast.makeText(this, "이미지를 불러올 수 없습니다", Toast.LENGTH_SHORT).show()
+                CustomToast.error(this, "이미지를 불러올 수 없습니다")
                 e.printStackTrace()
             }
         }
@@ -185,7 +198,7 @@ class PlaceMemoryActivity : AppCompatActivity() {
 
         // 이미지 영역 클릭 리스너 설정
         imageContainer.setOnClickListener {
-            pickImage.launch("image/*")
+            checkStoragePermissionAndPickImage()
         }
 
         // 텍스트 입력 감지 및 카운터 업데이트
@@ -215,13 +228,13 @@ class PlaceMemoryActivity : AppCompatActivity() {
         uploadButton.setOnClickListener {
             val memoryText = memoryEditText.text.toString()
             if (memoryText.isEmpty()) {
-                Toast.makeText(this, "여행 기록을 작성해주세요", Toast.LENGTH_SHORT).show()
+                CustomToast.warning(this, "여행 기록을 작성해주세요")
                 return@setOnClickListener
             }
             
             // 수정 모드가 아닌 경우에만 이미지 필수 체크
             if (!isEditMode && selectedImageUri == null) {
-                Toast.makeText(this, "이미지를 선택해주세요", Toast.LENGTH_SHORT).show()
+                CustomToast.warning(this, "이미지를 선택해주세요")
                 return@setOnClickListener
             }
             
@@ -240,6 +253,82 @@ class PlaceMemoryActivity : AppCompatActivity() {
             } else {
                 Log.d(TAG, "여행 기록 업로드 시작 - planId: $planId, 텍스트 길이: ${memoryText.length}")
                 uploadTravelLog(memoryText, selectedImageUri, loadingDialog)
+            }
+        }
+    }
+    
+    // 갤러리 권한 확인 및 이미지 선택
+    private fun checkStoragePermissionAndPickImage() {
+        val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            Manifest.permission.READ_MEDIA_IMAGES
+        } else {
+            Manifest.permission.READ_EXTERNAL_STORAGE
+        }
+        
+        when {
+            ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED -> {
+                // 권한이 이미 허용됨
+                pickImage.launch("image/*")
+            }
+            ActivityCompat.shouldShowRequestPermissionRationale(this, permission) -> {
+                // 권한 설명이 필요한 경우
+                showStoragePermissionRationale()
+            }
+            else -> {
+                // 권한 요청
+                requestStoragePermission()
+            }
+        }
+    }
+    
+    // 갤러리 권한 설명 다이얼로그
+    private fun showStoragePermissionRationale() {
+        AlertDialog.Builder(this)
+            .setTitle("갤러리 접근 권한 필요")
+            .setMessage("여행 기록에 사진을 추가하기 위해 갤러리 접근 권한이 필요합니다.")
+            .setPositiveButton("권한 허용") { _, _ ->
+                requestStoragePermission()
+            }
+            .setNegativeButton("취소") { _, _ ->
+                Toast.makeText(this, "갤러리 접근 권한이 필요합니다.", Toast.LENGTH_SHORT).show()
+            }
+            .show()
+    }
+    
+    // 갤러리 권한 요청
+    private fun requestStoragePermission() {
+        val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            Manifest.permission.READ_MEDIA_IMAGES
+        } else {
+            Manifest.permission.READ_EXTERNAL_STORAGE
+        }
+        
+        ActivityCompat.requestPermissions(
+            this,
+            arrayOf(permission),
+            STORAGE_PERMISSION_REQUEST_CODE
+        )
+    }
+    
+    // 권한 요청 결과 처리
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        
+        when (requestCode) {
+            STORAGE_PERMISSION_REQUEST_CODE -> {
+                if (grantResults.isNotEmpty() && 
+                    grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    // 권한 허용됨
+                    CustomToast.success(this, "갤러리 접근 권한이 허용되었습니다.")
+                    pickImage.launch("image/*")
+                } else {
+                    // 권한 거부됨
+                    CustomToast.error(this, "갤러리 접근 권한이 거부되었습니다. 사진을 추가할 수 없습니다.")
+                }
             }
         }
     }
@@ -437,11 +526,12 @@ class PlaceMemoryActivity : AppCompatActivity() {
     // 여행 기록 업로드 메서드
     private fun uploadTravelLog(comment: String, imageUri: Uri?, loadingDialog: android.app.AlertDialog) {
         try {
-            // 이미지 URL 처리 (이미지가 있으면 새 URL, 없으면 기본 URL)
+            // 이미지 URL 처리 - 실제 이미지가 있을 때만 URL 생성
             val imageUrl = if (imageUri != null) {
-                "https://example.com/placeholder_image.jpg"
+                // 실제 이미지 업로드 후 URL을 받아야 하지만, 임시로 null 처리
+                null
             } else {
-                "https://example.com/default_image.jpg"
+                null
             }
             
             // 바로 여행 로그 생성 API 호출
@@ -454,7 +544,7 @@ class PlaceMemoryActivity : AppCompatActivity() {
     }
 
     // 여행 로그 생성 API 호출
-    private fun createTravelLog(comment: String, imageUrl: String, loadingDialog: android.app.AlertDialog) {
+    private fun createTravelLog(comment: String, imageUrl: String?, loadingDialog: android.app.AlertDialog) {
         // API 문서 형식에 맞게 요청 객체 생성
         val requestBody = HashMap<String, Any>()
         requestBody["planId"] = planId
@@ -462,9 +552,11 @@ class PlaceMemoryActivity : AppCompatActivity() {
         requestBody["comment"] = comment
         requestBody["isPublic"] = travelLogIsPublic
         
-        // 이미지 URL 리스트 추가
+        // 이미지 URL 리스트 추가 (실제 이미지가 있을 때만)
         val imageUrls = ArrayList<String>()
-        imageUrls.add(imageUrl)
+        if (imageUrl != null) {
+            imageUrls.add(imageUrl)
+        }
         requestBody["imageUrls"] = imageUrls
         
         // 인증 정보 확인
@@ -479,16 +571,17 @@ class PlaceMemoryActivity : AppCompatActivity() {
         
         // TravelLogCreateRequest 객체 생성
         val travelLogRequest = TravelLogCreateRequest(
+            planId = planId,
             placeId = placeId,
             title = placeName ?: "여행 기록",
-            content = comment,
+            comment = comment,
             visitDate = getCurrentDate(),
             isPublic = travelLogIsPublic
         )
         
         // API 호출
-        RetrofitClient.apiService.createTravelLog(travelLogRequest).enqueue(object : Callback<TravelLogResponse> {
-            override fun onResponse(call: Call<TravelLogResponse>, response: Response<TravelLogResponse>) {
+        RetrofitClient.apiService.createTravelLog(travelLogRequest).enqueue(object : Callback<TravelLogCreateResponse> {
+            override fun onResponse(call: Call<TravelLogCreateResponse>, response: Response<TravelLogCreateResponse>) {
                 loadingDialog.dismiss()
                 
                 // 응답 상세 로깅
@@ -547,7 +640,7 @@ class PlaceMemoryActivity : AppCompatActivity() {
                 }
             }
             
-            override fun onFailure(call: Call<TravelLogResponse>, t: Throwable) {
+            override fun onFailure(call: Call<TravelLogCreateResponse>, t: Throwable) {
                 loadingDialog.dismiss()
                 Log.e(TAG, "여행 로그 생성 네트워크 오류", t)
                 Log.e(TAG, "요청 URL: ${call.request().url}")
@@ -573,7 +666,7 @@ class PlaceMemoryActivity : AppCompatActivity() {
                         val existingLog = logs.first()
                         existingLogId = existingLog.logId
                         existingComment = existingLog.comment
-                        existingImageUrls = existingLog.imageUrls
+                        existingImageUrls = existingLog.imageUrls ?: emptyList()
                         travelLogIsPublic = existingLog.isPublic
                         isEditMode = true
                         
@@ -610,9 +703,10 @@ class PlaceMemoryActivity : AppCompatActivity() {
         try {
             // 기존 이미지 URL 사용 또는 새 이미지 URL
             val imageUrl = if (imageUri != null) {
-                "https://example.com/new_image.jpg" // 새 이미지가 있으면 새 URL
+                // 새 이미지가 있으면 실제 업로드 후 URL을 받아야 함
+                null
             } else {
-                existingImageUrls.firstOrNull() ?: "https://example.com/placeholder_image.jpg" // 기존 이미지 사용
+                existingImageUrls.firstOrNull() // 기존 이미지 사용
             }
             
             // 여행 로그 수정 API 호출
@@ -625,11 +719,12 @@ class PlaceMemoryActivity : AppCompatActivity() {
     }
 
     // 여행 로그 수정 API 호출
-    private fun updateTravelLogApi(comment: String, imageUrl: String, loadingDialog: android.app.AlertDialog) {
+    private fun updateTravelLogApi(comment: String, imageUrl: String?, loadingDialog: android.app.AlertDialog) {
         // TravelLogUpdateRequest 객체 생성
         val updateRequest = TravelLogUpdateRequest(
+            planId = planId,
             title = "여행 기록",
-            content = comment,
+            comment = comment,
             visitDate = getCurrentDate(),
             isPublic = travelLogIsPublic
         )

@@ -20,5 +20,7 @@ data class FollowUser(
     val fromUser: Int,
     val toUser: Int,
     val profileId: Int,
-    val following: Boolean
+    val following: Boolean,
+    val nickname: String? = null,  // 사용자 닉네임 추가
+    val introduction: String? = null  // 사용자 소개 추가
 ) 

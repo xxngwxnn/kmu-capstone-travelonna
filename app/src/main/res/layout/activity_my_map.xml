@@ -110,4 +110,13 @@
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
+    <include
+        layout="@layout/view_bottom_nav_bar"
+        android:id="@+id/bottomNavBar"
+        android:layout_width="match_parent"
+        android:layout_height="65dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
 </androidx.constraintlayout.widget.ConstraintLayout> 

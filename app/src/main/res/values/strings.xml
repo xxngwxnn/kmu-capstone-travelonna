@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Travelonna</string>
+    <string name="app_name">여행ON나</string>
     <string name="google_maps_key">AIzaSyDsi4wg1BwtoztstYV2Z7NRtklS-eRyGxk</string>
+    <string name="delete_comment">댓글 삭제</string>
 </resources>
